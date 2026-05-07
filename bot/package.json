@@ -1,0 +1,21 @@
+{
+  "name": "gtmo-miniapp-bot",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "npx ts-node --project tsconfig.json index.ts",
+    "dev": "npx ts-node --project tsconfig.json index.ts"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.45.2",
+    "grammy": "^1.31.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "ts-node": "^10.9.2",
+    "typescript": "^5"
+  }
+}
