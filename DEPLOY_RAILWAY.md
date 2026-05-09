@@ -18,7 +18,7 @@ Edit `bot/.env` and set real values (no quotes unless a value contains spaces):
 |----------|---------|
 | `TELEGRAM_BOT_TOKEN` | Same mini-app bot as WebApp / Vercel `TELEGRAM_BOT_TOKEN` |
 | `DATABASE_URL` | Neon pooled URL (same DB as Vercel) |
-| `MINI_APP_URL` | `https://<your-project>.vercel.app` (full URL with `https://`) |
+| `MINI_APP_URL` | `https://<your-project>.vercel.app` (full URL with `https://`, no trailing newline — paste carefully in Railway) |
 | `CHATWOOT_BASE_URL` | e.g. `https://chat.yourdomain.com` |
 | `CHATWOOT_API_TOKEN` | Profile access token |
 | `CHATWOOT_ACCOUNT_ID` | From Chatwoot URL `/app/accounts/<id>/` |
