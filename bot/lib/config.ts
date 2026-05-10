@@ -18,3 +18,36 @@ export function getMiniAppUrl(): string | undefined {
     return undefined;
   }
 }
+
+/**
+ * URL for `web_app` buttons. Telegram reads `startapp` and exposes it as
+ * `WebApp.initDataUnsafe.start_param` inside the Mini App (same origin — not an external browser tab).
+ *
+ * - If `startPayload` is set and not `ref_*`, it becomes `?startapp=...` (e.g. Voluum `clickid_ad4`).
+ * - Otherwise uses `MINI_APP_START_PARAM` (e.g. `ad4` so the GTMO Code funnel opens in-app).
+ */
+export function getMiniAppWebAppUrl(startPayload?: string | null): string | undefined {
+  const base = getMiniAppUrl();
+  if (!base) return undefined;
+
+  let start = (startPayload ?? "").trim();
+  if (start.startsWith("ref_")) {
+    start = "";
+  }
+
+  if (!start) {
+    start = (process.env.MINI_APP_START_PARAM ?? "").trim();
+  }
+
+  if (!start) {
+    return base;
+  }
+
+  try {
+    const u = new URL(base);
+    u.searchParams.set("startapp", start);
+    return u.toString();
+  } catch {
+    return base;
+  }
+}

@@ -3,7 +3,7 @@ import { db } from "../lib/db";
 import { users, events } from "../../lib/db/schema";
 import { eq } from "drizzle-orm";
 import { sendLeadCard } from "../lib/sendLead";
-import { getMiniAppUrl } from "../lib/config";
+import { getMiniAppUrl, getMiniAppWebAppUrl } from "../lib/config";
 
 export async function handleMessage(ctx: Context) {
   const telegramId = ctx.from?.id;
@@ -16,11 +16,12 @@ export async function handleMessage(ctx: Context) {
     .where(eq(users.telegramId, telegramId))
     .limit(1);
 
-  const miniAppUrl = getMiniAppUrl();
+  const miniAppUrl = getMiniAppWebAppUrl();
+  const miniAppConfigured = Boolean(getMiniAppUrl());
 
   if (!user) {
     const msg = "To get started, please complete your application first.";
-    if (!miniAppUrl) {
+    if (!miniAppConfigured) {
       await ctx.reply(
         `${msg}\n\n⚠️ MINI_APP_URL is not set on the server.`,
       );
@@ -29,7 +30,7 @@ export async function handleMessage(ctx: Context) {
     await ctx.reply(msg, {
       reply_markup: {
         inline_keyboard: [
-          [{ text: "📋 Apply Now", web_app: { url: miniAppUrl } }],
+          [{ text: "📋 Apply Now", web_app: { url: miniAppUrl! } }],
         ],
       },
     });
@@ -70,7 +71,7 @@ export async function handleMessage(ctx: Context) {
     return;
   }
 
-  if (!miniAppUrl) {
+  if (!miniAppConfigured) {
     await ctx.reply(
       "Tap below to continue your application.\n\n⚠️ MINI_APP_URL is not set on the server.",
     );
@@ -80,7 +81,7 @@ export async function handleMessage(ctx: Context) {
   await ctx.reply("Tap below to continue your application.", {
     reply_markup: {
       inline_keyboard: [
-        [{ text: "📋 Open App", web_app: { url: miniAppUrl } }],
+        [{ text: "📋 Open App", web_app: { url: miniAppUrl! } }],
       ],
     },
   });

@@ -2,7 +2,7 @@ import type { Context } from "grammy";
 import { db } from "../lib/db";
 import { users } from "../../lib/db/schema";
 import { eq } from "drizzle-orm";
-import { getMiniAppUrl } from "../lib/config";
+import { getMiniAppWebAppUrl } from "../lib/config";
 
 export async function handleStart(ctx: Context) {
   const telegramId = ctx.from?.id;
@@ -22,7 +22,11 @@ export async function handleStart(ctx: Context) {
     console.log(`Referral: ${telegramId} referred by ${referrerId}`);
   }
 
-  const miniAppUrl = getMiniAppUrl();
+  const startPayload =
+    typeof ctx.match === "string" ? ctx.match.trim() : "";
+  const miniAppUrl = getMiniAppWebAppUrl(
+    startPayload && !startPayload.startsWith("ref_") ? startPayload : null,
+  );
   const text =
     "👋 Welcome to GTMO Trading.\n\nTap below to apply for access to our live trading signals.";
 
