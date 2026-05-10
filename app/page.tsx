@@ -5,12 +5,41 @@ import { useRouter } from "next/navigation";
 import { loadWebApp } from "@/lib/twa";
 import { normalizeEntryVariant } from "@/lib/funnel/normalize";
 
+/** True when this segment is meant as a funnel variant (ad4, code, etc.). */
+function looksLikeVariantSegment(s: string): boolean {
+  const v = s.trim().toLowerCase();
+  if (!v) return false;
+  if (v === "code" || v === "gtmocode") return true;
+  return /^ad\d+$/.test(v);
+}
+
+/**
+ * Voluum-style: prefix_clickid_variant (3+ parts → cid at [1], variant at [2]).
+ * Also: clickid_variant (2 parts) or single startapp=ad4 (1 part).
+ * Single unknown token → treat as click id only (not forced to ad1).
+ */
 function parseStartParam(startParam: string) {
-  const parts = startParam.split("_");
-  return {
-    cid: parts[1] || null,
-    variant: parts[2] || null,
-  };
+  const raw = (startParam || "").trim();
+  if (!raw || raw.startsWith("ref_")) {
+    return { cid: null, variant: null };
+  }
+  const parts = raw.split("_").filter((p) => p.length > 0);
+  const n = parts.length;
+
+  if (n >= 3) {
+    return { cid: parts[1] ?? null, variant: parts[2] ?? null };
+  }
+  if (n === 2) {
+    return { cid: parts[0] ?? null, variant: parts[1] ?? null };
+  }
+  if (n === 1) {
+    const only = parts[0]!;
+    if (looksLikeVariantSegment(only)) {
+      return { cid: null, variant: only };
+    }
+    return { cid: only, variant: null };
+  }
+  return { cid: null, variant: null };
 }
 
 export default function EntryPage() {
