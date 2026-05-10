@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { users, events, offers } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import axios from "axios";
+import { normalizeEntryVariant } from "@/lib/funnel/normalize";
 
 export async function POST(req: NextRequest) {
   try {
@@ -43,6 +44,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const normalizedVariant = normalizeEntryVariant(variant);
+
     const existing = await db
       .select()
       .from(users)
@@ -60,7 +63,7 @@ export async function POST(req: NextRequest) {
           firstName: tgUser.first_name || null,
           languageCode: tgUser.language_code || null,
           voluumCid: voluumCid || null,
-          entryVariant: variant || null,
+          entryVariant: normalizedVariant,
           country,
           countryCode,
           source: "mini_app",
@@ -82,14 +85,18 @@ export async function POST(req: NextRequest) {
       userId,
       telegramId: tgUser.id,
       eventType: "app_open",
-      metadata: { variant, cid: voluumCid, returning: existing.length > 0 },
+      metadata: {
+        variant: normalizedVariant,
+        cid: voluumCid,
+        returning: existing.length > 0,
+      },
       country,
     });
 
     return NextResponse.json({
       success: true,
       userId,
-      variant: variant || "default",
+      variant: normalizedVariant,
       isReturning: existing.length > 0,
       existingSegment: existing[0]?.segment ?? null,
     });

@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { VideoEntry } from "@/components/VideoEntry";
-import { LPEntry } from "@/components/LPEntry";
 import { loadWebApp } from "@/lib/twa";
+import { normalizeEntryVariant } from "@/lib/funnel/normalize";
 
 function parseStartParam(startParam: string) {
   const parts = startParam.split("_");
@@ -16,8 +15,6 @@ function parseStartParam(startParam: string) {
 
 export default function EntryPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [variant, setVariant] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -43,41 +40,23 @@ export default function EntryPage() {
           .then((res) => res.json())
           .then((data) => {
             if (cancelled) return;
-            setVariant(data.variant);
-            setLoading(false);
-
-            fetch("/api/event", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                initData: WebApp.initData,
-                eventType: "offer_view",
-                metadata: { variant: data.variant },
-              }),
-            }).catch(() => {});
+            if (data.error) return;
+            const variant = normalizeEntryVariant(data.variant);
+            router.replace(`/gate?variant=${encodeURIComponent(variant)}`);
           });
       })
       .catch(() => {
-        if (!cancelled) setLoading(false);
+        /* handled by loading UI timeout — user can refresh */
       });
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [router]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="animate-pulse text-white text-sm">Loading...</div>
-      </div>
-    );
-  }
-
-  const v = variant || "default";
-  return v.startsWith("vid") ? (
-    <VideoEntry variant={v} onContinue={() => router.push("/qualify")} />
-  ) : (
-    <LPEntry variant={v} onContinue={() => router.push("/qualify")} />
+  return (
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="animate-pulse text-white text-sm">Loading...</div>
+    </div>
   );
 }

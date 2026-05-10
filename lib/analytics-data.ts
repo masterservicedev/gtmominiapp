@@ -18,6 +18,12 @@ export async function getAnalyticsPayload() {
           COUNT(DISTINCT u.id)::int as users,
           COUNT(*) FILTER (WHERE e.event_type = 'offer_view')::int as views,
           COUNT(*) FILTER (WHERE e.event_type = 'offer_complete')::int as completes,
+          COUNT(*) FILTER (WHERE e.event_type = 'funnel_gate_complete')::int as funnel_gate_complete,
+          COUNT(*) FILTER (WHERE e.event_type = 'prelander_view')::int as prelander_views,
+          COUNT(*) FILTER (WHERE e.event_type = 'prelander_complete')::int as prelander_completes,
+          COUNT(*) FILTER (WHERE e.event_type = 'offer_watched')::int as offer_watched,
+          COUNT(*) FILTER (WHERE e.event_type = 'questionnaire_start')::int as questionnaire_starts,
+          COUNT(*) FILTER (WHERE e.event_type = 'questionnaire_processing_shown')::int as questionnaire_processing_shown,
           COUNT(*) FILTER (WHERE e.event_type = 'questionnaire_complete')::int as questionnaire_done,
           COUNT(*) FILTER (WHERE e.event_type = 'crm_triggered')::int as crm_leads
         FROM users u

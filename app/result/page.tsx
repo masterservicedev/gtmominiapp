@@ -35,38 +35,53 @@ function ResultContent() {
 
 function HighResult() {
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6 text-center">
-      <div className="text-5xl mb-4">✅</div>
-      <h1 className="text-2xl font-bold mb-3">You&apos;ve been pre-approved</h1>
-      <p className="text-gray-400 mb-8 text-sm leading-relaxed">
-        Based on your answers, a specialist from our team is being assigned to
-        your application now.
-      </p>
-
-      <div className="w-full bg-gray-900 rounded-xl p-4 mb-8 text-left text-sm">
-        <p className="text-emerald-400 font-semibold mb-2">
-          ⚡ What happens next
-        </p>
-        <ul className="text-gray-400 space-y-1">
-          <li>• Join the free signals channel below</li>
-          <li>• You&apos;ll receive a message from our team shortly</li>
-          <li>
-            • Reply <strong className="text-white">READY</strong> to confirm
-            your availability
-          </li>
-        </ul>
+    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6 text-center overflow-hidden">
+      <div
+        className="absolute inset-0 pointer-events-none opacity-40"
+        aria-hidden
+      >
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[120%] max-w-2xl h-48 bg-emerald-500/15 blur-3xl rounded-full motion-safe:animate-pulse" />
       </div>
 
-      <a
-        href={channelLink}
-        className="w-full bg-emerald-500 text-black font-bold py-4 rounded-xl text-center mb-4"
-      >
-        🚀 Join the Channel
-      </a>
+      <div className="relative w-full max-w-md animate-result-pop-in opacity-0">
+        <div className="text-5xl mb-4 motion-safe:animate-[bounce_1s_ease-in-out_1]">
+          ✅
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-3 bg-gradient-to-br from-white to-emerald-100/90 bg-clip-text text-transparent">
+          You&apos;ve been pre-approved
+        </h1>
+        <p className="text-gray-400 mb-8 text-sm leading-relaxed">
+          Based on your answers, a specialist from our team is being assigned to
+          your application now.
+        </p>
 
-      <p className="text-xs text-gray-600">
-        Spots are limited — applications are reviewed in real time
-      </p>
+        <div className="w-full rounded-xl p-[1px] bg-gradient-to-br from-emerald-400/50 via-emerald-600/20 to-transparent mb-8 animate-result-glow">
+          <div className="bg-gray-950/90 backdrop-blur-sm rounded-[11px] p-4 text-left text-sm border border-emerald-500/10">
+            <p className="text-emerald-400 font-semibold mb-2">
+              ⚡ What happens next
+            </p>
+            <ul className="text-gray-400 space-y-1">
+              <li>• Join the free signals channel below</li>
+              <li>• You&apos;ll receive a message from our team shortly</li>
+              <li>
+                • Reply <strong className="text-white">READY</strong> to confirm
+                your availability
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <a
+          href={channelLink}
+          className="block w-full bg-emerald-500 text-black font-bold py-4 rounded-xl text-center mb-4 shadow-[0_0_24px_rgba(16,185,129,0.35)] hover:bg-emerald-400 transition-colors"
+        >
+          🚀 Join the Channel
+        </a>
+
+        <p className="text-xs text-gray-600">
+          Spots are limited — applications are reviewed in real time
+        </p>
+      </div>
     </div>
   );
 }

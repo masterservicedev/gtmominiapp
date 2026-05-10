@@ -44,17 +44,30 @@ export const readinessEnum = pgEnum("readiness", [
   "ready_now",
 ]);
 
-export const eventTypeEnum = pgEnum("event_type", [
+/** Single source of truth for `event_type` enum — keep in sync with DB. */
+export const eventTypeValues = [
   "app_open",
   "offer_view",
   "offer_complete",
+  "funnel_gate_complete",
+  "prelander_view",
+  "prelander_complete",
+  "offer_watched",
   "questionnaire_start",
   "questionnaire_complete",
+  "questionnaire_processing_shown",
   "crm_triggered",
   "bot_nurtured",
   "deposit_confirmed",
   "rescore",
-]);
+] as const;
+
+export type EventType = (typeof eventTypeValues)[number];
+
+export const eventTypeEnum = pgEnum(
+  "event_type",
+  eventTypeValues as unknown as [string, ...string[]],
+);
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),

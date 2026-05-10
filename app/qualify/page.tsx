@@ -1,10 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FunnelProgress } from "@/components/funnel/FunnelProgress";
+import { ProcessingScreen } from "@/components/funnel/ProcessingScreen";
+import { normalizeEntryVariant, type AdVariant } from "@/lib/funnel/normalize";
+import { getFunnelConfig, getPreQuestionnaireSteps } from "@/lib/funnel/resolve";
+import { getThemeClasses } from "@/lib/funnel/theme";
+import { trackFunnelEvent } from "@/lib/funnel/track";
 import { loadWebApp } from "@/lib/twa";
 
-const TOTAL_STEPS = 5;
+const QUESTIONNAIRE_STEPS = 5;
 
 const steps = [
   {
@@ -77,15 +83,26 @@ const steps = [
   },
 ];
 
-export default function QualifyPage() {
+function QualifyInner() {
   const router = useRouter();
+  const params = useSearchParams();
+  const variant = normalizeEntryVariant(params.get("variant")) as AdVariant;
+  const cfg = getFunnelConfig(variant);
+  const t = getThemeClasses(cfg.theme);
+  const preSteps = getPreQuestionnaireSteps(variant);
+  const totalFunnelSteps = preSteps + QUESTIONNAIRE_STEPS;
+
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [processing, setProcessing] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
 
   const step = steps[currentStep]!;
-  const progress = ((currentStep + 1) / TOTAL_STEPS) * 100;
+  const funnelStepNumber = preSteps + currentStep + 1;
+
+  useEffect(() => {
+    trackFunnelEvent("questionnaire_start", { variant });
+  }, [variant]);
 
   function handleSelect(value: string) {
     setSelected(value);
@@ -103,9 +120,10 @@ export default function QualifyPage() {
     setAnswers(newAnswers);
     setSelected(null);
 
-    if (currentStep === TOTAL_STEPS - 1) {
+    if (currentStep === QUESTIONNAIRE_STEPS - 1) {
       setProcessing(true);
-      await new Promise((r) => setTimeout(r, 800));
+      await trackFunnelEvent("questionnaire_processing_shown", { variant });
+      const start = Date.now();
 
       try {
         const WebApp = await loadWebApp();
@@ -125,6 +143,8 @@ export default function QualifyPage() {
         });
 
         const data = await res.json();
+        const elapsed = Date.now() - start;
+        await new Promise((r) => setTimeout(r, Math.max(0, 2500 - elapsed)));
 
         if (data.exit) {
           router.push(`/result?exit=${data.reason}`);
@@ -142,54 +162,71 @@ export default function QualifyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
-      <div className="w-full h-1 bg-gray-800">
-        <div
-          className="h-full bg-emerald-500 transition-all duration-500"
-          style={{ width: `${progress}%` }}
+    <>
+      {processing ? <ProcessingScreen theme={cfg.theme} /> : null}
+      <div className="min-h-screen bg-black text-white flex flex-col">
+        <FunnelProgress
+          current={funnelStepNumber}
+          total={totalFunnelSteps}
+          label={`Step ${funnelStepNumber} of ${totalFunnelSteps}`}
+          theme={cfg.theme}
         />
-      </div>
 
-      <div className="px-6 pt-4 text-xs text-gray-500">
-        Step {step.step} of {TOTAL_STEPS}
-      </div>
-
-      <div className="flex-1 px-6 pt-8 pb-6 flex flex-col">
-        <h1 className="text-xl font-bold mb-2">{step.question}</h1>
-        {step.subtitle && (
-          <p className="text-sm text-gray-400 mb-8">{step.subtitle}</p>
-        )}
-
-        <div className="flex flex-col gap-3 flex-1">
-          {step.options.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => handleSelect(opt.value)}
-              className={`w-full text-left px-4 py-4 rounded-xl border transition-all ${
-                selected === opt.value
-                  ? "border-emerald-500 bg-emerald-500/10 text-white"
-                  : "border-gray-700 bg-gray-900 text-gray-300 hover:border-gray-500"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+        <div className="px-6 pt-4 text-xs text-gray-500">
+          Question {step.step} of {QUESTIONNAIRE_STEPS}
         </div>
 
-        <button
-          type="button"
-          onClick={handleNext}
-          disabled={!selected || processing}
-          className={`mt-6 w-full py-4 rounded-xl font-semibold text-sm transition-all ${
-            selected && !processing
-              ? "bg-emerald-500 text-black hover:bg-emerald-400"
-              : "bg-gray-800 text-gray-600 cursor-not-allowed"
-          }`}
-        >
-          {processing ? "⏳ Processing your answers..." : "Continue →"}
-        </button>
+        <div className="flex-1 px-6 pt-8 pb-6 flex flex-col">
+          <h1 className="text-xl font-bold mb-2">{step.question}</h1>
+          {step.subtitle && (
+            <p className="text-sm text-gray-400 mb-8">{step.subtitle}</p>
+          )}
+
+          <div className="flex flex-col gap-3 flex-1">
+            {step.options.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => handleSelect(opt.value)}
+                className={`w-full text-left px-4 py-4 rounded-xl border transition-all ${
+                  selected === opt.value
+                    ? `${t.accentBorder} ${t.selectedBg} text-white`
+                    : "border-gray-700 bg-gray-900 text-gray-300 hover:border-gray-500"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleNext}
+            disabled={!selected || processing}
+            className={`mt-6 w-full py-4 rounded-xl font-semibold text-sm transition-all ${
+              selected && !processing
+                ? `${t.accentBg} text-black ${t.accentBgHover}`
+                : "bg-gray-800 text-gray-600 cursor-not-allowed"
+            }`}
+          >
+            Continue →
+          </button>
+        </div>
       </div>
-    </div>
+    </>
+  );
+}
+
+export default function QualifyPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-black flex items-center justify-center text-white text-sm">
+          Loading…
+        </div>
+      }
+    >
+      <QualifyInner />
+    </Suspense>
   );
 }
