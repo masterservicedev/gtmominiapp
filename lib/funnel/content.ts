@@ -1,5 +1,6 @@
 import type { FunnelVariantConfig } from "./types";
 import type { AdVariant } from "./normalize";
+import { ad4VariantConfig } from "./content-ad4";
 
 const VIDEO_SRC =
   typeof process !== "undefined"
@@ -89,4 +90,5 @@ export const funnelContent: Record<AdVariant, FunnelVariantConfig> = {
       ctaLabel: "Start application",
     },
   },
+  ad4: ad4VariantConfig,
 };

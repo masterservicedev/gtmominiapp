@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { CodeLandingOffer } from "@/components/funnel/CodeLandingOffer";
 import { FunnelProgress } from "@/components/funnel/FunnelProgress";
 import { SocialProofTicker } from "@/components/funnel/SocialProofTicker";
 import { VideoOffer } from "@/components/funnel/VideoOffer";
@@ -25,10 +26,18 @@ function OfferInner() {
   const offerStepIndex = variant === "ad2" ? 3 : 2;
 
   const [videoUnlocked, setVideoUnlocked] = useState(
-    offer.mode !== "video" ||
-      !offer.video.src ||
-      offer.video.minWatchSeconds <= 0,
+    offer.mode !== "video"
+      ? true
+      : !offer.video.src || offer.video.minWatchSeconds <= 0,
   );
+
+  useEffect(() => {
+    if (offer.mode !== "video") {
+      setVideoUnlocked(true);
+      return;
+    }
+    setVideoUnlocked(!offer.video.src || offer.video.minWatchSeconds <= 0);
+  }, [offer]);
 
   useEffect(() => {
     trackFunnelEvent("offer_view", { variant, surface: "offer_page" });
@@ -39,6 +48,21 @@ function OfferInner() {
     router.push(`/qualify?variant=${encodeURIComponent(variant)}`);
   }, [router, variant]);
 
+  if (offer.mode === "code_landing") {
+    return (
+      <CodeLandingOffer
+        offer={offer}
+        variant={variant as AdVariant}
+        theme={cfg.theme ?? "amber"}
+        progressCurrent={offerStepIndex}
+        progressTotal={preTotal}
+      />
+    );
+  }
+
+  const stepLabel =
+    offer.mode === "video" ? "brief" : "overview";
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col pb-8">
       {cfg.socialProofTicker?.length ? (
@@ -47,7 +71,7 @@ function OfferInner() {
       <FunnelProgress
         current={offerStepIndex}
         total={preTotal}
-        label={`Step ${offerStepIndex} — ${offer.mode === "video" ? "brief" : "overview"}`}
+        label={`Step ${offerStepIndex} — ${stepLabel}`}
         theme={cfg.theme}
       />
 

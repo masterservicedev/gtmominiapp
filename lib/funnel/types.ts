@@ -8,6 +8,45 @@ export type VideoOfferConfig = {
   minWatchSeconds: number;
 };
 
+export type CodeLandingTestimonial = {
+  name: string;
+  /** Use {projectName} where the PHP page had .js-project-name */
+  quote: string;
+  imageFile: string;
+};
+
+export type CodeLandingOfferBlock = {
+  mode: "code_landing";
+  projectName: string;
+  registerButtonLabel: string;
+  video: VideoOfferConfig;
+  intro: {
+    line1: string;
+    line2: string;
+    earnLine: string;
+    highlight: string;
+  };
+  formTitleLines: string[];
+  joinSection: {
+    headline: string;
+    paragraphs: string[];
+  };
+  vacationsTitle: string;
+  testimonialsSectionTitle: string;
+  testimonials: CodeLandingTestimonial[];
+  moSection: {
+    title: string;
+    subtitleLines: string[];
+    bodyParagraphs: string[];
+    imageFile: string;
+    signImageFile: string;
+    signOffLines: string[];
+  };
+  footerLinks: { label: string; href: string }[];
+  /** Plain text paragraphs; **bold** segments rendered in <strong> */
+  disclaimerParagraphs: string[];
+};
+
 export type OfferBlock =
   | {
       mode: "video";
@@ -31,7 +70,8 @@ export type OfferBlock =
       heroSub?: string;
       bullets: string[];
       imageUrl?: string;
-    };
+    }
+  | CodeLandingOfferBlock;
 
 export type PositioningGateCopy = {
   headline: string;
