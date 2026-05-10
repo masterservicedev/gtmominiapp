@@ -31,7 +31,26 @@ export async function POST(req: NextRequest) {
       countryCode = null;
     }
 
-    let variant: string | null | undefined = entryVariant;
+    const existing = await db
+      .select()
+      .from(users)
+      .where(eq(users.telegramId, tgUser.id))
+      .limit(1);
+
+    const fromClient =
+      typeof entryVariant === "string" && entryVariant.trim()
+        ? entryVariant.trim()
+        : undefined;
+
+    /** Opened from bot/link with ?startapp= (Telegram passes start_param). */
+    let variant: string | null | undefined = fromClient;
+
+    /** Returning user: keep same funnel unless they opened with a new start_param. */
+    if (!variant && existing.length > 0 && existing[0]!.entryVariant) {
+      variant = existing[0]!.entryVariant;
+    }
+
+    /** First-time or no stored variant: pick from active offers in DB. */
     if (!variant) {
       const activeOffers = await db
         .select()
@@ -45,12 +64,6 @@ export async function POST(req: NextRequest) {
     }
 
     const normalizedVariant = normalizeEntryVariant(variant);
-
-    const existing = await db
-      .select()
-      .from(users)
-      .where(eq(users.telegramId, tgUser.id))
-      .limit(1);
 
     let userId: string;
 
@@ -77,7 +90,15 @@ export async function POST(req: NextRequest) {
       userId = existing[0]!.id;
       await db
         .update(users)
-        .set({ lastSeenAt: new Date() })
+        .set({
+          lastSeenAt: new Date(),
+          ...(fromClient
+            ? {
+                entryVariant: normalizedVariant,
+                ...(voluumCid ? { voluumCid } : {}),
+              }
+            : {}),
+        })
         .where(eq(users.telegramId, tgUser.id));
     }
 
