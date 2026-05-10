@@ -60,6 +60,10 @@ export async function POST(req: NextRequest) {
       if (activeOffers.length > 0) {
         variant =
           activeOffers[Math.floor(Math.random() * activeOffers.length)]!.name;
+      } else {
+        /** No rows in `offers` (or all inactive): avoid silent default to ad1 via empty variant. */
+        const fb = process.env.FUNNEL_FALLBACK_VARIANT?.trim();
+        variant = fb || "ad4";
       }
     }
 

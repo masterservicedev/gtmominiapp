@@ -71,6 +71,7 @@ export default function EntryPage() {
             if (cancelled) return;
             if (data.error) return;
             const variant = normalizeEntryVariant(data.variant);
+
             router.replace(`/gate?variant=${encodeURIComponent(variant)}`);
           });
       })
