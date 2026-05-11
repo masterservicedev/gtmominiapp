@@ -188,12 +188,12 @@ export function CodeLandingOffer({
   return (
     <div className="min-h-screen bg-[#fafaf9] text-zinc-900 pb-28">
       <header className="border-b border-zinc-800/90 bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950 text-white shadow-sm">
-        <div className="mx-auto flex max-w-6xl flex-col items-center px-4 py-6 md:py-7">
+        <div className="mx-auto flex max-w-6xl flex-col items-center px-3 py-2 md:px-4 md:py-4">
           {offer.headerLogoSrc ? (
             <div
-              className={`mx-auto flex max-w-full flex-row items-center gap-3 rounded-xl border border-amber-500/35 bg-zinc-950/60 px-4 py-3 shadow-[0_0_0_1px_rgba(251,191,36,0.12)] backdrop-blur-sm md:gap-4 md:px-5 md:py-3.5 ${accentRing} ring-1`}
+              className={`mx-auto flex max-w-full flex-row items-center gap-2 rounded-lg border border-amber-500/30 bg-zinc-950/60 px-2.5 py-1.5 shadow-sm backdrop-blur-sm md:gap-2.5 md:rounded-xl md:px-3 md:py-2 ${accentRing} ring-1`}
             >
-              <div className="gate-logo-shine relative aspect-[323/418] h-12 shrink-0 overflow-hidden rounded-lg sm:h-14 md:h-[3.75rem]">
+              <div className="gate-logo-shine relative aspect-[323/418] h-7 shrink-0 overflow-hidden rounded-md sm:h-8 md:h-9">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={offer.headerLogoSrc}
@@ -207,7 +207,7 @@ export function CodeLandingOffer({
                   aria-hidden
                 />
               </div>
-              <h2 className="min-w-0 text-left text-lg font-semibold tracking-wide text-white sm:text-xl md:text-2xl">
+              <h2 className="min-w-0 text-left text-sm font-semibold tracking-wide text-white sm:text-base md:text-lg">
                 The {projectName}
               </h2>
             </div>
@@ -233,38 +233,8 @@ export function CodeLandingOffer({
       </header>
 
       <section className="border-b border-zinc-200/80 bg-white">
-        <div className="mx-auto max-w-6xl px-4 py-10 md:py-12">
-          <div className="mx-auto mb-10 max-w-3xl text-center">
-            <div className="mb-6 inline-flex flex-col items-center gap-2 sm:flex-row sm:justify-center sm:gap-3">
-              <span className="rounded-full border border-zinc-200/80 bg-zinc-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
-                Private intake
-              </span>
-              <span className="text-sm text-zinc-500">
-                Availability can change — complete the next step at your earliest convenience.
-              </span>
-            </div>
-
-            <div className="space-y-5">
-              <h1 className="font-serif text-[1.65rem] font-normal leading-[1.2] tracking-tight text-zinc-900 md:text-4xl md:leading-[1.15]">
-                {offer.intro.h1}
-              </h1>
-              <p className="mx-auto max-w-2xl text-lg font-semibold leading-snug text-zinc-900 md:text-xl">
-                {offer.intro.h2}
-              </p>
-              {offer.intro.h2b ? (
-                <p
-                  className={`mx-auto max-w-2xl text-lg font-semibold leading-snug md:text-xl ${accentText}`}
-                >
-                  {offer.intro.h2b}
-                </p>
-              ) : null}
-              <p className="mx-auto max-w-2xl text-base font-normal leading-relaxed text-zinc-600 md:text-lg">
-                {offer.intro.h3}
-              </p>
-            </div>
-          </div>
-
-          <div className="grid gap-8 lg:grid-cols-12">
+        <div className="mx-auto flex max-w-6xl flex-col gap-5 px-4 pb-6 pt-4 md:gap-8 md:py-10 lg:gap-8 lg:pb-10 lg:pt-8">
+          <div className="order-1 grid gap-6 lg:order-2 lg:grid-cols-12 lg:gap-8">
             <div className="lg:col-span-7">
               <VideoOffer
                 src={offer.video.src}
@@ -302,6 +272,27 @@ export function CodeLandingOffer({
                   Trading can result in loss of capital. Continue when ready using the bar at the bottom.
                 </p>
               </div>
+            </div>
+          </div>
+
+          <div className="order-2 mx-auto max-w-3xl text-center lg:order-1 lg:mb-2">
+            <div className="space-y-2 md:space-y-4">
+              <h1 className="font-serif text-xl font-normal leading-snug tracking-tight text-zinc-900 sm:text-2xl md:text-4xl md:leading-[1.15]">
+                {offer.intro.h1}
+              </h1>
+              <p className="mx-auto max-w-2xl text-base font-semibold leading-snug text-zinc-900 md:text-xl">
+                {offer.intro.h2}
+              </p>
+              {offer.intro.h2b ? (
+                <p
+                  className={`mx-auto max-w-2xl text-base font-semibold leading-snug md:text-xl ${accentText}`}
+                >
+                  {offer.intro.h2b}
+                </p>
+              ) : null}
+              <p className="mx-auto max-w-2xl text-sm font-normal leading-relaxed text-zinc-600 md:text-lg">
+                {offer.intro.h3}
+              </p>
             </div>
           </div>
         </div>
@@ -505,29 +496,34 @@ export function CodeLandingOffer({
       ) : null}
 
       <div
-        className={`fixed bottom-[5.25rem] left-4 z-40 max-w-[200px] rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-xs text-white shadow-lg transition-opacity md:bottom-[5.5rem] ${
-          showActivity ? "opacity-100" : "pointer-events-none opacity-0"
-        } ${activityPulse ? "ring-2 ring-amber-500/50" : ""}`}
+        className="pointer-events-none fixed bottom-[calc(env(safe-area-inset-bottom,0px)+5.25rem)] left-3 right-3 z-40 flex flex-col items-center gap-1 md:bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] md:flex-row md:justify-center md:gap-2"
+        aria-hidden
       >
-        <div className="mb-1 font-bold text-amber-400">
-          <span className="mr-1">🔥</span> LIVE ACTIVITY
-        </div>
-        <div>
-          Someone from {fomoCountry}
-          <br />
-          just joined {fomoTime} ago
-        </div>
-      </div>
-      <div
-        className={`fixed bottom-[5.25rem] right-4 z-40 max-w-[200px] rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-xs text-white shadow-lg transition-opacity md:bottom-[5.5rem] ${
-          showSpots ? "opacity-100" : "pointer-events-none opacity-0"
-        } ${spots <= 5 ? "border-amber-600" : ""} ${spotsShake ? "translate-x-0.5" : ""}`}
-      >
-        <div className="mb-1 font-bold text-amber-400">
-          <span className="mr-1">⚠️</span>
-          <span>{spots}</span> SPOTS LEFT
-        </div>
-        <div className="text-zinc-400">Filling up fast!</div>
+        {showActivity ? (
+          <div
+            className={`w-full max-w-sm rounded-md border border-zinc-700/90 bg-zinc-950/95 px-2.5 py-1 text-center text-[10px] leading-tight text-zinc-100 shadow-md backdrop-blur-sm md:max-w-[12rem] md:text-left ${
+              activityPulse ? "ring-1 ring-amber-500/40" : ""
+            }`}
+          >
+            <span className="font-semibold text-amber-400/95">Live</span>
+            <span className="text-zinc-500"> · </span>
+            {fomoCountry}
+            <span className="text-zinc-500"> · </span>
+            joined {fomoTime} ago
+          </div>
+        ) : null}
+        {showSpots ? (
+          <div
+            className={`w-full max-w-sm rounded-md border border-zinc-700/90 bg-zinc-950/95 px-2.5 py-1 text-center text-[10px] leading-tight text-zinc-100 shadow-md backdrop-blur-sm md:max-w-[12rem] md:text-right ${
+              spots <= 5 ? "border-amber-600/70" : ""
+            } ${spotsShake ? "md:translate-x-0.5" : ""}`}
+          >
+            <span className="font-semibold text-amber-400/95">{spots}</span>
+            <span className="text-zinc-300"> spots open</span>
+            <span className="text-zinc-500"> · </span>
+            <span className="text-zinc-400">limited intake</span>
+          </div>
+        ) : null}
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-zinc-200/80 bg-white/95 px-4 py-3 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] backdrop-blur-md md:py-4">
