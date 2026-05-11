@@ -2,7 +2,9 @@
   "name": "gtmo-miniapp",
   "version": "0.1.0",
   "private": true,
-  "workspaces": ["bot"],
+  "workspaces": [
+    "bot"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -17,6 +19,7 @@
     "@neondatabase/serverless": "^1.1.0",
     "@twa-dev/sdk": "^8.0.2",
     "axios": "^1.16.0",
+    "canvas-confetti": "^1.9.4",
     "drizzle-orm": "^0.45.2",
     "next": "14.2.35",
     "react": "^18",
@@ -24,6 +27,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

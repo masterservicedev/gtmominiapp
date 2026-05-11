@@ -1,5 +1,6 @@
 "use client";
 
+import { PreApprovedConfetti } from "@/components/funnel/PreApprovedConfetti";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
@@ -35,7 +36,8 @@ function ResultContent() {
 
 function HighResult() {
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6 text-center overflow-hidden">
+    <div className="relative min-h-screen overflow-hidden bg-black text-white flex flex-col items-center justify-center px-6 text-center">
+      <PreApprovedConfetti />
       <div
         className="absolute inset-0 pointer-events-none opacity-40"
         aria-hidden
