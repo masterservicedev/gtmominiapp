@@ -108,34 +108,46 @@ export function CodeLandingOffer({
     };
   }, []);
 
+  const tickActivity = useCallback(() => {
+    setFomoCountry(FOMO_COUNTRIES[Math.floor(Math.random() * FOMO_COUNTRIES.length)]!);
+    setFomoTime(FOMO_TIMES[Math.floor(Math.random() * FOMO_TIMES.length)]!);
+    setActivityPulse(true);
+    setTimeout(() => setActivityPulse(false), 600);
+  }, []);
+
+  const tickSpots = useCallback(() => {
+    setSpots((s) => {
+      let n = s;
+      if (n > 3) n -= Math.floor(Math.random() * 2) + 1;
+      if (n < 3) n = 3;
+      return n;
+    });
+    setSpotsShake(true);
+    setTimeout(() => setSpotsShake(false), 500);
+  }, []);
+
   useEffect(() => {
-    const tickActivity = () => {
-      setFomoCountry(FOMO_COUNTRIES[Math.floor(Math.random() * FOMO_COUNTRIES.length)]!);
-      setFomoTime(FOMO_TIMES[Math.floor(Math.random() * FOMO_TIMES.length)]!);
-      setActivityPulse(true);
-      setTimeout(() => setActivityPulse(false), 600);
-    };
-    const tickSpots = () => {
-      setSpots((s) => {
-        let n = s;
-        if (n > 3) n -= Math.floor(Math.random() * 2) + 1;
-        if (n < 3) n = 3;
-        return n;
-      });
-      setSpotsShake(true);
-      setTimeout(() => setSpotsShake(false), 500);
-    };
-    const i1 = setInterval(tickActivity, 45_000);
-    const i2 = setInterval(tickSpots, 60_000);
-    const o1 = setTimeout(tickActivity, 10_000);
-    const o2 = setTimeout(tickSpots, 15_000);
+    const i1 = setInterval(tickActivity, 22_000);
+    const i2 = setInterval(tickSpots, 30_000);
+    const o1 = setTimeout(tickActivity, 8_000);
+    const o2 = setTimeout(tickSpots, 12_000);
     return () => {
       clearInterval(i1);
       clearInterval(i2);
       clearTimeout(o1);
       clearTimeout(o2);
     };
-  }, []);
+  }, [tickActivity, tickSpots]);
+
+  useEffect(() => {
+    if (!showActivity) return;
+    tickActivity();
+  }, [showActivity, tickActivity]);
+
+  useEffect(() => {
+    if (!showSpots) return;
+    tickSpots();
+  }, [showSpots, tickSpots]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -233,9 +245,9 @@ export function CodeLandingOffer({
       </header>
 
       <section className="border-b border-zinc-200/80 bg-white">
-        <div className="mx-auto flex max-w-6xl flex-col gap-5 px-4 pb-6 pt-4 md:gap-8 md:py-10 lg:gap-8 lg:pb-10 lg:pt-8">
-          <div className="order-1 grid gap-6 lg:order-2 lg:grid-cols-12 lg:gap-8">
-            <div className="lg:col-span-7">
+        <div className="mx-auto max-w-6xl px-4 pb-5 pt-3 md:py-8 lg:pb-10 lg:pt-8">
+          <div className="grid gap-4 lg:grid-cols-12 lg:gap-8">
+            <div className="col-span-12 flex flex-col gap-2 lg:col-span-7 lg:gap-3">
               <VideoOffer
                 src={offer.video.src}
                 poster={offer.video.poster}
@@ -248,51 +260,48 @@ export function CodeLandingOffer({
                   })
                 }
               />
+              <div className="rounded-lg border border-zinc-200/90 bg-zinc-50/95 px-3 py-2.5 text-center shadow-sm ring-1 ring-zinc-900/[0.04] lg:bg-white/90 lg:text-left">
+                <p className="font-serif text-[13px] font-normal leading-snug tracking-tight text-zinc-900 sm:text-sm md:text-lg md:leading-snug">
+                  {offer.intro.h1}
+                </p>
+                <p className="mt-1.5 text-[11px] font-semibold leading-snug text-zinc-900 sm:text-xs md:text-base">
+                  {offer.intro.h2}
+                </p>
+                {offer.intro.h2b ? (
+                  <p
+                    className={`mt-0.5 text-[11px] font-semibold leading-snug sm:text-xs md:text-base ${accentText}`}
+                  >
+                    {offer.intro.h2b}
+                  </p>
+                ) : null}
+                <p className="mt-1.5 text-[10px] leading-snug text-zinc-600 sm:text-[11px] md:text-sm md:leading-relaxed">
+                  {offer.intro.h3}
+                </p>
+              </div>
             </div>
-            <div className="lg:col-span-5">
-              <div className="flex h-full flex-col rounded-xl border border-zinc-200/90 bg-zinc-50/60 p-6 shadow-sm ring-1 ring-zinc-900/5">
+            <div className="col-span-12 lg:col-span-5">
+              <div className="flex h-full flex-col rounded-xl border border-zinc-200/90 bg-zinc-50/60 p-4 shadow-sm ring-1 ring-zinc-900/5 md:p-6">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
                   {offer.urgencyAside.eyebrow}
                 </p>
-                <h2 className="mt-3 font-serif text-xl font-normal leading-snug text-zinc-900 md:text-2xl">
+                <h2 className="mt-2 font-serif text-lg font-normal leading-snug text-zinc-900 md:mt-3 md:text-2xl">
                   {offer.urgencyAside.headline}
                 </h2>
-                <ul className="mt-5 flex-1 space-y-3 text-sm leading-relaxed text-zinc-600">
+                <ul className="mt-4 flex-1 space-y-2.5 text-xs leading-relaxed text-zinc-600 md:mt-5 md:space-y-3 md:text-sm">
                   {offer.urgencyAside.bullets.map((line) => (
                     <li key={line} className="flex gap-3">
                       <span
-                        className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${accentBg}`}
+                        className={`mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full md:mt-1.5 ${accentBg}`}
                         aria-hidden
                       />
                       <span>{line}</span>
                     </li>
                   ))}
                 </ul>
-                <p className="mt-6 text-center text-xs leading-relaxed text-zinc-500">
+                <p className="mt-4 text-center text-[10px] leading-relaxed text-zinc-500 md:mt-6 md:text-xs">
                   Trading can result in loss of capital. Continue when ready using the bar at the bottom.
                 </p>
               </div>
-            </div>
-          </div>
-
-          <div className="order-2 mx-auto max-w-3xl text-center lg:order-1 lg:mb-2">
-            <div className="space-y-2 md:space-y-4">
-              <h1 className="font-serif text-xl font-normal leading-snug tracking-tight text-zinc-900 sm:text-2xl md:text-4xl md:leading-[1.15]">
-                {offer.intro.h1}
-              </h1>
-              <p className="mx-auto max-w-2xl text-base font-semibold leading-snug text-zinc-900 md:text-xl">
-                {offer.intro.h2}
-              </p>
-              {offer.intro.h2b ? (
-                <p
-                  className={`mx-auto max-w-2xl text-base font-semibold leading-snug md:text-xl ${accentText}`}
-                >
-                  {offer.intro.h2b}
-                </p>
-              ) : null}
-              <p className="mx-auto max-w-2xl text-sm font-normal leading-relaxed text-zinc-600 md:text-lg">
-                {offer.intro.h3}
-              </p>
             </div>
           </div>
         </div>
@@ -501,15 +510,21 @@ export function CodeLandingOffer({
       >
         {showActivity ? (
           <div
-            className={`w-full max-w-sm rounded-md border border-zinc-700/90 bg-zinc-950/95 px-2.5 py-1 text-center text-[10px] leading-tight text-zinc-100 shadow-md backdrop-blur-sm md:max-w-[12rem] md:text-left ${
+            className={`flex w-full max-w-sm flex-wrap items-center justify-center gap-x-1 gap-y-0.5 rounded-md border border-zinc-700/90 bg-zinc-950/95 px-2.5 py-1 text-[10px] leading-tight text-zinc-100 shadow-md backdrop-blur-sm md:max-w-[15rem] md:justify-start ${
               activityPulse ? "ring-1 ring-amber-500/40" : ""
             }`}
           >
-            <span className="font-semibold text-amber-400/95">Live</span>
-            <span className="text-zinc-500"> · </span>
-            {fomoCountry}
-            <span className="text-zinc-500"> · </span>
-            joined {fomoTime} ago
+            <span className="inline-flex items-center gap-1.5">
+              <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60 motion-reduce:animate-none" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.85)]" />
+              </span>
+              <span className="font-semibold text-emerald-400/95">Live activity</span>
+            </span>
+            <span className="text-zinc-500">·</span>
+            <span>{fomoCountry}</span>
+            <span className="text-zinc-500">·</span>
+            <span>joined {fomoTime} ago</span>
           </div>
         ) : null}
         {showSpots ? (
