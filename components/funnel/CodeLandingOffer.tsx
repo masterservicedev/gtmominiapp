@@ -361,9 +361,9 @@ export function CodeLandingOffer({
         </section>
       ) : null}
 
-      <section className="border-b border-zinc-200/80 bg-[#fafaf9] py-12 md:py-14">
+      <section className="border-b border-zinc-200/80 bg-[#fafaf9] py-8 md:py-14">
         <div className="mx-auto max-w-6xl px-4">
-          <h2 className="mb-8 text-center font-serif text-2xl font-normal tracking-tight text-zinc-900 md:text-3xl">
+          <h2 className="mb-5 text-center font-serif text-2xl font-normal tracking-tight text-zinc-900 md:mb-8 md:text-3xl">
             {offer.testimonialsSectionTitle}
           </h2>
           <div
@@ -393,23 +393,23 @@ export function CodeLandingOffer({
           >
             <ul
               ref={testimonialsScrollRef}
-              className="flex gap-4 overflow-x-auto overscroll-x-contain pb-2 [-ms-overflow-style:none] [scrollbar-width:none] md:gap-5 [&::-webkit-scrollbar]:hidden"
+              className="flex gap-3 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] md:gap-4 md:pb-2 [&::-webkit-scrollbar]:hidden"
               style={{ WebkitOverflowScrolling: "touch" }}
             >
               {offer.testimonials.map((item) => (
                 <li
                   key={item.name}
-                  className="flex h-[11.5rem] min-w-[min(85vw,22rem)] max-w-[22rem] shrink-0 gap-4 rounded-xl border border-zinc-200/80 bg-white p-4 shadow-sm sm:min-w-[20rem]"
+                  className="flex h-[10.25rem] min-w-[min(85vw,22rem)] max-w-[22rem] shrink-0 gap-2.5 rounded-lg border border-zinc-200/80 bg-white px-3 pb-2 pt-2.5 shadow-sm sm:min-w-[20rem] md:h-[11rem] md:gap-3 md:rounded-xl md:px-3.5 md:pb-2.5 md:pt-3"
                 >
                   <TestimonialAvatar
                     name={item.name}
                     imageFile={item.imageFile}
                   />
-                  <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                    <div className="shrink-0 text-sm font-semibold text-zinc-900">
+                  <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-start">
+                    <div className="shrink-0 text-xs font-semibold text-zinc-900 md:text-sm">
                       {item.name}
                     </div>
-                    <p className="mt-1.5 line-clamp-6 flex-1 text-sm leading-relaxed text-zinc-600">
+                    <p className="mt-1 line-clamp-5 flex-1 text-xs leading-snug text-zinc-600 md:line-clamp-6 md:text-sm md:leading-relaxed">
                       <RichLine
                         text={fillProject(item.quote, projectName)}
                       />
@@ -510,21 +510,22 @@ export function CodeLandingOffer({
       >
         {showActivity ? (
           <div
-            className={`flex w-full max-w-sm flex-wrap items-center justify-center gap-x-1 gap-y-0.5 rounded-md border border-zinc-700/90 bg-zinc-950/95 px-2.5 py-1 text-[10px] leading-tight text-zinc-100 shadow-md backdrop-blur-sm md:max-w-[15rem] md:justify-start ${
+            className={`flex w-full max-w-sm items-start justify-center gap-1.5 rounded-md border border-zinc-700/90 bg-zinc-950/95 px-2.5 py-1 text-[10px] leading-snug text-zinc-100 shadow-md backdrop-blur-sm md:max-w-[17rem] md:justify-start ${
               activityPulse ? "ring-1 ring-amber-500/40" : ""
             }`}
           >
-            <span className="inline-flex items-center gap-1.5">
-              <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60 motion-reduce:animate-none" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.85)]" />
-              </span>
-              <span className="font-semibold text-emerald-400/95">Live activity</span>
+            <span className="relative mt-0.5 flex h-2 w-2 shrink-0" aria-hidden>
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60 motion-reduce:animate-none" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.85)]" />
             </span>
-            <span className="text-zinc-500">·</span>
-            <span>{fomoCountry}</span>
-            <span className="text-zinc-500">·</span>
-            <span>joined {fomoTime} ago</span>
+            <span className="min-w-0 flex-1 text-left text-zinc-200">
+              <span className="font-semibold text-emerald-400/95">Live</span>
+              {" - User from "}
+              <span className="text-zinc-100">{fomoCountry}</span>
+              {" joined "}
+              <span className="text-zinc-300">{fomoTime}</span>
+              {" ago"}
+            </span>
           </div>
         ) : null}
         {showSpots ? (
@@ -575,13 +576,13 @@ function TestimonialAvatar({
       <img
         src={url}
         alt=""
-        className="h-[4.5rem] w-[4.5rem] shrink-0 rounded-full object-cover ring-2 ring-zinc-100"
+        className="h-12 w-12 shrink-0 rounded-full object-cover ring-2 ring-zinc-100 md:h-[4.5rem] md:w-[4.5rem]"
       />
     );
   }
   return (
     <div
-      className="flex h-[4.5rem] w-[4.5rem] shrink-0 items-center justify-center rounded-full bg-zinc-200 text-base font-semibold text-zinc-600"
+      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-sm font-semibold text-zinc-600 md:h-[4.5rem] md:w-[4.5rem] md:text-base"
       aria-hidden
     >
       {initial}

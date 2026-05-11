@@ -28,7 +28,6 @@ export function VideoOffer({
   const [unlocked, setUnlocked] = useState(
     !src || minWatchSeconds <= 0,
   );
-  const [needsTap, setNeedsTap] = useState(false);
   const firedRef = useRef(false);
 
   const checkUnlock = useCallback(
@@ -82,7 +81,7 @@ export function VideoOffer({
             hls.loadSource(src);
             hls.attachMedia(videoRef.current);
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
-              videoRef.current?.play().catch(() => setNeedsTap(true));
+              void videoRef.current?.play().catch(() => {});
             });
             hlsRef.current = hls;
           } else {
@@ -95,7 +94,7 @@ export function VideoOffer({
 
     el.muted = true;
     el.playsInline = true;
-    el.play().catch(() => setNeedsTap(true));
+    void el.play().catch(() => {});
 
     return () => {
       el.removeEventListener("timeupdate", onTime);
@@ -132,18 +131,6 @@ export function VideoOffer({
   return (
     <div className="w-full space-y-2">
       <div className="relative rounded-lg overflow-hidden bg-black border border-zinc-800">
-        {needsTap && (
-          <button
-            type="button"
-            className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 text-sm font-medium text-white"
-            onClick={() => {
-              videoRef.current?.play().catch(() => {});
-              setNeedsTap(false);
-            }}
-          >
-            Tap to play
-          </button>
-        )}
         <video
           ref={videoRef}
           className="w-full aspect-video object-contain bg-black"
