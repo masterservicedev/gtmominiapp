@@ -40,20 +40,20 @@ export function PositioningGate({
       {tickerLines?.length ? <SocialProofTicker lines={tickerLines} /> : null}
       {header}
       <div
-        className={`flex-1 flex flex-col justify-center px-6 py-10 max-w-lg mx-auto w-full ${
+        className={`flex-1 flex flex-col justify-center px-6 py-6 max-w-lg mx-auto w-full md:py-10 ${
           centered ? "items-center text-center" : ""
         }`}
       >
         {logoSrc ? (
-          <div className="gate-logo-wrap mx-auto mb-8 w-full max-w-[220px]">
+          <div className="gate-logo-wrap mx-auto mb-6 w-full max-w-[165px]">
             <div className="gate-logo-shine relative inline-block w-full">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={logoSrc}
                 alt="Gold Trader Mo"
-                className="relative z-[1] mx-auto block h-auto w-full max-w-[220px] object-contain"
-                width={220}
-                height={220}
+                className="relative z-[1] mx-auto block h-auto w-full max-w-[165px] object-contain"
+                width={165}
+                height={165}
               />
               <span
                 className="gate-logo-shine-overlay pointer-events-none absolute inset-0 z-[2] overflow-hidden rounded-lg"
@@ -67,7 +67,7 @@ export function PositioningGate({
         </h1>
         {subParagraphs.length > 0 ? (
           <div
-            className={`space-y-4 text-sm text-zinc-400 leading-relaxed mb-10 ${
+            className={`space-y-4 text-sm text-zinc-400 leading-relaxed mb-6 md:mb-10 ${
               centered ? "max-w-md" : ""
             }`}
           >
