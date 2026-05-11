@@ -1,4 +1,3 @@
-import { appendFileSync } from "fs";
 import { NextRequest, NextResponse } from "next/server";
 import { validateInitData } from "@/lib/validation";
 import { db } from "@/lib/db";
@@ -6,9 +5,6 @@ import { users, events, offers } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import axios from "axios";
 import { normalizeEntryVariant } from "@/lib/funnel/normalize";
-
-const DEBUG_FUNNEL_LOG =
-  "/Users/ohmz/Desktop/GTMO_miniapp/.cursor/debug-22219e.log";
 
 export async function POST(req: NextRequest) {
   try {
@@ -53,54 +49,21 @@ export async function POST(req: NextRequest) {
 
     /** Opened from bot/link with ?startapp= (Telegram passes start_param). */
     let variant: string | null | undefined = fromClient;
-    let resolutionSource:
-      | "client"
-      | "fallback_empty_offers"
-      | "sticky"
-      | "random" = "client";
 
     if (!variant) {
       if (activeOffers.length === 0) {
         /** No active offers: do NOT use sticky user row (ops cleared rotation). */
         const fb = process.env.FUNNEL_FALLBACK_VARIANT?.trim();
         variant = fb || "ad4";
-        resolutionSource = "fallback_empty_offers";
       } else if (existing.length > 0 && existing[0]!.entryVariant) {
         variant = existing[0]!.entryVariant;
-        resolutionSource = "sticky";
       } else {
         variant =
           activeOffers[Math.floor(Math.random() * activeOffers.length)]!.name;
-        resolutionSource = "random";
       }
     }
 
     const normalizedVariant = normalizeEntryVariant(variant);
-
-    // #region agent log
-    try {
-      appendFileSync(
-        DEBUG_FUNNEL_LOG,
-        `${JSON.stringify({
-          sessionId: "22219e",
-          hypothesisId: "H_sticky_vs_empty_offers",
-          location: "app/api/init/route.ts",
-          message: "variant resolved",
-          data: {
-            activeOffersCount: activeOffers.length,
-            resolutionSource,
-            variantRaw: variant ?? null,
-            normalizedVariant,
-            returning: existing.length > 0,
-            hadStoredVariant: Boolean(existing[0]?.entryVariant),
-          },
-          timestamp: Date.now(),
-        })}\n`,
-      );
-    } catch {
-      /* ignore — e.g. read-only prod FS */
-    }
-    // #endregion
 
     let userId: string;
 
