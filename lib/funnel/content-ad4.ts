@@ -65,62 +65,61 @@ export const ad4VariantConfig: FunnelVariantConfig = {
       ],
     },
     vacationsTitle: "Here are some of our past vacations",
-    testimonialsSectionTitle:
-      "Hear From Our Members Who Rely On Our Software To Fund Their Luxury Lifestyles",
+    testimonialsSectionTitle: "What members say",
     testimonials: [
       {
         name: "Laura Abenstein",
-        imageFile: "images/media/testimonial-1.jpg",
+        imageFile: "/offer/media/laura.jpg",
         quote:
-          "I’ve been a member of the {projectName} for only 47 days. But my life has already changed! Not only have I made my first $100K, but I’ve also met some of the most incredible people in the process. Thanks, Steve!",
+          "I’ve been a member of the {projectName} for only 47 days. But my life has already changed! Not only have I made my first $100K, but I’ve also met some of the most incredible people in the process. Thanks, Mo!",
       },
       {
         name: "Joey Feldman",
-        imageFile: "images/media/testimonial-2.jpg",
+        imageFile: "/offer/media/joey.jpg",
         quote:
-          "When I joined The {projectName} 2 months ago, never could have I ever imagined the series of events that would unfold just days after locking in my free software. I was able to clear my $131,382 debt. There is no greater feeling than to be debt-free. Now, I’m in the process of buying my dream home. I still can’t believe this is all really happening…I’m forever grateful to Steve.",
+          "When I joined The {projectName} 2 months ago, never could have I ever imagined the series of events that would unfold just days after locking in my free software. I was able to clear my $131,382 debt. There is no greater feeling than to be debt-free. Now, I’m in the process of buying my dream home. I still can’t believe this is all really happening…I’m forever grateful to Mo.",
       },
       {
         name: "Michael Zusman",
-        imageFile: "images/media/testimonial-3.jpg",
+        imageFile: "/offer/media/michael.jpg",
         quote:
           "The results of the software speaks for itself...just as promised, I made over $13,000 every single day. Do I really need to say more?",
       },
       {
         name: "Paulo Fonzi",
-        imageFile: "images/media/testimonial-4.jpg",
+        imageFile: "/offer/media/paulo.jpg",
         quote:
-          "Yesterday, I QUIT my job...and today, I’m at a pool party in Vegas! Life is CRAZYYYY. And it’s all thanks to the {projectName}. THANK YOU STEVE!",
+          "Yesterday, I QUIT my job...and today, I’m at a pool party in Vegas! Life is CRAZYYYY. And it’s all thanks to the {projectName}. THANK YOU MO!",
       },
       {
         name: "Lewis H.",
-        imageFile: "images/media/testimonial-5.jpg",
+        imageFile: "/offer/media/lewis.jpg",
         quote:
           "Is this for real? I just joined 2 days ago, and my account balance has already ballooned to a staggering $27,484.98!!!",
       },
       {
         name: "Chris Hadid",
-        imageFile: "images/media/testimonial-6.jpg",
+        imageFile: "/offer/media/chris.jpg",
         quote:
           "I ask my wife to pinch me every morning when I wake up and check my bank balance. I have never seen a number that big before in MY bank account. And it just continues to grow and grow some more...this is what I’ve been waiting for my entire life. Now that I have a taste of what it really feels like to be my own boss and make tens of thousands of dollars every week, I won’t ever look back!",
       },
       {
         name: "Daniel Pelts",
-        imageFile: "images/media/testimonial-7.jpg",
+        imageFile: "/offer/media/daniel.jpg",
         quote:
           "Surprisingly, I used to be an investor on Wall Street. And I’ve never seen anything like this in my 10 year tenure at the company. My colleagues all thought I was crazy when I quit the firm to invest with the {projectName} software full-time. $384,594 in profits later, all of my colleagues are now BEGGING me to let them in.",
       },
       {
         name: "Magda Boltyanski",
-        imageFile: "images/media/testimonial-8.jpg",
+        imageFile: "/offer/media/magda.jpg",
         quote:
           "I finally know what it’s like to live the dream. I no longer feel like I’m on the outside looking in while everyone else has all the fun. The {projectName} has allowed me to retire early and live the 1% lifestyle.",
       },
       {
         name: "Carl Edwards",
-        imageFile: "images/media/testimonial-9.jpg",
+        imageFile: "/offer/media/carl.jpg",
         quote:
-          "Two weeks ago, I got laid off. With no options left, I thought my life was over. Now I’m making over $13,261.42 each and every day. And for the first time in 2 months, my account isn’t overdrawn. Thank you, STEVE!",
+          "Two weeks ago, I got laid off. With no options left, I thought my life was over. Now I’m making over $13,261.42 each and every day. And for the first time in 2 months, my account isn’t overdrawn. Thank you, Mo!",
       },
     ],
     moSection: {
@@ -132,8 +131,7 @@ export const ad4VariantConfig: FunnelVariantConfig = {
         "This presentation is about process and fit — not hype. Watch the brief above, then continue only if you’re ready for honest risk talk and a clear next step.",
         "If you want to explore how we approach gold with structure, the video above is the fastest way to see whether this path aligns with you.",
       ],
-      imageFile: "images/media/moe.jpg",
-      signImageFile: "images/media/sign.png",
+      imageFile: "/offer/media/mo.jpg",
       signOffLines: ["Your Friend,", "Mo"],
     },
     footerLinks: [

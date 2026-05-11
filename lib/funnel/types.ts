@@ -52,7 +52,7 @@ export type CodeLandingOfferBlock = {
     subtitleLines: string[];
     bodyParagraphs: string[];
     imageFile: string;
-    signImageFile: string;
+    signImageFile?: string;
     signOffLines: string[];
   };
   footerLinks: { label: string; href: string }[];
