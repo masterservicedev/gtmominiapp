@@ -23,6 +23,7 @@ export function VideoOffer({
 }: Props) {
   const t = getThemeClasses(theme);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<{ destroy: () => void } | null>(null);
   const [played, setPlayed] = useState(0);
   const [unlocked, setUnlocked] = useState(
     !src || minWatchSeconds <= 0,
@@ -47,6 +48,7 @@ export function VideoOffer({
     if (!src) return;
     const el = videoRef.current;
     if (!el) return;
+    const isHls = /\.m3u8($|\?)/i.test(src);
 
     const onTime = () => {
       const c = el.currentTime;
@@ -55,11 +57,53 @@ export function VideoOffer({
     };
 
     el.addEventListener("timeupdate", onTime);
+    el.pause();
+    el.removeAttribute("src");
+    el.load();
+
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+
+    if (isHls) {
+      const canPlayNativeHls = el.canPlayType("application/vnd.apple.mpegurl") !== "";
+
+      if (canPlayNativeHls) {
+        el.src = src;
+      } else {
+        void import("hls.js").then(({ default: Hls }) => {
+          if (!videoRef.current) return;
+          if (Hls.isSupported()) {
+            const hls = new Hls({
+              enableWorker: true,
+              lowLatencyMode: true,
+            });
+            hls.loadSource(src);
+            hls.attachMedia(videoRef.current);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+              videoRef.current?.play().catch(() => setNeedsTap(true));
+            });
+            hlsRef.current = hls;
+          } else {
+            // Fallback: some browsers can still play m3u8 without MSE.
+            videoRef.current.src = src;
+          }
+        });
+      }
+    }
+
     el.muted = true;
     el.playsInline = true;
     el.play().catch(() => setNeedsTap(true));
 
-    return () => el.removeEventListener("timeupdate", onTime);
+    return () => {
+      el.removeEventListener("timeupdate", onTime);
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
   }, [src, checkUnlock]);
 
   useEffect(() => {
@@ -75,12 +119,15 @@ export function VideoOffer({
     return (
       <div className="aspect-video w-full rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center p-4">
         <p className="text-xs text-zinc-500 text-center">
-          Set <code className="text-zinc-400">NEXT_PUBLIC_FUNNEL_VIDEO_URL</code>{" "}
-          to your MP4 URL.
+          Set <code className="text-zinc-400">NEXT_PUBLIC_GTMO_CODE_VIDEO_URL</code>{" "}
+          (or <code className="text-zinc-400">NEXT_PUBLIC_FUNNEL_VIDEO_URL</code>)
+          {" "}to your MP4 or HLS URL.
         </p>
       </div>
     );
   }
+
+  const isHls = /\.m3u8($|\?)/i.test(src);
 
   return (
     <div className="w-full space-y-2">
@@ -106,7 +153,7 @@ export function VideoOffer({
           muted
           preload="metadata"
         >
-          <source src={src} type="video/mp4" />
+          {!isHls ? <source src={src} type="video/mp4" /> : null}
         </video>
       </div>
       <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
