@@ -79,7 +79,6 @@ export function CodeLandingOffer({
 }: Props) {
   const router = useRouter();
   const { projectName } = offer;
-  const accentRing = theme === "amber" ? "ring-amber-500/40" : "ring-emerald-500/40";
   const accentBg = theme === "amber" ? "bg-amber-500" : "bg-emerald-500";
   const accentHover =
     theme === "amber" ? "hover:bg-amber-400" : "hover:bg-emerald-400";
@@ -199,39 +198,7 @@ export function CodeLandingOffer({
 
   return (
     <div className="min-h-screen bg-[#fafaf9] text-zinc-900 pb-28">
-      <header className="border-b border-zinc-800/90 bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950 text-white shadow-sm">
-        <div className="mx-auto flex max-w-6xl flex-col items-center px-3 py-2 md:px-4 md:py-4">
-          {offer.headerLogoSrc ? (
-            <div
-              className={`mx-auto flex max-w-full flex-row items-center gap-2 rounded-lg border border-amber-500/30 bg-zinc-950/60 px-2.5 py-1.5 shadow-sm backdrop-blur-sm md:gap-2.5 md:rounded-xl md:px-3 md:py-2 ${accentRing} ring-1`}
-            >
-              <div className="gate-logo-shine relative aspect-[323/418] h-7 shrink-0 overflow-hidden rounded-md sm:h-8 md:h-9">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={offer.headerLogoSrc}
-                  alt=""
-                  className="relative z-[1] h-full w-full object-contain object-center"
-                  width={323}
-                  height={418}
-                />
-                <span
-                  className="gate-logo-shine-overlay pointer-events-none absolute inset-0 z-[2]"
-                  aria-hidden
-                />
-              </div>
-              <h2 className="min-w-0 text-left text-sm font-semibold tracking-wide text-white sm:text-base md:text-lg">
-                The {projectName}
-              </h2>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <div className={`h-9 w-9 rounded ${accentBg}/20 ring-1 ${accentRing}`} />
-              <div className="text-lg font-semibold tracking-tight">
-                The {projectName}
-              </div>
-            </div>
-          )}
-        </div>
+      <header className="border-b border-zinc-200/90 bg-white">
         <FunnelProgress
           current={progressCurrent}
           total={progressTotal}
@@ -241,6 +208,7 @@ export function CodeLandingOffer({
               : `Step ${progressCurrent} — ${projectName}`
           }
           theme={theme}
+          surface="onLight"
         />
       </header>
 

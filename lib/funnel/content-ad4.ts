@@ -10,7 +10,7 @@ const VIDEO_SRC =
 export const ad4VariantConfig: FunnelVariantConfig = {
   theme: "amber",
   positioningGate: {
-    /** Step 1 gate only — offer page header keeps `headerLogoSrc` (crown). */
+    /** Step 1 gate only — crown / brand mark on the positioning screen. */
     logoSrc: "/offer/media/gtmologo.png",
     headline: "Most traders fail because they're alone.",
     subcopy: [

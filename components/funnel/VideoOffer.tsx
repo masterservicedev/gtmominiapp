@@ -47,6 +47,7 @@ export function VideoOffer({
     if (!src) return;
     const el = videoRef.current;
     if (!el) return;
+    let cancelled = false;
     const isHls = /\.m3u8($|\?)/i.test(src);
 
     const onTime = () => {
@@ -72,21 +73,33 @@ export function VideoOffer({
         el.src = src;
       } else {
         void import("hls.js").then(({ default: Hls }) => {
-          if (!videoRef.current) return;
+          if (cancelled || !videoRef.current) return;
+          const media = videoRef.current;
           if (Hls.isSupported()) {
             const hls = new Hls({
-              enableWorker: true,
-              lowLatencyMode: true,
+              // Workers often break in in-app browsers (Telegram, etc.) and can tab-crash.
+              enableWorker: false,
+              lowLatencyMode: false,
+              maxBufferLength: 45,
+              backBufferLength: 30,
             });
             hls.loadSource(src);
-            hls.attachMedia(videoRef.current);
+            hls.attachMedia(media);
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
-              void videoRef.current?.play().catch(() => {});
+              if (!cancelled) void media.play().catch(() => {});
+            });
+            hls.on(Hls.Events.ERROR, (_, data) => {
+              if (!data.fatal || cancelled) return;
+              if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                hls.startLoad();
+              } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                hls.recoverMediaError();
+              }
             });
             hlsRef.current = hls;
           } else {
             // Fallback: some browsers can still play m3u8 without MSE.
-            videoRef.current.src = src;
+            media.src = src;
           }
         });
       }
@@ -97,6 +110,7 @@ export function VideoOffer({
     void el.play().catch(() => {});
 
     return () => {
+      cancelled = true;
       el.removeEventListener("timeupdate", onTime);
       if (hlsRef.current) {
         hlsRef.current.destroy();
@@ -149,11 +163,11 @@ export function VideoOffer({
           style={{ width: `${progress}%` }}
         />
       </div>
-      <p className="text-[11px] text-zinc-500">
-        {unlocked
-          ? "You can continue below."
-          : `Watch at least ${minWatchSeconds}s to continue (${Math.floor(played)}s)`}
-      </p>
+      {!unlocked && minWatchSeconds > 0 ? (
+        <p className="text-[11px] text-zinc-500">
+          {`Watch at least ${minWatchSeconds}s to continue (${Math.floor(played)}s)`}
+        </p>
+      ) : null}
     </div>
   );
 }
