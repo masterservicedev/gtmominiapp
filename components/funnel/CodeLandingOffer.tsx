@@ -132,9 +132,6 @@ export function CodeLandingOffer({
     };
   }, []);
 
-  const leftT = offer.testimonials.slice(0, 5);
-  const rightT = offer.testimonials.slice(5);
-
   const continueToQualify = useCallback(async () => {
     setCtaBusy(true);
     try {
@@ -326,44 +323,27 @@ export function CodeLandingOffer({
 
       <section className="border-b border-zinc-200/80 bg-[#fafaf9] py-12 md:py-14">
         <div className="mx-auto max-w-6xl px-4">
-          <h2 className="mb-10 text-center font-serif text-2xl font-normal tracking-tight text-zinc-900 md:text-3xl">
+          <h2 className="mb-8 text-center font-serif text-2xl font-normal tracking-tight text-zinc-900 md:text-3xl">
             {offer.testimonialsSectionTitle}
           </h2>
-          <div className="grid gap-6 md:grid-cols-2 md:gap-8">
-            <ul className="space-y-6">
-              {leftT.map((item) => (
+          <p className="mb-4 text-center text-xs text-zinc-500 md:hidden">
+            Swipe sideways to read more
+          </p>
+          <div className="-mx-4 px-4 md:mx-0 md:px-0">
+            <ul
+              className="flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain pb-2 [-ms-overflow-style:none] [scrollbar-width:thin] md:gap-5 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-300 [&::-webkit-scrollbar-track]:bg-zinc-100"
+              style={{ WebkitOverflowScrolling: "touch" }}
+            >
+              {offer.testimonials.map((item) => (
                 <li
                   key={item.name}
-                  className="flex gap-4 rounded-xl border border-zinc-200/80 bg-white p-4 shadow-sm"
+                  className="flex min-w-[min(85vw,22rem)] max-w-[22rem] shrink-0 snap-start gap-4 rounded-xl border border-zinc-200/80 bg-white p-4 shadow-sm sm:min-w-[20rem]"
                 >
                   <TestimonialAvatar
                     name={item.name}
                     imageFile={item.imageFile}
                   />
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold text-zinc-900">
-                      {item.name}
-                    </div>
-                    <p className="mt-1.5 text-sm leading-relaxed text-zinc-600">
-                      <RichLine
-                        text={fillProject(item.quote, projectName)}
-                      />
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <ul className="space-y-6">
-              {rightT.map((item) => (
-                <li
-                  key={item.name}
-                  className="flex gap-4 rounded-xl border border-zinc-200/80 bg-white p-4 shadow-sm"
-                >
-                  <TestimonialAvatar
-                    name={item.name}
-                    imageFile={item.imageFile}
-                  />
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold text-zinc-900">
                       {item.name}
                     </div>
