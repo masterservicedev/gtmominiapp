@@ -164,34 +164,44 @@ function QualifyInner() {
   return (
     <>
       {processing ? <ProcessingScreen theme={cfg.theme} /> : null}
-      <div className="min-h-screen bg-black text-white flex flex-col">
-        <FunnelProgress
-          current={funnelStepNumber}
-          total={totalFunnelSteps}
-          label={`Step ${funnelStepNumber} of ${totalFunnelSteps}`}
-          theme={cfg.theme}
+      <div className="relative flex min-h-screen flex-col bg-gradient-to-b from-zinc-950 via-black to-zinc-950 text-white">
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(245,158,11,0.12),transparent)]"
+          aria-hidden
         />
-
-        <div className="px-6 pt-4 text-xs text-gray-500">
-          Question {step.step} of {QUESTIONNAIRE_STEPS}
+        <div className="relative border-b border-zinc-800/80 bg-black/40 backdrop-blur-sm">
+          <FunnelProgress
+            current={funnelStepNumber}
+            total={totalFunnelSteps}
+            label={`Step ${funnelStepNumber} of ${totalFunnelSteps}`}
+            theme={cfg.theme}
+          />
         </div>
 
-        <div className="flex-1 px-6 pt-8 pb-6 flex flex-col">
-          <h1 className="text-xl font-bold mb-2">{step.question}</h1>
-          {step.subtitle && (
-            <p className="text-sm text-gray-400 mb-8">{step.subtitle}</p>
-          )}
+        <div className="relative mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pb-10 pt-6 sm:px-8 sm:pt-8">
+          <p className="mb-6 text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-500/90">
+            Application · Question {step.step} of {QUESTIONNAIRE_STEPS}
+          </p>
 
-          <div className="flex flex-col gap-3 flex-1">
+          <h1 className="mb-3 font-serif text-2xl font-normal leading-[1.2] tracking-tight text-zinc-50 md:text-[1.75rem] md:leading-snug">
+            {step.question}
+          </h1>
+          {step.subtitle ? (
+            <p className="mb-10 max-w-prose text-sm leading-relaxed text-zinc-400">
+              {step.subtitle}
+            </p>
+          ) : null}
+
+          <div className="flex flex-1 flex-col gap-3">
             {step.options.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
                 onClick={() => handleSelect(opt.value)}
-                className={`w-full text-left px-4 py-4 rounded-xl border transition-all ${
+                className={`w-full rounded-xl border px-5 py-4 text-left text-[15px] leading-snug transition-all duration-200 ${
                   selected === opt.value
-                    ? `${t.accentBorder} ${t.selectedBg} text-white`
-                    : "border-gray-700 bg-gray-900 text-gray-300 hover:border-gray-500"
+                    ? `border-amber-500/70 bg-amber-500/[0.08] text-zinc-50 shadow-[0_0_0_1px_rgba(245,158,11,0.2)] ring-1 ring-amber-500/30`
+                    : "border-zinc-700/80 bg-zinc-900/40 text-zinc-300 hover:border-zinc-500 hover:bg-zinc-800/50 active:scale-[0.99]"
                 }`}
               >
                 {opt.label}
@@ -203,13 +213,13 @@ function QualifyInner() {
             type="button"
             onClick={handleNext}
             disabled={!selected || processing}
-            className={`mt-6 w-full py-4 rounded-xl font-semibold text-sm transition-all ${
+            className={`mt-8 w-full rounded-xl py-4 text-sm font-semibold tracking-wide shadow-lg transition-all ${
               selected && !processing
-                ? `${t.accentBg} text-black ${t.accentBgHover}`
-                : "bg-gray-800 text-gray-600 cursor-not-allowed"
+                ? `${t.accentBg} text-zinc-950 shadow-amber-900/25 ${t.accentBgHover}`
+                : "cursor-not-allowed border border-zinc-800 bg-zinc-900/50 text-zinc-600"
             }`}
           >
-            Continue →
+            Continue
           </button>
         </div>
       </div>
@@ -221,7 +231,7 @@ export default function QualifyPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-black flex items-center justify-center text-white text-sm">
+        <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-zinc-950 to-black text-sm text-zinc-400">
           Loading…
         </div>
       }

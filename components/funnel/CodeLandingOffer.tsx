@@ -431,38 +431,36 @@ export function CodeLandingOffer({
         </div>
       </section>
 
-      <footer className="border-t border-zinc-200/80 bg-[#fafaf9] text-zinc-600">
-        <div className="mx-auto max-w-2xl px-4 py-10 text-center">
-          <p className="text-sm leading-relaxed text-zinc-500">
-            When you are ready, continue to the short questionnaire using the bar below — same secure Mini App flow.
-          </p>
-        </div>
-        {offer.footerLinks && offer.footerLinks.length > 0 ? (
-          <div className="border-t border-zinc-200/80 bg-white px-4 py-6">
-            <ul className="mx-auto flex max-w-3xl flex-wrap justify-center gap-x-6 gap-y-2 text-sm">
-              {offer.footerLinks.map((l) => (
-                <li key={l.label}>
-                  <a
-                    href={l.href}
-                    className={`${accentText} hover:underline underline-offset-4`}
-                  >
-                    {l.label}
-                  </a>
-                </li>
+      {(offer.footerLinks && offer.footerLinks.length > 0) ||
+      (offer.disclaimerParagraphs && offer.disclaimerParagraphs.length > 0) ? (
+        <footer className="border-t border-zinc-200/80 bg-[#fafaf9] text-zinc-600">
+          {offer.footerLinks && offer.footerLinks.length > 0 ? (
+            <div className="border-t border-zinc-200/80 bg-white px-4 py-6">
+              <ul className="mx-auto flex max-w-3xl flex-wrap justify-center gap-x-6 gap-y-2 text-sm">
+                {offer.footerLinks.map((l) => (
+                  <li key={l.label}>
+                    <a
+                      href={l.href}
+                      className={`${accentText} hover:underline underline-offset-4`}
+                    >
+                      {l.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {offer.disclaimerParagraphs && offer.disclaimerParagraphs.length > 0 ? (
+            <div className="mx-auto max-w-4xl bg-white px-4 pb-10 text-left text-[11px] leading-relaxed text-zinc-500">
+              {offer.disclaimerParagraphs.map((p, i) => (
+                <p key={i} className="mb-2.5">
+                  <RichLine text={p} />
+                </p>
               ))}
-            </ul>
-          </div>
-        ) : null}
-        {offer.disclaimerParagraphs && offer.disclaimerParagraphs.length > 0 ? (
-          <div className="mx-auto max-w-4xl bg-white px-4 pb-10 text-left text-[11px] leading-relaxed text-zinc-500">
-            {offer.disclaimerParagraphs.map((p, i) => (
-              <p key={i} className="mb-2.5">
-                <RichLine text={p} />
-              </p>
-            ))}
-          </div>
-        ) : null}
-      </footer>
+            </div>
+          ) : null}
+        </footer>
+      ) : null}
 
       <div
         className={`fixed bottom-[5.25rem] left-4 z-40 max-w-[200px] rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-xs text-white shadow-lg transition-opacity md:bottom-[5.5rem] ${

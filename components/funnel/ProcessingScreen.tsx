@@ -15,20 +15,28 @@ export function ProcessingScreen({
     theme === "amber" ? "bg-amber-500" : "bg-emerald-500";
 
   return (
-    <div className="fixed inset-0 z-[100] bg-[#0a0a0a] flex flex-col items-center justify-center px-8">
-      <div className="flex gap-1.5 mb-6" aria-hidden>
-        {[0, 1, 2].map((i) => (
-          <span
-            key={i}
-            className={`w-2 h-2 rounded-full ${dot} animate-bounce`}
-            style={{ animationDelay: `${i * 0.15}s` }}
-          />
-        ))}
+    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-b from-zinc-950 via-black to-zinc-950 px-8">
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_45%_at_50%_0%,rgba(245,158,11,0.1),transparent)]"
+        aria-hidden
+      />
+      <div className="relative flex flex-col items-center">
+        <div className="mb-6 flex gap-1.5" aria-hidden>
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className={`h-2 w-2 rounded-full ${dot} animate-bounce`}
+              style={{ animationDelay: `${i * 0.15}s` }}
+            />
+          ))}
+        </div>
+        <p className="text-center font-serif text-base font-normal text-zinc-100">
+          {message}
+        </p>
+        <p className="mt-3 text-center text-xs text-zinc-500">
+          This usually takes a few seconds.
+        </p>
       </div>
-      <p className="text-white text-sm font-medium text-center">{message}</p>
-      <p className="text-zinc-500 text-xs mt-3 text-center">
-        This usually takes a few seconds.
-      </p>
     </div>
   );
 }
