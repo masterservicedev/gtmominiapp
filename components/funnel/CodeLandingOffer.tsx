@@ -393,23 +393,23 @@ export function CodeLandingOffer({
           >
             <ul
               ref={testimonialsScrollRef}
-              className="flex gap-3 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] md:gap-4 md:pb-2 [&::-webkit-scrollbar]:hidden"
+              className="flex items-start gap-2.5 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] md:gap-3 md:pb-2 [&::-webkit-scrollbar]:hidden"
               style={{ WebkitOverflowScrolling: "touch" }}
             >
               {offer.testimonials.map((item) => (
                 <li
                   key={item.name}
-                  className="flex h-[10.25rem] min-w-[min(85vw,22rem)] max-w-[22rem] shrink-0 gap-2.5 rounded-lg border border-zinc-200/80 bg-white px-3 pb-2 pt-2.5 shadow-sm sm:min-w-[20rem] md:h-[11rem] md:gap-3 md:rounded-xl md:px-3.5 md:pb-2.5 md:pt-3"
+                  className="flex min-w-[min(78vw,15.5rem)] max-w-[15.5rem] shrink-0 gap-2 rounded-lg border border-zinc-200/80 bg-white px-2.5 py-2 shadow-sm sm:min-w-[15rem] md:max-w-[16.25rem] md:gap-2.5 md:rounded-xl md:px-3 md:py-2.5"
                 >
                   <TestimonialAvatar
                     name={item.name}
                     imageFile={item.imageFile}
                   />
-                  <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-start">
-                    <div className="shrink-0 text-xs font-semibold text-zinc-900 md:text-sm">
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <div className="shrink-0 text-[11px] font-semibold leading-tight text-zinc-900 md:text-xs">
                       {item.name}
                     </div>
-                    <p className="mt-1 line-clamp-5 flex-1 text-xs leading-snug text-zinc-600 md:line-clamp-6 md:text-sm md:leading-relaxed">
+                    <p className="mt-0.5 line-clamp-4 text-[11px] leading-snug text-zinc-600 md:line-clamp-5 md:text-xs md:leading-relaxed">
                       <RichLine
                         text={fillProject(item.quote, projectName)}
                       />
@@ -576,13 +576,13 @@ function TestimonialAvatar({
       <img
         src={url}
         alt=""
-        className="h-12 w-12 shrink-0 rounded-full object-cover ring-2 ring-zinc-100 md:h-[4.5rem] md:w-[4.5rem]"
+        className="h-9 w-9 shrink-0 rounded-full object-cover ring-2 ring-zinc-100 md:h-10 md:w-10"
       />
     );
   }
   return (
     <div
-      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-sm font-semibold text-zinc-600 md:h-[4.5rem] md:w-[4.5rem] md:text-base"
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-xs font-semibold text-zinc-600 md:h-10 md:w-10 md:text-sm"
       aria-hidden
     >
       {initial}
