@@ -140,47 +140,79 @@ export function CodeLandingOffer({
   }, [router, variant]);
 
   return (
-    <div className="min-h-screen bg-zinc-100 text-zinc-900 pb-28">
-      <header className="border-b border-zinc-800 bg-zinc-900 text-white">
-        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
-          <div className={`h-9 w-9 rounded ${accentBg}/20 ring-1 ${accentRing}`} />
-          <div className="text-lg font-semibold tracking-tight">
-            The {projectName}
-          </div>
+    <div className="min-h-screen bg-[#fafaf9] text-zinc-900 pb-28">
+      <header className="border-b border-zinc-800/90 bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950 text-white shadow-sm">
+        <div className="mx-auto flex max-w-6xl flex-col items-center px-4 py-6 md:py-7">
+          {offer.headerLogoSrc ? (
+            <div className="flex flex-col items-center gap-4">
+              <div
+                className={`rounded-xl border border-amber-500/35 bg-zinc-950/60 p-3 shadow-[0_0_0_1px_rgba(251,191,36,0.12)] backdrop-blur-sm ${accentRing} ring-1`}
+              >
+                <div className="gate-logo-shine relative mx-auto w-[min(200px,72vw)] overflow-hidden rounded-lg">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={offer.headerLogoSrc}
+                    alt=""
+                    className="relative z-[1] mx-auto block h-auto max-h-[72px] w-full object-contain object-center"
+                    width={200}
+                    height={72}
+                  />
+                  <span
+                    className="gate-logo-shine-overlay pointer-events-none absolute inset-0 z-[2]"
+                    aria-hidden
+                  />
+                </div>
+              </div>
+              <h2 className="text-center text-xl font-semibold tracking-wide text-white md:text-2xl">
+                The {projectName}
+              </h2>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className={`h-9 w-9 rounded ${accentBg}/20 ring-1 ${accentRing}`} />
+              <div className="text-lg font-semibold tracking-tight">
+                The {projectName}
+              </div>
+            </div>
+          )}
         </div>
         <FunnelProgress
           current={progressCurrent}
           total={progressTotal}
-          label={`Step ${progressCurrent} — ${projectName}`}
+          label={
+            variant === "ad4"
+              ? undefined
+              : `Step ${progressCurrent} — ${projectName}`
+          }
           theme={theme}
         />
       </header>
 
-      <section className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto max-w-6xl px-4 py-8">
-          <div className="mb-6 flex flex-wrap items-center gap-2">
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${accentText} ring-1 ring-amber-500/30 bg-amber-500/10`}
-            >
-              Live queue
-            </span>
-            <span className="text-sm font-medium text-red-700">
-              Intake can pause without notice — complete the next step today.
-            </span>
-          </div>
+      <section className="border-b border-zinc-200/80 bg-white">
+        <div className="mx-auto max-w-6xl px-4 py-10 md:py-12">
+          <div className="mx-auto mb-10 max-w-3xl text-center">
+            <div className="mb-6 inline-flex flex-col items-center gap-2 sm:flex-row sm:justify-center sm:gap-3">
+              <span className="rounded-full border border-zinc-200/80 bg-zinc-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
+                Private intake
+              </span>
+              <span className="text-sm text-zinc-500">
+                Availability can change — complete the next step at your earliest convenience.
+              </span>
+            </div>
 
-          <div className="mb-8 max-w-4xl space-y-4">
-            <h1 className="text-3xl font-bold leading-tight text-black md:text-4xl">
-              {offer.intro.h1}
-            </h1>
-            <h2
-              className={`text-2xl font-bold leading-snug md:text-3xl ${accentText}`}
-            >
-              {offer.intro.h2}
-            </h2>
-            <p className="text-base font-medium leading-relaxed text-zinc-700 md:text-lg">
-              {offer.intro.h3}
-            </p>
+            <div className="space-y-5">
+              <h1 className="font-serif text-[1.65rem] font-normal leading-[1.2] tracking-tight text-zinc-900 md:text-4xl md:leading-[1.15]">
+                {offer.intro.h1}
+              </h1>
+              <p
+                className={`mx-auto max-w-2xl text-lg font-medium leading-snug md:text-xl ${accentText}`}
+              >
+                {offer.intro.h2}
+              </p>
+              <p className="mx-auto max-w-2xl text-base font-normal leading-relaxed text-zinc-600 md:text-lg">
+                {offer.intro.h3}
+              </p>
+            </div>
           </div>
 
           <div className="grid gap-8 lg:grid-cols-12">

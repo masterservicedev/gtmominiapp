@@ -18,6 +18,8 @@ export type CodeLandingTestimonial = {
 export type CodeLandingOfferBlock = {
   mode: "code_landing";
   projectName: string;
+  /** Brand mark in header (public path), e.g. `/logo-goldtradermo.png` */
+  headerLogoSrc?: string;
   primaryCtaLabel: string;
   video: VideoOfferConfig;
   /** Hero above video — three stacked lines (e.g. stats + positioning). */

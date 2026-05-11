@@ -27,33 +27,34 @@ export const ad4VariantConfig: FunnelVariantConfig = {
   offer: {
     mode: "code_landing",
     projectName: "GTMO Code",
+    headerLogoSrc: "/logo-goldtradermo.png",
     primaryCtaLabel: "Continue to application",
     video: {
       src: VIDEO_SRC,
       minWatchSeconds: 0,
     },
     intro: {
-      h1: "1,150+ pips delivered this week.",
-      h2: "$35,000 secured on a single NFP setup.",
-      h3: "This isn't a signals group. It's a live trading environment run by someone who manages risk in real time and shows you every move.",
+      h1: "Markets reward clarity and discipline — not noise.",
+      h2: "Live gold context, risk-first framing, and full transparency on how ideas are managed.",
+      h3: "This is not a tip line. You follow a professional who trades with real capital, explains risk before entries, and walks through decisions as conditions change — so you see the process, not just a headline.",
     },
     urgencyAside: {
-      eyebrow: "Limited intake · live queue",
-      headline: "Don’t exit — your place in line is assigned while this window is open.",
+      eyebrow: "Private intake",
+      headline: "Complete the brief, then continue to your application while this window is open.",
       bullets: [
-        "Same cohort fills fast when volatility spikes — we cap daily onboarding.",
-        "Finish the brief, then move straight to the application — no duplicate forms here.",
-        "Nothing guaranteed — only structured education and next-step routing.",
+        "We limit daily onboarding so everyone gets a fair, orderly path — not a rush.",
+        "One straight line: watch → short questionnaire → next step. No duplicate steps.",
+        "Nothing here is a promise of results — only education and honest risk language.",
       ],
     },
     midPageUrgency: {
-      title: "Why move now — not “later”",
+      title: "Why thoughtful timing matters",
       subtitle:
-        "Later usually means wider spreads, missed context, and a longer queue.",
+        "Waiting often means missing context you needed to understand the full picture.",
       bullets: [
-        "Slots are released in batches — when this batch closes, you wait for the next.",
-        "The questionnaire routes you so support isn’t overloaded — fairness cuts both ways.",
-        "If gold’s on your radar, inaction is still a decision — make an informed one.",
+        "Places are offered in rounds — when a round closes, the next one may be later.",
+        "A short application helps us route you properly instead of overloading the team.",
+        "If gold matters to you, deciding when to engage is still a decision — make it an informed one.",
       ],
     },
     joinSection: {
