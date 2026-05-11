@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FunnelProgress } from "@/components/funnel/FunnelProgress";
 import { VideoOffer } from "@/components/funnel/VideoOffer";
@@ -93,6 +93,11 @@ export function CodeLandingOffer({
   const [showSpots, setShowSpots] = useState(false);
   const [activityPulse, setActivityPulse] = useState(false);
   const [spotsShake, setSpotsShake] = useState(false);
+  const testimonialsScrollRef = useRef<HTMLUListElement>(null);
+  const testimonialsPausedRef = useRef(false);
+  const testimonialsTouchResumeRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   useEffect(() => {
     const t1 = setTimeout(() => setShowActivity(true), 2000);
@@ -131,6 +136,41 @@ export function CodeLandingOffer({
       clearTimeout(o2);
     };
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (offer.testimonials.length < 2) return;
+
+    const el = testimonialsScrollRef.current;
+    if (!el) return;
+
+    let cancelled = false;
+    let last = performance.now();
+    const pxPerSec = 28;
+
+    const step = (now: number) => {
+      if (cancelled) return;
+      const dt = Math.min(0.1, (now - last) / 1000);
+      last = now;
+      if (!testimonialsPausedRef.current && el.scrollWidth > el.clientWidth) {
+        const max = el.scrollWidth - el.clientWidth;
+        el.scrollLeft += pxPerSec * dt;
+        if (el.scrollLeft >= max - 0.5) {
+          el.scrollLeft = 0;
+        }
+      }
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+    return () => {
+      cancelled = true;
+      if (testimonialsTouchResumeRef.current) {
+        clearTimeout(testimonialsTouchResumeRef.current);
+        testimonialsTouchResumeRef.current = null;
+      }
+    };
+  }, [offer.testimonials.length]);
 
   const continueToQualify = useCallback(async () => {
     setCtaBusy(true);
@@ -326,28 +366,50 @@ export function CodeLandingOffer({
           <h2 className="mb-8 text-center font-serif text-2xl font-normal tracking-tight text-zinc-900 md:text-3xl">
             {offer.testimonialsSectionTitle}
           </h2>
-          <p className="mb-4 text-center text-xs text-zinc-500 md:hidden">
-            Swipe sideways to read more
-          </p>
-          <div className="-mx-4 px-4 md:mx-0 md:px-0">
+          <div
+            className="-mx-4 px-4 md:mx-0 md:px-0"
+            onMouseEnter={() => {
+              testimonialsPausedRef.current = true;
+            }}
+            onMouseLeave={() => {
+              testimonialsPausedRef.current = false;
+            }}
+            onTouchStart={() => {
+              testimonialsPausedRef.current = true;
+              if (testimonialsTouchResumeRef.current) {
+                clearTimeout(testimonialsTouchResumeRef.current);
+                testimonialsTouchResumeRef.current = null;
+              }
+            }}
+            onTouchEnd={() => {
+              if (testimonialsTouchResumeRef.current) {
+                clearTimeout(testimonialsTouchResumeRef.current);
+              }
+              testimonialsTouchResumeRef.current = setTimeout(() => {
+                testimonialsPausedRef.current = false;
+                testimonialsTouchResumeRef.current = null;
+              }, 2500);
+            }}
+          >
             <ul
-              className="flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain pb-2 [-ms-overflow-style:none] [scrollbar-width:thin] md:gap-5 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-300 [&::-webkit-scrollbar-track]:bg-zinc-100"
+              ref={testimonialsScrollRef}
+              className="flex gap-4 overflow-x-auto overscroll-x-contain pb-2 [-ms-overflow-style:none] [scrollbar-width:none] md:gap-5 [&::-webkit-scrollbar]:hidden"
               style={{ WebkitOverflowScrolling: "touch" }}
             >
               {offer.testimonials.map((item) => (
                 <li
                   key={item.name}
-                  className="flex min-w-[min(85vw,22rem)] max-w-[22rem] shrink-0 snap-start gap-4 rounded-xl border border-zinc-200/80 bg-white p-4 shadow-sm sm:min-w-[20rem]"
+                  className="flex h-[11.5rem] min-w-[min(85vw,22rem)] max-w-[22rem] shrink-0 gap-4 rounded-xl border border-zinc-200/80 bg-white p-4 shadow-sm sm:min-w-[20rem]"
                 >
                   <TestimonialAvatar
                     name={item.name}
                     imageFile={item.imageFile}
                   />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-semibold text-zinc-900">
+                  <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                    <div className="shrink-0 text-sm font-semibold text-zinc-900">
                       {item.name}
                     </div>
-                    <p className="mt-1.5 text-sm leading-relaxed text-zinc-600">
+                    <p className="mt-1.5 line-clamp-6 flex-1 text-sm leading-relaxed text-zinc-600">
                       <RichLine
                         text={fillProject(item.quote, projectName)}
                       />
