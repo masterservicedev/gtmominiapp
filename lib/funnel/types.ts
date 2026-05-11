@@ -88,6 +88,8 @@ export type PositioningGateCopy = {
   headline: string;
   subcopy?: string;
   ctaLabel: string;
+  /** Public path under `/public`, e.g. `/logo-goldtradermo.png` */
+  logoSrc?: string;
 };
 
 export type PrelanderCopy = {

@@ -29,12 +29,13 @@ function GateInner() {
       headline={cfg.positioningGate.headline}
       subcopy={cfg.positioningGate.subcopy}
       ctaLabel={cfg.positioningGate.ctaLabel}
+      logoSrc={cfg.positioningGate.logoSrc}
       tickerLines={cfg.socialProofTicker}
       header={
         <FunnelProgress
           current={1}
           total={preTotal}
-          label="Step 1 — positioning"
+          label={variant === "ad4" ? undefined : "Step 1 — positioning"}
           theme={cfg.theme}
         />
       }

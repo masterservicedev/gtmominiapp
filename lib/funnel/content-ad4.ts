@@ -10,9 +10,13 @@ const VIDEO_SRC =
 export const ad4VariantConfig: FunnelVariantConfig = {
   theme: "amber",
   positioningGate: {
-    headline: "Limited intake — watch the brief, then lock in your slot.",
-    subcopy:
-      "Gold moves fast. We route serious applicants only. Trading involves risk; nothing here is a promise of profit or financial advice.",
+    logoSrc: "/logo-goldtradermo.png",
+    headline: "Most traders fail because they're alone.",
+    subcopy: [
+      "Wrong information. No structure. No one to follow who actually trades.",
+      "That changes here. Follow someone who trades live every single day — and builds real positions in real time.",
+      "This intake is limited. Serious applicants only.",
+    ].join("\n\n"),
     ctaLabel: "Continue",
   },
   socialProofTicker: [

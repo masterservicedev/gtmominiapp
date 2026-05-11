@@ -65,3 +65,38 @@ body {
     transform: none;
   }
 }
+
+/* Positioning gate: metallic shine sweep over logo */
+@keyframes gate-logo-shine {
+  0% {
+    transform: translateX(-100%) skewX(-18deg);
+  }
+  100% {
+    transform: translateX(200%) skewX(-18deg);
+  }
+}
+
+.gate-logo-shine-overlay::after {
+  content: "";
+  position: absolute;
+  top: -20%;
+  left: 0;
+  width: 55%;
+  height: 140%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0) 35%,
+    rgba(255, 255, 255, 0.35) 50%,
+    rgba(255, 255, 255, 0) 65%,
+    transparent 100%
+  );
+  animation: gate-logo-shine 2.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gate-logo-shine-overlay::after {
+    animation: none;
+    opacity: 0;
+  }
+}
