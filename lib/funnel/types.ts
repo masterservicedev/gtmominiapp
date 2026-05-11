@@ -22,10 +22,11 @@ export type CodeLandingOfferBlock = {
   headerLogoSrc?: string;
   primaryCtaLabel: string;
   video: VideoOfferConfig;
-  /** Hero above video — three stacked lines (e.g. stats + positioning). */
+  /** Hero above video — headline plus optional second stat line (e.g. accent). */
   intro: {
     h1: string;
     h2: string;
+    h2b?: string;
     h3: string;
   };
   /** Replaces old sidebar lead form — urgency copy + bullets. */
@@ -44,7 +45,8 @@ export type CodeLandingOfferBlock = {
     headline: string;
     paragraphs: string[];
   };
-  vacationsTitle: string;
+  /** Omit or leave empty to hide the vacations heading section. */
+  vacationsTitle?: string;
   testimonialsSectionTitle: string;
   testimonials: CodeLandingTestimonial[];
   moSection: {

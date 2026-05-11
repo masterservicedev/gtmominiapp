@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FunnelProgress } from "@/components/funnel/FunnelProgress";
 import { VideoOffer } from "@/components/funnel/VideoOffer";
@@ -50,6 +50,18 @@ function RichLine({ text }: { text: string }) {
   );
 }
 
+const FOMO_COUNTRIES = [
+  "United States",
+  "United Kingdom",
+  "Germany",
+  "France",
+  "Spain",
+  "Italy",
+  "Canada",
+  "Australia",
+];
+const FOMO_TIMES = ["2 min", "5 min", "8 min", "12 min", "15 min"];
+
 type Props = {
   offer: CodeLandingOfferBlock;
   variant: AdVariant;
@@ -74,6 +86,51 @@ export function CodeLandingOffer({
   const accentText = theme === "amber" ? "text-amber-600" : "text-emerald-600";
 
   const [ctaBusy, setCtaBusy] = useState(false);
+  const [fomoCountry, setFomoCountry] = useState("United States");
+  const [fomoTime, setFomoTime] = useState("2 min");
+  const [spots, setSpots] = useState(7);
+  const [showActivity, setShowActivity] = useState(false);
+  const [showSpots, setShowSpots] = useState(false);
+  const [activityPulse, setActivityPulse] = useState(false);
+  const [spotsShake, setSpotsShake] = useState(false);
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setShowActivity(true), 2000);
+    const t2 = setTimeout(() => setShowSpots(true), 4000);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, []);
+
+  useEffect(() => {
+    const tickActivity = () => {
+      setFomoCountry(FOMO_COUNTRIES[Math.floor(Math.random() * FOMO_COUNTRIES.length)]!);
+      setFomoTime(FOMO_TIMES[Math.floor(Math.random() * FOMO_TIMES.length)]!);
+      setActivityPulse(true);
+      setTimeout(() => setActivityPulse(false), 600);
+    };
+    const tickSpots = () => {
+      setSpots((s) => {
+        let n = s;
+        if (n > 3) n -= Math.floor(Math.random() * 2) + 1;
+        if (n < 3) n = 3;
+        return n;
+      });
+      setSpotsShake(true);
+      setTimeout(() => setSpotsShake(false), 500);
+    };
+    const i1 = setInterval(tickActivity, 45_000);
+    const i2 = setInterval(tickSpots, 60_000);
+    const o1 = setTimeout(tickActivity, 10_000);
+    const o2 = setTimeout(tickSpots, 15_000);
+    return () => {
+      clearInterval(i1);
+      clearInterval(i2);
+      clearTimeout(o1);
+      clearTimeout(o2);
+    };
+  }, []);
 
   const leftT = offer.testimonials.slice(0, 5);
   const rightT = offer.testimonials.slice(5);
@@ -154,11 +211,16 @@ export function CodeLandingOffer({
               <h1 className="font-serif text-[1.65rem] font-normal leading-[1.2] tracking-tight text-zinc-900 md:text-4xl md:leading-[1.15]">
                 {offer.intro.h1}
               </h1>
-              <p
-                className={`mx-auto max-w-2xl text-lg font-medium leading-snug md:text-xl ${accentText}`}
-              >
+              <p className="mx-auto max-w-2xl text-lg font-semibold leading-snug text-zinc-900 md:text-xl">
                 {offer.intro.h2}
               </p>
+              {offer.intro.h2b ? (
+                <p
+                  className={`mx-auto max-w-2xl text-lg font-semibold leading-snug md:text-xl ${accentText}`}
+                >
+                  {offer.intro.h2b}
+                </p>
+              ) : null}
               <p className="mx-auto max-w-2xl text-base font-normal leading-relaxed text-zinc-600 md:text-lg">
                 {offer.intro.h3}
               </p>
@@ -224,21 +286,21 @@ export function CodeLandingOffer({
       </section>
 
       {offer.midPageUrgency ? (
-        <section className="border-b border-zinc-200/80 bg-white py-12 md:py-14">
+        <section className="border-b border-zinc-800/90 bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950 py-12 text-white shadow-inner md:py-14">
           <div className="mx-auto max-w-3xl px-4">
-            <h2 className="text-center font-serif text-2xl font-normal tracking-tight text-zinc-900 md:text-3xl">
+            <h2 className="text-center font-serif text-2xl font-normal tracking-tight text-white md:text-3xl">
               {offer.midPageUrgency.title}
             </h2>
             {offer.midPageUrgency.subtitle ? (
-              <p className="mt-4 text-center text-sm leading-relaxed text-zinc-600">
+              <p className="mt-4 text-center text-sm leading-relaxed text-amber-100/85">
                 {offer.midPageUrgency.subtitle}
               </p>
             ) : null}
-            <ul className="mt-8 space-y-3 text-left text-sm leading-relaxed text-zinc-600">
+            <ul className="mt-8 space-y-3 text-left text-sm leading-relaxed text-zinc-200">
               {offer.midPageUrgency.bullets.map((b) => (
                 <li
                   key={b}
-                  className="flex gap-3 rounded-xl border border-zinc-200/80 bg-[#fafaf9] px-4 py-3.5"
+                  className="flex gap-3 rounded-xl border border-amber-500/25 bg-black/30 px-4 py-3.5 backdrop-blur-sm"
                 >
                   <span
                     className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${accentBg}`}
@@ -252,13 +314,15 @@ export function CodeLandingOffer({
         </section>
       ) : null}
 
-      <section className="border-b border-zinc-200/80 bg-white py-10 md:py-12">
-        <div className="mx-auto max-w-4xl px-4 text-center">
-          <h2 className="font-serif text-2xl font-normal tracking-tight text-zinc-900 md:text-3xl">
-            {offer.vacationsTitle}
-          </h2>
-        </div>
-      </section>
+      {offer.vacationsTitle?.trim() ? (
+        <section className="border-b border-zinc-200/80 bg-white py-10 md:py-12">
+          <div className="mx-auto max-w-4xl px-4 text-center">
+            <h2 className="font-serif text-2xl font-normal tracking-tight text-zinc-900 md:text-3xl">
+              {offer.vacationsTitle}
+            </h2>
+          </div>
+        </section>
+      ) : null}
 
       <section className="border-b border-zinc-200/80 bg-[#fafaf9] py-12 md:py-14">
         <div className="mx-auto max-w-6xl px-4">
@@ -395,6 +459,32 @@ export function CodeLandingOffer({
           ))}
         </div>
       </footer>
+
+      <div
+        className={`fixed bottom-[5.25rem] left-4 z-40 max-w-[200px] rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-xs text-white shadow-lg transition-opacity md:bottom-[5.5rem] ${
+          showActivity ? "opacity-100" : "pointer-events-none opacity-0"
+        } ${activityPulse ? "ring-2 ring-amber-500/50" : ""}`}
+      >
+        <div className="mb-1 font-bold text-amber-400">
+          <span className="mr-1">🔥</span> LIVE ACTIVITY
+        </div>
+        <div>
+          Someone from {fomoCountry}
+          <br />
+          just joined {fomoTime} ago
+        </div>
+      </div>
+      <div
+        className={`fixed bottom-[5.25rem] right-4 z-40 max-w-[200px] rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-xs text-white shadow-lg transition-opacity md:bottom-[5.5rem] ${
+          showSpots ? "opacity-100" : "pointer-events-none opacity-0"
+        } ${spots <= 5 ? "border-amber-600" : ""} ${spotsShake ? "translate-x-0.5" : ""}`}
+      >
+        <div className="mb-1 font-bold text-amber-400">
+          <span className="mr-1">⚠️</span>
+          <span>{spots}</span> SPOTS LEFT
+        </div>
+        <div className="text-zinc-400">Filling up fast!</div>
+      </div>
 
       <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-zinc-200/80 bg-white/95 px-4 py-3 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] backdrop-blur-md md:py-4">
         <div className="mx-auto flex max-w-lg flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">

@@ -24,7 +24,7 @@ export function getMiniAppUrl(): string | undefined {
  * `WebApp.initDataUnsafe.start_param` inside the Mini App (same origin — not an external browser tab).
  *
  * - If `startPayload` is set and not `ref_*`, it becomes `?startapp=...` (e.g. Voluum `clickid_ad4`).
- * - Otherwise uses `MINI_APP_START_PARAM` (e.g. `ad4` so the GTMO Code funnel opens in-app).
+ * - Otherwise uses `MINI_APP_START_PARAM` (e.g. `ad4` so the GTMO Signals funnel opens in-app).
  */
 export function getMiniAppWebAppUrl(startPayload?: string | null): string | undefined {
   const base = getMiniAppUrl();

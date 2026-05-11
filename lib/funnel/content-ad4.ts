@@ -26,7 +26,7 @@ export const ad4VariantConfig: FunnelVariantConfig = {
   ],
   offer: {
     mode: "code_landing",
-    projectName: "GTMO Code",
+    projectName: "GTMO Signals",
     headerLogoSrc: "/logo-gtmo-crown.png",
     primaryCtaLabel: "Continue to application",
     video: {
@@ -35,8 +35,9 @@ export const ad4VariantConfig: FunnelVariantConfig = {
     },
     intro: {
       h1: "Markets reward clarity and discipline — not noise.",
-      h2: "Live gold context, risk-first framing, and full transparency on how ideas are managed.",
-      h3: "This is not a tip line. You follow a professional who trades with real capital, explains risk before entries, and walks through decisions as conditions change — so you see the process, not just a headline.",
+      h2: "1,150+ pips delivered this week.",
+      h2b: "$35,000 secured on a single NFP setup.",
+      h3: "This isn't a signals group. It's a live trading environment run by someone who manages risk in real time and shows you every move.",
     },
     urgencyAside: {
       eyebrow: "Private intake",
@@ -64,7 +65,6 @@ export const ad4VariantConfig: FunnelVariantConfig = {
         "**{projectName} Members** enjoy retreats around the world every month while they make money on their laptop with just a few minutes of “work” every day.",
       ],
     },
-    vacationsTitle: "Here are some of our past vacations",
     testimonialsSectionTitle: "What members say",
     testimonials: [
       {
@@ -77,13 +77,13 @@ export const ad4VariantConfig: FunnelVariantConfig = {
         name: "Joey Feldman",
         imageFile: "/offer/media/joey.jpg",
         quote:
-          "When I joined The {projectName} 2 months ago, never could have I ever imagined the series of events that would unfold just days after locking in my free software. I was able to clear my $131,382 debt. There is no greater feeling than to be debt-free. Now, I’m in the process of buying my dream home. I still can’t believe this is all really happening…I’m forever grateful to Mo.",
+          "When I joined The {projectName} 2 months ago, never could have I ever imagined the series of events that would unfold just days after locking in my free system. I was able to clear my $131,382 debt. There is no greater feeling than to be debt-free. Now, I’m in the process of buying my dream home. I still can’t believe this is all really happening…I’m forever grateful to Mo.",
       },
       {
         name: "Michael Zusman",
         imageFile: "/offer/media/michael.jpg",
         quote:
-          "The results of the software speaks for itself...just as promised, I made over $13,000 every single day. Do I really need to say more?",
+          "The results of the system speak for themselves...just as promised, I made over $13,000 every single day. Do I really need to say more?",
       },
       {
         name: "Paulo Fonzi",
@@ -107,7 +107,7 @@ export const ad4VariantConfig: FunnelVariantConfig = {
         name: "Daniel Pelts",
         imageFile: "/offer/media/daniel.jpg",
         quote:
-          "Surprisingly, I used to be an investor on Wall Street. And I’ve never seen anything like this in my 10 year tenure at the company. My colleagues all thought I was crazy when I quit the firm to invest with the {projectName} software full-time. $384,594 in profits later, all of my colleagues are now BEGGING me to let them in.",
+          "Surprisingly, I used to be an investor on Wall Street. And I’ve never seen anything like this in my 10 year tenure at the company. My colleagues all thought I was crazy when I quit the firm to invest with the {projectName} system full-time. $384,594 in profits later, all of my colleagues are now BEGGING me to let them in.",
       },
       {
         name: "Magda Boltyanski",
@@ -124,7 +124,7 @@ export const ad4VariantConfig: FunnelVariantConfig = {
     ],
     moSection: {
       title: "Meet Gold Trader Mo",
-      subtitleLines: ["The Genius Behind The", "GTMO Code"],
+      subtitleLines: ["The Genius Behind The", "GTMO Signals"],
       bodyParagraphs: [
         "Hi — I’m Mo. I’m a **full-time trader** with **4+ years** of track record in this industry — not a spectator, not a hobbyist.",
         "I built a gold-focused framework and tools around disciplined execution and risk — the kind of structure you need when markets move against you.",
@@ -142,15 +142,15 @@ export const ad4VariantConfig: FunnelVariantConfig = {
       { label: "Contact Us", href: "#" },
     ],
     disclaimerParagraphs: [
-      "**REGULATION & HIGH RISK INVESTMENT WARNING:** Trading Forex, CFDs and Cryptocurrencies is highly speculative, carries a level of risk and may not be suitable for all investors. You may lose some or all of your invested capital, therefore you should not speculate with capital that you cannot afford to lose. Please click here to read a full risk warning. GTMO Code is a technology, marketing and advertising service. GTMO Code does not gain or lose profits based on your trading results and operates as a technology, marketing and advertising service. GTMO Code is not a financial services firm and does not operate as a financial services firm and is only used as a marketing tool by third party advertisers and brokers to attract customers. It is your obligation to check and decide whether the broker you were connected to applies to all local rules and regulations and is regulated in your country jurisdiction and is allowed to receive customers from your location you are in, before you fund your account with the broker and start trading with it. Please report GTMO Code (by clicking report abuse) if you find that the broker assigned to you is not regulated in your jurisdiction so we can cancel your account with GTMO Code.",
-      "We are required to tell potential investors that our software's past performance does not necessarily predict future results, therefore you should not speculate with capital that you cannot afford to lose.",
-      "**USA REGULATION NOTICE:** Option trading is not regulated within the United States. GTMO Code is not supervised or regulated by any financial agencies nor US agencies. Any unregulated trading activity by U.S. residents is considered unlawful. GTMO Code does not accept customers located within the United States or holding an American citizenship.",
-      "**SITE RISK DISCLOSURE:** GTMO Code does not accept any liability for loss or damage as a result of reliance on the information contained within this website; this includes education material, price quotes and charts, and analysis. Please be aware of the risks associated with trading the financial markets; never invest more money than you can risk losing. The risks involved in trading Forex, CFDs and Cryptocurrencies may not be suitable for all investors. GTMO Code doesn't retain responsibility for any trading losses you might face as a result of using the data hosted on this site.",
+      "**REGULATION & HIGH RISK INVESTMENT WARNING:** Trading Forex, CFDs and Cryptocurrencies is highly speculative, carries a level of risk and may not be suitable for all investors. You may lose some or all of your invested capital, therefore you should not speculate with capital that you cannot afford to lose. Please click here to read a full risk warning. GTMO Signals is a technology, marketing and advertising service. GTMO Signals does not gain or lose profits based on your trading results and operates as a technology, marketing and advertising service. GTMO Signals is not a financial services firm and does not operate as a financial services firm and is only used as a marketing tool by third party advertisers and brokers to attract customers. It is your obligation to check and decide whether the broker you were connected to applies to all local rules and regulations and is regulated in your country jurisdiction and is allowed to receive customers from your location you are in, before you fund your account with the broker and start trading with it. Please report GTMO Signals (by clicking report abuse) if you find that the broker assigned to you is not regulated in your jurisdiction so we can cancel your account with GTMO Signals.",
+      "We are required to tell potential investors that our system's past performance does not necessarily predict future results, therefore you should not speculate with capital that you cannot afford to lose.",
+      "**USA REGULATION NOTICE:** Option trading is not regulated within the United States. GTMO Signals is not supervised or regulated by any financial agencies nor US agencies. Any unregulated trading activity by U.S. residents is considered unlawful. GTMO Signals does not accept customers located within the United States or holding an American citizenship.",
+      "**SITE RISK DISCLOSURE:** GTMO Signals does not accept any liability for loss or damage as a result of reliance on the information contained within this website; this includes education material, price quotes and charts, and analysis. Please be aware of the risks associated with trading the financial markets; never invest more money than you can risk losing. The risks involved in trading Forex, CFDs and Cryptocurrencies may not be suitable for all investors. GTMO Signals doesn't retain responsibility for any trading losses you might face as a result of using the data hosted on this site.",
       "**LEGAL RESTRICTIONS:** Without limiting the undermentioned provisions, you understand that laws regarding financial contracts vary throughout the world, and it is your responsibility to make sure you properly comply with any law, regulation or guideline in your country of residence regarding the use of the Site. To avoid any doubt, the ability to access our Site does not necessarily mean that our Services and/or your activities through the Site are legal under the laws, regulations or directives relevant to your country of residence.",
-      "Please note that GTMO Code receives advertising fees for directing users to open an account with the brokers/advertisers and/or for driving traffic to the advertiser website.",
+      "Please note that GTMO Signals receives advertising fees for directing users to open an account with the brokers/advertisers and/or for driving traffic to the advertiser website.",
       "If you feel you landed on this page by wrongdoings and/or misleading information of an advertisement, pre lander, email or any other promotions of a 3rd party website/promoter, please report it by clicking REPORT ABUSE.",
       "We have placed cookies on your computer to help improve your experience when visiting this website. You can change cookie settings on your computer at any time. Use of this website indicates your acceptance of this website's Privacy Policy.",
-      "© 2026 All Rights Reserved - GTMO Code",
+      "© 2026 All Rights Reserved - GTMO Signals",
     ],
   },
 };
