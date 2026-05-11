@@ -20,11 +20,11 @@ export type CodeLandingOfferBlock = {
   projectName: string;
   primaryCtaLabel: string;
   video: VideoOfferConfig;
+  /** Hero above video — three stacked lines (e.g. stats + positioning). */
   intro: {
-    line1: string;
-    line2: string;
-    earnLine: string;
-    highlight: string;
+    h1: string;
+    h2: string;
+    h3: string;
   };
   /** Replaces old sidebar lead form — urgency copy + bullets. */
   urgencyAside: {

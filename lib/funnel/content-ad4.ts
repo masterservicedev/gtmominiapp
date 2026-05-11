@@ -33,10 +33,9 @@ export const ad4VariantConfig: FunnelVariantConfig = {
       minWatchSeconds: 0,
     },
     intro: {
-      line1: "Ride The Momentum of",
-      line2: "gold trading",
-      earnLine: "And you could earn up to",
-      highlight: "$13,000 In Exactly 24 Hours",
+      h1: "1,150+ pips delivered this week.",
+      h2: "$35,000 secured on a single NFP setup.",
+      h3: "This isn't a signals group. It's a live trading environment run by someone who manages risk in real time and shows you every move.",
     },
     urgencyAside: {
       eyebrow: "Limited intake · live queue",

@@ -169,15 +169,19 @@ export function CodeLandingOffer({
             </span>
           </div>
 
-          <h1 className="mb-8 max-w-4xl text-3xl font-bold leading-tight text-black md:text-4xl">
-            {offer.intro.line1}{" "}
-            <span className={accentText}>{offer.intro.line2}</span>
-            <br />
-            <span className="text-2xl font-semibold md:text-3xl">
-              {offer.intro.earnLine}{" "}
-              <span className="text-amber-500">{offer.intro.highlight}</span>
-            </span>
-          </h1>
+          <div className="mb-8 max-w-4xl space-y-4">
+            <h1 className="text-3xl font-bold leading-tight text-black md:text-4xl">
+              {offer.intro.h1}
+            </h1>
+            <h2
+              className={`text-2xl font-bold leading-snug md:text-3xl ${accentText}`}
+            >
+              {offer.intro.h2}
+            </h2>
+            <p className="text-base font-medium leading-relaxed text-zinc-700 md:text-lg">
+              {offer.intro.h3}
+            </p>
+          </div>
 
           <div className="grid gap-8 lg:grid-cols-12">
             <div className="lg:col-span-7">
