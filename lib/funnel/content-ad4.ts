@@ -10,19 +10,20 @@ const VIDEO_SRC =
 export const ad4VariantConfig: FunnelVariantConfig = {
   theme: "amber",
   positioningGate: {
-    headline: "You are about to open the full GTMO Code presentation.",
+    headline: "Limited intake — watch the brief, then lock in your slot.",
     subcopy:
-      "This is promotional, education-style marketing about gold and software. Trading carries risk. Continue only if you accept that nothing here is financial advice or a guarantee of results.",
+      "Gold moves fast. We route serious applicants only. Trading involves risk; nothing here is a promise of profit or financial advice.",
     ctaLabel: "Continue",
   },
   socialProofTicker: [
-    "Same narrative as the public GTMO Code page — adapted for Telegram",
-    "Complete the short form or scroll to register when you are ready",
+    "Applications reviewed in real time — queue moves quickly",
+    "Next step: short questionnaire — takes under two minutes",
+    "Education-first — risk-aware framing only",
   ],
   offer: {
     mode: "code_landing",
     projectName: "GTMO Code",
-    registerButtonLabel: "REGISTER NOW",
+    primaryCtaLabel: "Continue to application",
     video: {
       src: VIDEO_SRC,
       minWatchSeconds: 0,
@@ -33,11 +34,25 @@ export const ad4VariantConfig: FunnelVariantConfig = {
       earnLine: "And you could earn up to",
       highlight: "$13,000 In Exactly 24 Hours",
     },
-    formTitleLines: [
-      "Let Me Show You How to Make",
-      "Cash LIVE",
-      "Right Now",
-    ],
+    urgencyAside: {
+      eyebrow: "Limited intake · live queue",
+      headline: "Don’t exit — your place in line is assigned while this window is open.",
+      bullets: [
+        "Same cohort fills fast when volatility spikes — we cap daily onboarding.",
+        "Finish the brief, then move straight to the application — no duplicate forms here.",
+        "Nothing guaranteed — only structured education and next-step routing.",
+      ],
+    },
+    midPageUrgency: {
+      title: "Why move now — not “later”",
+      subtitle:
+        "Later usually means wider spreads, missed context, and a longer queue.",
+      bullets: [
+        "Slots are released in batches — when this batch closes, you wait for the next.",
+        "The questionnaire routes you so support isn’t overloaded — fairness cuts both ways.",
+        "If gold’s on your radar, inaction is still a decision — make an informed one.",
+      ],
+    },
     joinSection: {
       headline: "Join The {projectName}",
       paragraphs: [
@@ -108,10 +123,10 @@ export const ad4VariantConfig: FunnelVariantConfig = {
       title: "Meet Gold Trader Mo",
       subtitleLines: ["The Genius Behind The", "GTMO Code"],
       bodyParagraphs: [
-        "Hi - I’m an ex-software developer for a large firm whose name I prefer not to disclose.",
-        "I created a Gold Trading Software that has earned over $3,484,931.77 in profits within the past 6 months alone.",
-        "This software is making millionaires faster than early investors of Uber, Facebook or Airbnb.",
-        "If you want to target major upside in gold, watch the video above to learn how.",
+        "Hi — I’m Mo. I’m a **full-time trader** with **4+ years** of track record in this industry — not a spectator, not a hobbyist.",
+        "I built a gold-focused framework and tools around disciplined execution and risk — the kind of structure you need when markets move against you.",
+        "This presentation is about process and fit — not hype. Watch the brief above, then continue only if you’re ready for honest risk talk and a clear next step.",
+        "If you want to explore how we approach gold with structure, the video above is the fastest way to see whether this path aligns with you.",
       ],
       imageFile: "images/media/moe.jpg",
       signImageFile: "images/media/sign.png",

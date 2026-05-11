@@ -18,7 +18,7 @@ export type CodeLandingTestimonial = {
 export type CodeLandingOfferBlock = {
   mode: "code_landing";
   projectName: string;
-  registerButtonLabel: string;
+  primaryCtaLabel: string;
   video: VideoOfferConfig;
   intro: {
     line1: string;
@@ -26,7 +26,18 @@ export type CodeLandingOfferBlock = {
     earnLine: string;
     highlight: string;
   };
-  formTitleLines: string[];
+  /** Replaces old sidebar lead form — urgency copy + bullets. */
+  urgencyAside: {
+    eyebrow: string;
+    headline: string;
+    bullets: string[];
+  };
+  /** Optional band between join section and vacations. */
+  midPageUrgency?: {
+    title: string;
+    subtitle?: string;
+    bullets: string[];
+  };
   joinSection: {
     headline: string;
     paragraphs: string[];

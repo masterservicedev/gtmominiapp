@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FunnelProgress } from "@/components/funnel/FunnelProgress";
 import { VideoOffer } from "@/components/funnel/VideoOffer";
 import type { AdVariant } from "@/lib/funnel/normalize";
-import { LEAD_FORM_COUNTRIES } from "@/lib/funnel/lead-countries";
 import type { CodeLandingOfferBlock } from "@/lib/funnel/types";
 import type { FunnelTheme } from "@/lib/funnel/types";
 import { trackFunnelEvent } from "@/lib/funnel/track";
@@ -25,14 +24,13 @@ function fillProject(s: string, projectName: string) {
 }
 
 function RichLine({ text }: { text: string }) {
-  const filled = text;
-  const parts = filled.split(/(\*\*[^*]+\*\*)/g);
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return (
     <>
       {parts.map((p, i) => {
         if (p.startsWith("**") && p.endsWith("**")) {
           return (
-            <strong key={i} className="font-bold italic">
+            <strong key={i} className="font-bold">
               {p.slice(2, -2)}
             </strong>
           );
@@ -55,140 +53,6 @@ const FOMO_COUNTRIES = [
 ];
 const FOMO_TIMES = ["2 min", "5 min", "8 min", "12 min", "15 min"];
 
-type LeadPayload = {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-};
-
-function LeadForm({
-  onValidSubmit,
-  registerLabel,
-}: {
-  onValidSubmit: (data: LeadPayload) => Promise<void>;
-  registerLabel: string;
-}) {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phoneRaw, setPhoneRaw] = useState("");
-  const [dial, setDial] = useState("+1");
-  const [showError, setShowError] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const selectId = useId();
-
-  useEffect(() => {
-    fetch("https://ipapi.co/json/")
-      .then((r) => r.json())
-      .then((data: { country_code?: string }) => {
-        const iso = (data.country_code || "US").toUpperCase();
-        const row = LEAD_FORM_COUNTRIES.find((c) => c.iso === iso);
-        if (row) setDial(row.dial);
-      })
-      .catch(() => {});
-  }, []);
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-    const raw = phoneRaw.trim();
-    const phone = raw.startsWith("+") ? raw : `${dial}${raw}`;
-    const phoneOk = phone.length > 7;
-    if (
-      !firstName.trim() ||
-      !lastName.trim() ||
-      !emailOk ||
-      !phoneOk
-    ) {
-      setShowError(true);
-      return;
-    }
-    setShowError(false);
-    setBusy(true);
-    try {
-      await onValidSubmit({
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        email: email.trim(),
-        phone,
-      });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <form onSubmit={submit} className="space-y-2.5">
-      <div>
-        <input
-          type="text"
-          className="w-full border border-zinc-300 bg-white px-4 py-2.5 text-base italic text-zinc-900 placeholder:text-zinc-400"
-          placeholder="First Name"
-          value={firstName}
-          onChange={(e) => setFirstName(e.target.value)}
-          autoComplete="given-name"
-        />
-      </div>
-      <div>
-        <input
-          type="text"
-          className="w-full border border-zinc-300 bg-white px-4 py-2.5 text-base italic text-zinc-900 placeholder:text-zinc-400"
-          placeholder="Last Name"
-          value={lastName}
-          onChange={(e) => setLastName(e.target.value)}
-          autoComplete="family-name"
-        />
-      </div>
-      <div>
-        <input
-          type="email"
-          className="w-full border border-zinc-300 bg-white px-4 py-2.5 text-base italic text-zinc-900 placeholder:text-zinc-400"
-          placeholder="E-Mail"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          autoComplete="email"
-        />
-      </div>
-      <div className="flex w-full">
-        <select
-          id={selectId}
-          className="w-[110px] shrink-0 border border-r-0 border-zinc-300 bg-white px-1 py-2.5 text-sm italic text-zinc-900"
-          value={dial}
-          onChange={(e) => setDial(e.target.value)}
-          aria-label="Country code"
-        >
-          {LEAD_FORM_COUNTRIES.map((c) => (
-            <option key={c.iso} value={c.dial}>
-              {c.flag} {c.iso} {c.dial}
-            </option>
-          ))}
-        </select>
-        <input
-          type="tel"
-          className="min-w-0 flex-1 border border-zinc-300 bg-white px-3 py-2.5 text-base italic text-zinc-900 placeholder:text-zinc-400"
-          placeholder="Phone Number"
-          value={phoneRaw}
-          onChange={(e) => setPhoneRaw(e.target.value)}
-          autoComplete="tel-national"
-        />
-      </div>
-      {showError ? (
-        <p className="text-sm text-red-600">
-          Please fill in all fields correctly.
-        </p>
-      ) : null}
-      <button
-        type="submit"
-        disabled={busy}
-        className="mt-1 w-full cursor-pointer border border-[#ffcc51] bg-[#ffb400] py-3 text-lg font-bold uppercase text-black shadow-[1px_1px_0_#ffe6ab] hover:bg-[#e6a200] disabled:opacity-60"
-      >
-        {busy ? "…" : registerLabel}
-      </button>
-    </form>
-  );
-}
-
 type Props = {
   offer: CodeLandingOfferBlock;
   variant: AdVariant;
@@ -206,6 +70,12 @@ export function CodeLandingOffer({
 }: Props) {
   const router = useRouter();
   const { projectName } = offer;
+  const accentRing = theme === "amber" ? "ring-amber-500/40" : "ring-emerald-500/40";
+  const accentBg = theme === "amber" ? "bg-amber-500" : "bg-emerald-500";
+  const accentHover =
+    theme === "amber" ? "hover:bg-amber-400" : "hover:bg-emerald-400";
+  const accentText = theme === "amber" ? "text-amber-600" : "text-emerald-600";
+
   const [fomoCountry, setFomoCountry] = useState("United States");
   const [fomoTime, setFomoTime] = useState("2 min");
   const [spots, setSpots] = useState(7);
@@ -213,6 +83,7 @@ export function CodeLandingOffer({
   const [showSpots, setShowSpots] = useState(false);
   const [activityPulse, setActivityPulse] = useState(false);
   const [spotsShake, setSpotsShake] = useState(false);
+  const [ctaBusy, setCtaBusy] = useState(false);
 
   useEffect(() => {
     const t1 = setTimeout(() => setShowActivity(true), 2000);
@@ -255,46 +126,24 @@ export function CodeLandingOffer({
   const leftT = offer.testimonials.slice(0, 5);
   const rightT = offer.testimonials.slice(5);
 
-  const onRegistered = useCallback(
-    async (data: LeadPayload) => {
-      const sourcePage =
-        typeof window !== "undefined" ? window.location.href : "";
-      try {
-        await fetch("/api/lead", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...data, variant, sourcePage }),
-        });
-      } catch {
-        /* non-blocking */
-      }
-      try {
-        localStorage.setItem(
-          "gtmoLeadData",
-          JSON.stringify({
-            ...data,
-            submittedAt: new Date().toISOString(),
-            sourcePage,
-          }),
-        );
-        localStorage.removeItem("gtmoLeadDataSent");
-      } catch {
-        /* ignore */
-      }
+  const continueToQualify = useCallback(async () => {
+    setCtaBusy(true);
+    try {
       await trackFunnelEvent("offer_complete", {
         variant,
-        surface: "code_landing_register",
+        surface: "code_landing_cta",
       });
       router.push(`/qualify?variant=${encodeURIComponent(variant)}`);
-    },
-    [router, variant],
-  );
+    } finally {
+      setCtaBusy(false);
+    }
+  }, [router, variant]);
 
   return (
     <div className="min-h-screen bg-zinc-100 text-zinc-900 pb-28">
       <header className="border-b border-zinc-800 bg-zinc-900 text-white">
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
-          <div className="h-9 w-9 rounded bg-amber-500/20 ring-1 ring-amber-500/40" />
+          <div className={`h-9 w-9 rounded ${accentBg}/20 ring-1 ${accentRing}`} />
           <div className="text-lg font-semibold tracking-tight">
             The {projectName}
           </div>
@@ -309,9 +158,20 @@ export function CodeLandingOffer({
 
       <section className="border-b border-zinc-200 bg-white">
         <div className="mx-auto max-w-6xl px-4 py-8">
+          <div className="mb-6 flex flex-wrap items-center gap-2">
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${accentText} ring-1 ring-amber-500/30 bg-amber-500/10`}
+            >
+              Live queue
+            </span>
+            <span className="text-sm font-medium text-red-700">
+              Intake can pause without notice — complete the next step today.
+            </span>
+          </div>
+
           <h1 className="mb-8 max-w-4xl text-3xl font-bold leading-tight text-black md:text-4xl">
             {offer.intro.line1}{" "}
-            <span className="text-amber-600">{offer.intro.line2}</span>
+            <span className={accentText}>{offer.intro.line2}</span>
             <br />
             <span className="text-2xl font-semibold md:text-3xl">
               {offer.intro.earnLine}{" "}
@@ -319,8 +179,8 @@ export function CodeLandingOffer({
             </span>
           </h1>
 
-          <div className="grid gap-8 md:grid-cols-12">
-            <div className="md:col-span-7">
+          <div className="grid gap-8 lg:grid-cols-12">
+            <div className="lg:col-span-7">
               <VideoOffer
                 src={offer.video.src}
                 poster={offer.video.poster}
@@ -334,22 +194,37 @@ export function CodeLandingOffer({
                 }
               />
             </div>
-            <div className="md:col-span-5">
-              <div className="border border-zinc-200 bg-zinc-50 p-4 shadow-sm">
-                <div className="mb-4 text-center text-xl font-bold leading-snug text-black">
-                  {offer.formTitleLines.map((line, i) => (
-                    <div
-                      key={i}
-                      className={i === 1 ? "text-amber-600" : undefined}
-                    >
-                      {line}
-                    </div>
+            <div className="lg:col-span-5">
+              <div
+                className={`flex h-full flex-col border-2 border-amber-500/40 bg-gradient-to-b from-amber-50 to-white p-5 shadow-lg ring-2 ${accentRing}`}
+              >
+                <p className="text-xs font-bold uppercase tracking-widest text-amber-700">
+                  {offer.urgencyAside.eyebrow}
+                </p>
+                <h2 className="mt-2 text-xl font-bold leading-snug text-black">
+                  {offer.urgencyAside.headline}
+                </h2>
+                <ul className="mt-4 flex-1 space-y-3 text-sm leading-relaxed text-zinc-800">
+                  {offer.urgencyAside.bullets.map((line) => (
+                    <li key={line} className="flex gap-2">
+                      <span className={`mt-0.5 shrink-0 font-bold ${accentText}`}>
+                        ▸
+                      </span>
+                      <span>{line}</span>
+                    </li>
                   ))}
-                </div>
-                <LeadForm
-                  registerLabel={offer.registerButtonLabel}
-                  onValidSubmit={onRegistered}
-                />
+                </ul>
+                <button
+                  type="button"
+                  onClick={continueToQualify}
+                  disabled={ctaBusy}
+                  className={`mt-6 w-full rounded-lg py-4 text-base font-bold text-black shadow-lg transition-colors ${accentBg} ${accentHover} disabled:opacity-60`}
+                >
+                  {ctaBusy ? "…" : offer.primaryCtaLabel}
+                </button>
+                <p className="mt-3 text-center text-[11px] text-zinc-500">
+                  Risk disclosure below — trading can result in loss of capital.
+                </p>
               </div>
             </div>
           </div>
@@ -370,6 +245,42 @@ export function CodeLandingOffer({
           </div>
         </div>
       </section>
+
+      {offer.midPageUrgency ? (
+        <section className="border-b border-amber-900/20 bg-gradient-to-br from-amber-950 via-zinc-900 to-zinc-950 py-12 text-white">
+          <div className="mx-auto max-w-3xl px-4">
+            <h2 className="text-center text-2xl font-bold md:text-3xl">
+              {offer.midPageUrgency.title}
+            </h2>
+            {offer.midPageUrgency.subtitle ? (
+              <p className="mt-3 text-center text-sm text-amber-100/90">
+                {offer.midPageUrgency.subtitle}
+              </p>
+            ) : null}
+            <ul className="mt-8 space-y-4 text-left text-sm leading-relaxed text-zinc-200">
+              {offer.midPageUrgency.bullets.map((b) => (
+                <li
+                  key={b}
+                  className="flex gap-3 rounded-lg border border-amber-500/20 bg-black/20 px-4 py-3"
+                >
+                  <span className="text-amber-400">⚡</span>
+                  <span>{b}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-8 flex justify-center">
+              <button
+                type="button"
+                onClick={continueToQualify}
+                disabled={ctaBusy}
+                className={`rounded-lg px-8 py-3 text-sm font-bold text-black ${accentBg} ${accentHover} disabled:opacity-60`}
+              >
+                {offer.primaryCtaLabel}
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section className="border-b border-zinc-200 bg-white py-10">
         <div className="mx-auto max-w-4xl px-4 text-center">
@@ -445,15 +356,27 @@ export function CodeLandingOffer({
             <h2 className="text-3xl font-bold text-black">
               {offer.moSection.title}
             </h2>
-            <div className="mt-2 text-xl font-semibold text-amber-600">
+            <div className={`mt-2 text-xl font-semibold ${accentText}`}>
               {offer.moSection.subtitleLines.map((l) => (
                 <div key={l}>{l}</div>
               ))}
             </div>
             <div className="mt-6 space-y-4 text-zinc-700">
               {offer.moSection.bodyParagraphs.map((p) => (
-                <p key={p}>{p}</p>
+                <p key={p}>
+                  <RichLine text={p} />
+                </p>
               ))}
+            </div>
+            <div className="mt-8">
+              <button
+                type="button"
+                onClick={continueToQualify}
+                disabled={ctaBusy}
+                className={`rounded-lg px-6 py-3 text-sm font-bold text-black ${accentBg} ${accentHover} disabled:opacity-60`}
+              >
+                {offer.primaryCtaLabel}
+              </button>
             </div>
             <div className="mt-6 flex flex-wrap items-end justify-end gap-4">
               {mediaUrl(offer.moSection.signImageFile) ? (
@@ -475,11 +398,19 @@ export function CodeLandingOffer({
       </section>
 
       <footer className="bg-zinc-900 text-zinc-300">
-        <div className="mx-auto max-w-2xl px-4 py-10">
-          <LeadForm
-            registerLabel={offer.registerButtonLabel}
-            onValidSubmit={onRegistered}
-          />
+        <div className="mx-auto max-w-2xl px-4 py-10 text-center">
+          <p className="text-sm text-zinc-400">
+            Ready for the short questionnaire? One tap — same secure Mini App
+            flow.
+          </p>
+          <button
+            type="button"
+            onClick={continueToQualify}
+            disabled={ctaBusy}
+            className={`mt-4 w-full max-w-md rounded-lg py-4 text-base font-bold text-black ${accentBg} ${accentHover} disabled:opacity-60`}
+          >
+            {offer.primaryCtaLabel}
+          </button>
         </div>
         <div className="border-t border-zinc-800 px-4 py-6">
           <ul className="mx-auto flex max-w-3xl flex-wrap justify-center gap-x-6 gap-y-2 text-sm">
@@ -502,7 +433,7 @@ export function CodeLandingOffer({
       </footer>
 
       <div
-        className={`fixed bottom-4 left-4 z-50 max-w-[200px] rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-xs text-white shadow-lg transition-opacity ${
+        className={`fixed bottom-16 left-4 z-40 max-w-[200px] rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-xs text-white shadow-lg transition-opacity md:bottom-20 ${
           showActivity ? "opacity-100" : "pointer-events-none opacity-0"
         } ${activityPulse ? "ring-2 ring-amber-500/50" : ""}`}
       >
@@ -516,7 +447,7 @@ export function CodeLandingOffer({
         </div>
       </div>
       <div
-        className={`fixed bottom-4 right-4 z-50 max-w-[200px] rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-xs text-white shadow-lg transition-opacity ${
+        className={`fixed bottom-16 right-4 z-40 max-w-[200px] rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-xs text-white shadow-lg transition-opacity md:bottom-20 ${
           showSpots ? "opacity-100" : "pointer-events-none opacity-0"
         } ${spots <= 5 ? "border-amber-600" : ""} ${spotsShake ? "translate-x-0.5" : ""}`}
       >
@@ -525,6 +456,23 @@ export function CodeLandingOffer({
           <span>{spots}</span> SPOTS LEFT
         </div>
         <div className="text-zinc-400">Filling up fast!</div>
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-amber-500/30 bg-zinc-950/95 px-4 py-3 shadow-[0_-8px_30px_rgba(0,0,0,0.45)] backdrop-blur-md md:py-4">
+        <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
+          <p className="hidden text-xs text-zinc-400 sm:block">
+            <span className="font-semibold text-amber-400">Next:</span> secure
+            questionnaire in-app
+          </p>
+          <button
+            type="button"
+            onClick={continueToQualify}
+            disabled={ctaBusy}
+            className={`min-h-[48px] flex-1 rounded-lg py-3 text-sm font-bold text-black sm:flex-none sm:px-10 ${accentBg} ${accentHover} disabled:opacity-60`}
+          >
+            {ctaBusy ? "…" : offer.primaryCtaLabel}
+          </button>
+        </div>
       </div>
     </div>
   );
