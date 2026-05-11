@@ -134,23 +134,5 @@ export const ad4VariantConfig: FunnelVariantConfig = {
       imageFile: "/offer/media/mo.jpg",
       signOffLines: ["Your Friend,", "Mo"],
     },
-    footerLinks: [
-      { label: "Website Agreement", href: "#" },
-      { label: "Risk Disclaimer", href: "#" },
-      { label: "Privacy Policy", href: "#" },
-      { label: "Report Abuse", href: "#" },
-      { label: "Contact Us", href: "#" },
-    ],
-    disclaimerParagraphs: [
-      "**REGULATION & HIGH RISK INVESTMENT WARNING:** Trading Forex, CFDs and Cryptocurrencies is highly speculative, carries a level of risk and may not be suitable for all investors. You may lose some or all of your invested capital, therefore you should not speculate with capital that you cannot afford to lose. Please click here to read a full risk warning. GTMO Signals is a technology, marketing and advertising service. GTMO Signals does not gain or lose profits based on your trading results and operates as a technology, marketing and advertising service. GTMO Signals is not a financial services firm and does not operate as a financial services firm and is only used as a marketing tool by third party advertisers and brokers to attract customers. It is your obligation to check and decide whether the broker you were connected to applies to all local rules and regulations and is regulated in your country jurisdiction and is allowed to receive customers from your location you are in, before you fund your account with the broker and start trading with it. Please report GTMO Signals (by clicking report abuse) if you find that the broker assigned to you is not regulated in your jurisdiction so we can cancel your account with GTMO Signals.",
-      "We are required to tell potential investors that our system's past performance does not necessarily predict future results, therefore you should not speculate with capital that you cannot afford to lose.",
-      "**USA REGULATION NOTICE:** Option trading is not regulated within the United States. GTMO Signals is not supervised or regulated by any financial agencies nor US agencies. Any unregulated trading activity by U.S. residents is considered unlawful. GTMO Signals does not accept customers located within the United States or holding an American citizenship.",
-      "**SITE RISK DISCLOSURE:** GTMO Signals does not accept any liability for loss or damage as a result of reliance on the information contained within this website; this includes education material, price quotes and charts, and analysis. Please be aware of the risks associated with trading the financial markets; never invest more money than you can risk losing. The risks involved in trading Forex, CFDs and Cryptocurrencies may not be suitable for all investors. GTMO Signals doesn't retain responsibility for any trading losses you might face as a result of using the data hosted on this site.",
-      "**LEGAL RESTRICTIONS:** Without limiting the undermentioned provisions, you understand that laws regarding financial contracts vary throughout the world, and it is your responsibility to make sure you properly comply with any law, regulation or guideline in your country of residence regarding the use of the Site. To avoid any doubt, the ability to access our Site does not necessarily mean that our Services and/or your activities through the Site are legal under the laws, regulations or directives relevant to your country of residence.",
-      "Please note that GTMO Signals receives advertising fees for directing users to open an account with the brokers/advertisers and/or for driving traffic to the advertiser website.",
-      "If you feel you landed on this page by wrongdoings and/or misleading information of an advertisement, pre lander, email or any other promotions of a 3rd party website/promoter, please report it by clicking REPORT ABUSE.",
-      "We have placed cookies on your computer to help improve your experience when visiting this website. You can change cookie settings on your computer at any time. Use of this website indicates your acceptance of this website's Privacy Policy.",
-      "© 2026 All Rights Reserved - GTMO Signals",
-    ],
   },
 };

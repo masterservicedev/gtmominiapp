@@ -57,9 +57,10 @@ export type CodeLandingOfferBlock = {
     signImageFile?: string;
     signOffLines: string[];
   };
-  footerLinks: { label: string; href: string }[];
-  /** Plain text paragraphs; **bold** segments rendered in <strong> */
-  disclaimerParagraphs: string[];
+  /** Omit or leave empty to hide the footer link row. */
+  footerLinks?: { label: string; href: string }[];
+  /** Plain text paragraphs; **bold** segments rendered in <strong>. Omit or empty to hide. */
+  disclaimerParagraphs?: string[];
 };
 
 export type OfferBlock =

@@ -262,7 +262,7 @@ export function CodeLandingOffer({
                   ))}
                 </ul>
                 <p className="mt-6 text-center text-xs leading-relaxed text-zinc-500">
-                  Risk disclosure below — trading can result in loss of capital. Continue when ready using the bar at the bottom.
+                  Trading can result in loss of capital. Continue when ready using the bar at the bottom.
                 </p>
               </div>
             </div>
@@ -437,27 +437,31 @@ export function CodeLandingOffer({
             When you are ready, continue to the short questionnaire using the bar below — same secure Mini App flow.
           </p>
         </div>
-        <div className="border-t border-zinc-200/80 bg-white px-4 py-6">
-          <ul className="mx-auto flex max-w-3xl flex-wrap justify-center gap-x-6 gap-y-2 text-sm">
-            {offer.footerLinks.map((l) => (
-              <li key={l.label}>
-                <a
-                  href={l.href}
-                  className={`${accentText} hover:underline underline-offset-4`}
-                >
-                  {l.label}
-                </a>
-              </li>
+        {offer.footerLinks && offer.footerLinks.length > 0 ? (
+          <div className="border-t border-zinc-200/80 bg-white px-4 py-6">
+            <ul className="mx-auto flex max-w-3xl flex-wrap justify-center gap-x-6 gap-y-2 text-sm">
+              {offer.footerLinks.map((l) => (
+                <li key={l.label}>
+                  <a
+                    href={l.href}
+                    className={`${accentText} hover:underline underline-offset-4`}
+                  >
+                    {l.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {offer.disclaimerParagraphs && offer.disclaimerParagraphs.length > 0 ? (
+          <div className="mx-auto max-w-4xl bg-white px-4 pb-10 text-left text-[11px] leading-relaxed text-zinc-500">
+            {offer.disclaimerParagraphs.map((p, i) => (
+              <p key={i} className="mb-2.5">
+                <RichLine text={p} />
+              </p>
             ))}
-          </ul>
-        </div>
-        <div className="mx-auto max-w-4xl bg-white px-4 pb-10 text-left text-[11px] leading-relaxed text-zinc-500">
-          {offer.disclaimerParagraphs.map((p, i) => (
-            <p key={i} className="mb-2.5">
-              <RichLine text={p} />
-            </p>
-          ))}
-        </div>
+          </div>
+        ) : null}
       </footer>
 
       <div
