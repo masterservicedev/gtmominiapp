@@ -10,7 +10,7 @@ const VIDEO_SRC =
 export const ad4VariantConfig: FunnelVariantConfig = {
   theme: "amber",
   positioningGate: {
-    logoSrc: "/logo-goldtradermo.png",
+    logoSrc: "/logo-gtmo-crown.png",
     headline: "Most traders fail because they're alone.",
     subcopy: [
       "Wrong information. No structure. No one to follow who actually trades.",
@@ -27,7 +27,7 @@ export const ad4VariantConfig: FunnelVariantConfig = {
   offer: {
     mode: "code_landing",
     projectName: "GTMO Code",
-    headerLogoSrc: "/logo-goldtradermo.png",
+    headerLogoSrc: "/logo-gtmo-crown.png",
     primaryCtaLabel: "Continue to application",
     video: {
       src: VIDEO_SRC,

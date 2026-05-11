@@ -18,7 +18,7 @@ export type CodeLandingTestimonial = {
 export type CodeLandingOfferBlock = {
   mode: "code_landing";
   projectName: string;
-  /** Brand mark in header (public path), e.g. `/logo-goldtradermo.png` */
+  /** Brand mark in header (public path), e.g. `/logo-gtmo-crown.png` */
   headerLogoSrc?: string;
   primaryCtaLabel: string;
   video: VideoOfferConfig;
@@ -90,7 +90,7 @@ export type PositioningGateCopy = {
   headline: string;
   subcopy?: string;
   ctaLabel: string;
-  /** Public path under `/public`, e.g. `/logo-goldtradermo.png` */
+  /** Public path under `/public`, e.g. `/logo-gtmo-crown.png` */
   logoSrc?: string;
 };
 

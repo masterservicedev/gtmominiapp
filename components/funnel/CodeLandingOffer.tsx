@@ -144,26 +144,24 @@ export function CodeLandingOffer({
       <header className="border-b border-zinc-800/90 bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950 text-white shadow-sm">
         <div className="mx-auto flex max-w-6xl flex-col items-center px-4 py-6 md:py-7">
           {offer.headerLogoSrc ? (
-            <div className="flex flex-col items-center gap-4">
-              <div
-                className={`rounded-xl border border-amber-500/35 bg-zinc-950/60 p-3 shadow-[0_0_0_1px_rgba(251,191,36,0.12)] backdrop-blur-sm ${accentRing} ring-1`}
-              >
-                <div className="gate-logo-shine relative mx-auto w-[min(200px,72vw)] overflow-hidden rounded-lg">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={offer.headerLogoSrc}
-                    alt=""
-                    className="relative z-[1] mx-auto block h-auto max-h-[72px] w-full object-contain object-center"
-                    width={200}
-                    height={72}
-                  />
-                  <span
-                    className="gate-logo-shine-overlay pointer-events-none absolute inset-0 z-[2]"
-                    aria-hidden
-                  />
-                </div>
+            <div
+              className={`mx-auto flex max-w-full flex-row items-center gap-3 rounded-xl border border-amber-500/35 bg-zinc-950/60 px-4 py-3 shadow-[0_0_0_1px_rgba(251,191,36,0.12)] backdrop-blur-sm md:gap-4 md:px-5 md:py-3.5 ${accentRing} ring-1`}
+            >
+              <div className="gate-logo-shine relative aspect-[323/418] h-12 shrink-0 overflow-hidden rounded-lg sm:h-14 md:h-[3.75rem]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={offer.headerLogoSrc}
+                  alt=""
+                  className="relative z-[1] h-full w-full object-contain object-center"
+                  width={323}
+                  height={418}
+                />
+                <span
+                  className="gate-logo-shine-overlay pointer-events-none absolute inset-0 z-[2]"
+                  aria-hidden
+                />
               </div>
-              <h2 className="text-center text-xl font-semibold tracking-wide text-white md:text-2xl">
+              <h2 className="min-w-0 text-left text-lg font-semibold tracking-wide text-white sm:text-xl md:text-2xl">
                 The {projectName}
               </h2>
             </div>
