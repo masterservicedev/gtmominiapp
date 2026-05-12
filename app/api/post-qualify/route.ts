@@ -49,6 +49,8 @@ export async function POST(req: NextRequest) {
       capital,
       bundleEligible,
       bundleUsed,
+      bundleOfferShown: user.bundleOfferShown ?? false,
+      bundleAccepted: user.bundleAccepted,
       productMatch,
       score: user.score,
       alreadyCrm: user.crmTriggered,

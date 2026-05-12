@@ -15,6 +15,8 @@ type Payload = {
   segment: string;
   bundleEligible: boolean;
   bundleUsed: boolean;
+  bundleOfferShown: boolean;
+  bundleAccepted: boolean | null;
   productMatch: ProductMatch;
   alreadyCrm: boolean;
   intentConfirmedAt: string | null;
@@ -51,11 +53,30 @@ function ConfirmIntentInner() {
       }
       setPayload(data as Payload);
       if (data.intentConfirmedAt || data.alreadyCrm) {
-        router.replace(`/result?segment=${data.segment}&handoff=1`);
+        const pk = encodeURIComponent(data.productMatch?.productKey ?? "");
+        const bundleQ =
+          data.bundleOfferShown && data.bundleAccepted === true
+            ? "&bundle=1"
+            : data.bundleOfferShown && data.bundleAccepted === false
+              ? "&bundle=0"
+              : "";
+        const seg = encodeURIComponent(data.segment);
+        if (data.segment === "HIGH") {
+          router.replace(
+            `/result?segment=${seg}&handoff=1&productKey=${pk}${bundleQ}`,
+          );
+        } else {
+          router.replace(
+            `/result?segment=${seg}&intent=1&productKey=${pk}${bundleQ}`,
+          );
+        }
         return;
       }
       if (data.intentDeclinedAt) {
-        router.replace(`/result?segment=${data.segment}&declined=1`);
+        const pk = encodeURIComponent(data.productMatch?.productKey ?? "");
+        router.replace(
+          `/result?segment=${encodeURIComponent(data.segment)}&declined=1&productKey=${pk}`,
+        );
         return;
       }
     } catch {

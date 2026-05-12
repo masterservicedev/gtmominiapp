@@ -75,17 +75,12 @@ export function buildCustomerHandoffMessage(
     getProductMatch(cap, user.bundleEligible ?? false, user.bundleUsed ?? false);
   const productName = productDisplayName(pm.productKey);
 
-  const lines: string[] = [
-    `✅ You've been pre-approved for GTMO Trading access.`,
-    ``,
-    `Your matched offer: *${productName}* — from *$${pm.depositRequiredUsd}* funding via Vantage when you're ready.`,
-  ];
-
+  const bundleLines: string[] = [];
   if (extras) {
     if (extras.bundleOfferShown && extras.bundleAccepted === true && pm.bonusLine) {
-      lines.push(``, `Mini app add-on included: ${pm.bundleOfferLine}.`);
+      bundleLines.push(``, `Mini app add-on included: ${pm.bundleOfferLine}.`);
     } else if (extras.bundleOfferShown && extras.bundleAccepted === false) {
-      lines.push(
+      bundleLines.push(
         ``,
         `You're proceeding with the primary offer only (no bundle add-on).`,
       );
@@ -95,16 +90,35 @@ export function buildCustomerHandoffMessage(
     (user.bundleEligible ?? false) &&
     !(user.bundleUsed ?? false)
   ) {
-    lines.push(
+    bundleLines.push(
       ``,
       `You may also be eligible for: *${pm.bundleOfferLine}* — tell your specialist if you'd like it included.`,
     );
   }
 
-  lines.push(
+  const closing = [
     ``,
     `A team member will follow up in this chat with next steps.`,
-  );
+  ];
+
+  if (extras) {
+    const lines: string[] = [
+      `✅ Your confirmed track: *${productName}* — from *$${pm.depositRequiredUsd}* funding via Vantage when you're ready.`,
+      ...bundleLines,
+      ...closing,
+      ``,
+      `You're pre-approved for GTMO Trading access.`,
+    ];
+    return lines.join("\n");
+  }
+
+  const lines: string[] = [
+    `✅ You've been pre-approved for GTMO Trading access.`,
+    ``,
+    `Your matched offer: *${productName}* — from *$${pm.depositRequiredUsd}* funding via Vantage when you're ready.`,
+    ...bundleLines,
+    ...closing,
+  ];
 
   return lines.join("\n");
 }

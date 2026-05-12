@@ -89,12 +89,12 @@ function HighResult({
   productLabel: string | null;
   bundleIncluded: boolean;
 }) {
-  const summary =
-    inAppHandoff && productLabel
-      ? `Your confirmed track: ${productLabel}${
-          bundleIncluded ? " (mini app add-on included)." : "."
-        }`
-      : null;
+  const confirmedInApp = Boolean(inAppHandoff && productLabel);
+  const summary = confirmedInApp
+    ? `Your confirmed track: ${productLabel}${
+        bundleIncluded ? " (mini app add-on included)." : "."
+      }`
+    : null;
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-black text-white flex flex-col items-center justify-center px-6 text-center">
@@ -110,19 +110,30 @@ function HighResult({
         <div className="text-5xl mb-4 motion-safe:animate-[bounce_1s_ease-in-out_1]">
           ✅
         </div>
-        <h1 className="text-2xl sm:text-3xl font-bold mb-3 bg-gradient-to-br from-white to-emerald-100/90 bg-clip-text text-transparent">
-          You&apos;ve been pre-approved
-        </h1>
-        <p className="text-gray-400 mb-4 text-sm leading-relaxed">
-          Based on your answers, a specialist from our team is being assigned to
-          your application now.
-        </p>
-        {summary ? (
-          <p className="mb-8 text-sm font-medium leading-relaxed text-emerald-200/90">
-            {summary}
-          </p>
+        {confirmedInApp && summary ? (
+          <>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-3 bg-gradient-to-br from-white to-emerald-100/90 bg-clip-text text-transparent">
+              Your offer is confirmed
+            </h1>
+            <p className="mb-4 text-base sm:text-lg font-medium leading-relaxed text-emerald-200/95">
+              {summary}
+            </p>
+            <p className="text-gray-500 mb-8 text-xs leading-relaxed">
+              You&apos;re pre-approved for GTMO access — a specialist is picking
+              up your application from here.
+            </p>
+          </>
         ) : (
-          <div className="mb-8" />
+          <>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-3 bg-gradient-to-br from-white to-emerald-100/90 bg-clip-text text-transparent">
+              You&apos;ve been pre-approved
+            </h1>
+            <p className="text-gray-400 mb-4 text-sm leading-relaxed">
+              Based on your answers, a specialist from our team is being assigned
+              to your application now.
+            </p>
+            <div className="mb-8" />
+          </>
         )}
 
         <div className="w-full rounded-xl p-[1px] bg-gradient-to-br from-emerald-400/50 via-emerald-600/20 to-transparent mb-8 animate-result-glow">
