@@ -52,7 +52,7 @@ function ConfirmIntentInner() {
         return;
       }
       setPayload(data as Payload);
-      if (data.intentConfirmedAt || data.alreadyCrm) {
+      if (data.intentConfirmedAt) {
         const pk = encodeURIComponent(data.productMatch?.productKey ?? "");
         const bundleQ =
           data.bundleOfferShown && data.bundleAccepted === true

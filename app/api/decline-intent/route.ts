@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid segment" }, { status: 400 });
     }
 
-    if (user.intentConfirmedAt || user.crmTriggered) {
+    if (user.intentConfirmedAt) {
       return NextResponse.json(
         { error: "Already progressed" },
         { status: 400 },

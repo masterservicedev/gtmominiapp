@@ -41,6 +41,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    const crmAlreadyFired = user.crmTriggered === true;
+
     if (!user.questionnaireCompleted) {
       return NextResponse.json(
         { error: "Questionnaire not completed" },
@@ -125,13 +127,6 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    if (user.crmTriggered) {
-      return NextResponse.json(
-        { error: "CRM already triggered" },
-        { status: 409 },
-      );
-    }
-
     const extras = buildLeadExtrasFromState({
       capital: answers?.capital,
       bundleEligible,
@@ -159,7 +154,9 @@ export async function POST(req: NextRequest) {
         bundleAccepted,
         bundleUsed: setBundleUsed ? true : user.bundleUsed,
         crmTriggered: true,
-        crmTriggeredAt: now,
+        crmTriggeredAt: crmAlreadyFired
+          ? (user.crmTriggeredAt ?? now)
+          : now,
         chatwootConversationId: conversationId ?? user.chatwootConversationId,
       })
       .where(eq(users.id, user.id));
@@ -172,24 +169,27 @@ export async function POST(req: NextRequest) {
         productKey: productMatch.productKey,
         bundleAccepted,
         conversationId,
+        afterTelegramReady: crmAlreadyFired,
       },
       country: user.country,
     });
 
-    await db.insert(events).values({
-      userId: user.id,
-      telegramId: user.telegramId,
-      eventType: "crm_triggered",
-      metadata: {
-        score: user.score,
-        segment: user.segment,
-        source: "mini_app_intent",
-        productKey: productMatch.productKey,
-      },
-      country: user.country,
-    });
+    if (!crmAlreadyFired) {
+      await db.insert(events).values({
+        userId: user.id,
+        telegramId: user.telegramId,
+        eventType: "crm_triggered",
+        metadata: {
+          score: user.score,
+          segment: user.segment,
+          source: "mini_app_intent",
+          productKey: productMatch.productKey,
+        },
+        country: user.country,
+      });
 
-    await fireCrmVoluumPostback(user.voluumCid);
+      await fireCrmVoluumPostback(user.voluumCid);
+    }
 
     return NextResponse.json({
       ok: true,

@@ -52,7 +52,9 @@ function ProductMatchInner() {
         return;
       }
       setPayload(data as Payload);
-      if (data.intentConfirmedAt || data.alreadyCrm) {
+      // Only skip funnel after in-app confirm. `crmTriggered` alone (e.g. Telegram
+      // READY) must not skip — user still needs product-match + bundle + confirm.
+      if (data.intentConfirmedAt) {
         const pk = encodeURIComponent(data.productMatch?.productKey ?? "");
         const bundleQ =
           data.bundleOfferShown && data.bundleAccepted === true
