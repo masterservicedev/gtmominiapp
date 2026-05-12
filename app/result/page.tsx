@@ -4,16 +4,16 @@ import { PreApprovedConfetti } from "@/components/funnel/PreApprovedConfetti";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { productDisplayName } from "@/lib/leadCardContent";
-import type { ProductKey } from "@/lib/productMatch";
+import { parseProductKey } from "@/lib/productMatch";
 
 const channelLink = process.env.NEXT_PUBLIC_CHANNEL_LINK || "#";
 
 function safeProductLabel(raw: string | null): string | null {
   if (!raw) return null;
-  const keys: ProductKey[] = ["ebook", "vip", "fx_education", "school"];
-  if (!keys.includes(raw as ProductKey)) return null;
+  const key = parseProductKey(raw);
+  if (!key) return null;
   try {
-    return productDisplayName(raw as ProductKey);
+    return productDisplayName(key);
   } catch {
     return null;
   }

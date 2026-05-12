@@ -1,4 +1,5 @@
 import type { ProductMatch, ProductKey } from "@/lib/productMatch";
+import { LEGACY_PRODUCT_KEY_FX } from "@/lib/productMatch";
 import { getProductMatch } from "@/lib/productMatch";
 import type { Capital } from "@/lib/scoring";
 import type { InferSelectModel } from "drizzle-orm";
@@ -34,14 +35,20 @@ export function getScoreEmoji(score: number): string {
   return "⚪";
 }
 
-export function productDisplayName(key: ProductKey): string {
+/** Short labels for Telegram/CRM; supports legacy DB key `fx_education`. */
+export function productDisplayName(
+  key: ProductKey | typeof LEGACY_PRODUCT_KEY_FX,
+): string {
+  if (key === LEGACY_PRODUCT_KEY_FX) return "FX Basics or Education";
   switch (key) {
     case "ebook":
       return "Ebook";
     case "vip":
       return "VIP access";
-    case "fx_education":
+    case "fx_basics":
       return "FX Basics or Education";
+    case "education":
+      return "GTMO Education";
     case "school":
       return "School access";
     default:

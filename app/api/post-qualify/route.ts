@@ -44,30 +44,6 @@ export async function POST(req: NextRequest) {
     const bundleUsed = user.bundleUsed ?? false;
     const productMatch = getProductMatch(capital, bundleEligible, bundleUsed);
 
-    // #region agent log
-    fetch("http://127.0.0.1:7586/ingest/a06de864-e48c-47c4-804c-fea5dbfaf96a", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "22219e",
-      },
-      body: JSON.stringify({
-        sessionId: "22219e",
-        hypothesisId: "H1",
-        location: "app/api/post-qualify/route.ts",
-        message: "post_qualify_flags",
-        data: {
-          segment,
-          hasIntent: Boolean(user.intentConfirmedAt),
-          hasDecline: Boolean(user.intentDeclinedAt),
-          crmTriggered: user.crmTriggered === true,
-        },
-        timestamp: Date.now(),
-        runId: "intent-reset-v1",
-      }),
-    }).catch(() => {});
-    // #endregion
-
     return NextResponse.json({
       segment,
       capital,

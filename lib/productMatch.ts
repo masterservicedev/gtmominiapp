@@ -1,7 +1,30 @@
 import type { Capital } from "@/lib/scoring";
 
 /** Stable keys for DB + Chatwoot labels (`product-${key}`). */
-export type ProductKey = "ebook" | "vip" | "fx_education" | "school";
+export type ProductKey =
+  | "ebook"
+  | "vip"
+  | "fx_basics"
+  | "education"
+  | "school";
+
+/** Legacy `confirmed_product_key` / URL value from before split. */
+export const LEGACY_PRODUCT_KEY_FX = "fx_education" as const;
+
+export function parseProductKey(
+  raw: string | null | undefined,
+): ProductKey | null {
+  if (!raw) return null;
+  if (raw === LEGACY_PRODUCT_KEY_FX) return "fx_basics";
+  const keys: ProductKey[] = [
+    "ebook",
+    "vip",
+    "fx_basics",
+    "education",
+    "school",
+  ];
+  return keys.includes(raw as ProductKey) ? (raw as ProductKey) : null;
+}
 
 export type ProductMatch = {
   productKey: ProductKey;
@@ -81,7 +104,7 @@ export function getProductMatch(
       };
     case "300_1000":
       return {
-        productKey: "fx_education",
+        productKey: "fx_basics",
         depositRequiredUsd: 200,
         primaryTitle: "FX Basics or Education",
         primaryLine: "$200 deposit — choose FX Basics or Education.",

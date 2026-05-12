@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FunnelProgress } from "@/components/funnel/FunnelProgress";
@@ -10,9 +11,11 @@ import { trackFunnelEvent } from "@/lib/funnel/track";
 import { loadWebApp } from "@/lib/twa";
 import type { ProductMatch } from "@/lib/productMatch";
 import { productDisplayName } from "@/lib/leadCardContent";
+import type { Capital } from "@/lib/scoring";
 
 type Payload = {
   segment: string;
+  capital: string;
   bundleEligible: boolean;
   bundleUsed: boolean;
   bundleOfferShown: boolean;
@@ -22,6 +25,186 @@ type Payload = {
   intentConfirmedAt: string | null;
   intentDeclinedAt: string | null;
 };
+
+function SummaryRow({
+  name,
+  tagline,
+  badge,
+  badgeColor,
+}: {
+  name: string;
+  tagline: string;
+  badge: string;
+  badgeColor: "emerald" | "amber";
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-3 border-b border-zinc-800 last:border-0">
+      <div className="min-w-0 flex-1 pr-2">
+        <p className="text-sm font-semibold leading-snug text-zinc-100">{name}</p>
+        <p className="text-xs text-zinc-400 mt-0.5 leading-snug">{tagline}</p>
+      </div>
+      <span
+        className={`text-[10px] font-semibold shrink-0 uppercase tracking-wide ${
+          badgeColor === "amber" ? "text-amber-400" : "text-emerald-400"
+        }`}
+      >
+        {badge}
+      </span>
+    </div>
+  );
+}
+
+function SummaryNote({ children }: { children: ReactNode }) {
+  return (
+    <p className="text-xs text-zinc-500 pt-2 pb-1 leading-relaxed italic">
+      * {children}
+    </p>
+  );
+}
+
+function SummaryUnder100({ bundle }: { bundle: boolean }) {
+  return (
+    <>
+      <SummaryRow
+        name="GTMO Ebook"
+        tagline="5 Steps to Trading GTMO Signals"
+        badge="Included"
+        badgeColor="emerald"
+      />
+      {bundle ? (
+        <SummaryNote>
+          10% off your next product — applied at time of purchase. Confirmed
+          with your specialist.
+        </SummaryNote>
+      ) : null}
+    </>
+  );
+}
+
+function Summary100300({ bundle }: { bundle: boolean }) {
+  return (
+    <>
+      <SummaryRow
+        name="GTMO VIP"
+        tagline="Live Signals. Real Edge. Daily."
+        badge="Included"
+        badgeColor="emerald"
+      />
+      {bundle ? (
+        <SummaryRow
+          name="GTMO Ebook"
+          tagline="5 Steps to Trading GTMO Signals"
+          badge="Free"
+          badgeColor="amber"
+        />
+      ) : null}
+    </>
+  );
+}
+
+function Summary3001000({ bundle }: { bundle: boolean }) {
+  return (
+    <>
+      <SummaryRow
+        name="FX Basics or GTMO Education"
+        tagline="Your specialist confirms which fits your level"
+        badge="Included"
+        badgeColor="emerald"
+      />
+      {bundle ? (
+        <>
+          <SummaryRow
+            name="One additional product of your choice"
+            tagline="Ebook · VIP · FX Basics · Education · School"
+            badge="50% off"
+            badgeColor="amber"
+          />
+          <SummaryNote>
+            Your second product is chosen with your specialist and excludes your
+            primary selection.
+          </SummaryNote>
+        </>
+      ) : null}
+    </>
+  );
+}
+
+function Summary1000Plus({ bundle }: { bundle: boolean }) {
+  return (
+    <>
+      <SummaryRow
+        name="GTMO School"
+        tagline="The Complete Trading Programme"
+        badge="Included"
+        badgeColor="emerald"
+      />
+      {bundle ? (
+        <>
+          <SummaryRow
+            name="One additional product of your choice"
+            tagline="Ebook · VIP · FX Basics · Education"
+            badge="Free"
+            badgeColor="amber"
+          />
+          <SummaryNote>
+            Choose your free product when speaking with your specialist.
+            Activated on deposit confirmation.
+          </SummaryNote>
+        </>
+      ) : null}
+    </>
+  );
+}
+
+function getNextSteps(capital: Capital, bundle: boolean): string[] {
+  const base = [
+    "A specialist sends you a Vantage registration link",
+    "You fund your account at the minimum required",
+    "Your products are activated after deposit confirmation by our team",
+  ];
+
+  if (capital === "300_1000" && bundle) {
+    return [
+      ...base,
+      "Your specialist confirms which primary product fits your level",
+      "You choose your discounted second product at that point",
+    ];
+  }
+
+  if (capital === "1000_plus" && bundle) {
+    return [
+      ...base,
+      "You choose your free additional product with your specialist",
+    ];
+  }
+
+  if (capital === "100_300" && bundle) {
+    return [...base, "Ebook access activated alongside VIP on confirmation"];
+  }
+
+  return base;
+}
+
+function TierSummary({
+  capital,
+  bundle,
+}: {
+  capital: Capital;
+  bundle: boolean;
+}) {
+  switch (capital) {
+    case "under_100":
+      return <SummaryUnder100 bundle={bundle} />;
+    case "100_300":
+      return <Summary100300 bundle={bundle} />;
+    case "300_1000":
+      return <Summary3001000 bundle={bundle} />;
+    case "1000_plus":
+      return <Summary1000Plus bundle={bundle} />;
+    default:
+      return <SummaryUnder100 bundle={bundle} />;
+  }
+}
 
 function ConfirmIntentInner() {
   const router = useRouter();
@@ -186,6 +369,9 @@ function ConfirmIntentInner() {
 
   const pm = payload.productMatch;
   const bundleShown = Boolean(pm.bundleOfferLine);
+  const capital = payload.capital as Capital;
+  const bundleForSummary = bundleShown && acceptBundle;
+  const nextSteps = getNextSteps(capital, bundleForSummary);
 
   return (
     <div className="relative flex min-h-screen flex-col bg-gradient-to-b from-zinc-950 via-black to-zinc-950 text-white">
@@ -204,22 +390,22 @@ function ConfirmIntentInner() {
 
       <div className="relative mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pb-10 pt-8 sm:px-8">
         <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-500/90">
-          Confirm
+          Final step
         </p>
-        <h1 className="mb-4 font-serif text-xl font-normal leading-snug tracking-tight text-zinc-50 md:text-2xl">
+        <h1 className="mb-3 font-serif text-xl font-normal leading-snug tracking-tight text-zinc-50 md:text-2xl">
+          Confirm your selection
+        </h1>
+        <p className="mb-6 text-sm leading-relaxed text-zinc-400">
           You qualify for {productDisplayName(pm.productKey)}
           {bundleShown && acceptBundle && pm.bonusLine
             ? " with the mini app bundle"
             : ""}
-          .
-        </h1>
-        <p className="mb-6 text-sm leading-relaxed text-zinc-400">
-          To receive this, you&apos;ll need to fund your Vantage account with at
-          least ${pm.depositRequiredUsd}. Are you ready to proceed?
+          . A specialist will send your Vantage link and activate access after
+          deposit confirmation.
         </p>
 
         {bundleShown ? (
-          <div className="mb-8 space-y-3">
+          <div className="mb-6 space-y-3">
             <div className="rounded-xl border border-amber-500/35 bg-amber-950/20 p-4 ring-1 ring-amber-500/15">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">
                 Mini app exclusive add-on
@@ -260,9 +446,41 @@ function ConfirmIntentInner() {
               </button>
             </div>
           </div>
-        ) : (
-          <div className="mb-8" />
-        )}
+        ) : null}
+
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-950/90 p-5 mb-4">
+          <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-3">
+            What you are getting
+          </p>
+          <TierSummary capital={capital} bundle={bundleForSummary} />
+          <div className="flex items-center justify-between pt-4 mt-2 border-t border-zinc-800">
+            <p className="text-sm text-zinc-400">Minimum deposit required</p>
+            <p className="text-base font-bold text-zinc-50">
+              ${pm.depositRequiredUsd} via Vantage
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/50 p-4 mb-6">
+          <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-3">
+            What happens next
+          </p>
+          <div className="space-y-2">
+            {nextSteps.map((step, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="text-zinc-600 text-xs mt-0.5 shrink-0">
+                  {i + 1}.
+                </span>
+                <p className="text-sm text-zinc-300 leading-snug">{step}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <p className="text-[10px] text-zinc-600 text-center mb-4 leading-relaxed">
+          Access is activated on deposit confirmation. Past performance does not
+          guarantee future results. Trading involves risk.
+        </p>
 
         {error ? (
           <p className="mb-4 text-sm text-red-400" role="alert">

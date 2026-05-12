@@ -9,7 +9,11 @@ import { getThemeClasses } from "@/lib/funnel/theme";
 import { trackFunnelEvent } from "@/lib/funnel/track";
 import { loadWebApp } from "@/lib/twa";
 import type { ProductMatch } from "@/lib/productMatch";
-import { productDisplayName } from "@/lib/leadCardContent";
+import {
+  getBundleSecondaryOptions,
+  getCatalogProduct,
+} from "@/lib/productCatalog";
+import type { Capital } from "@/lib/scoring";
 
 type Payload = {
   segment: string;
@@ -52,33 +56,7 @@ function ProductMatchInner() {
         return;
       }
       setPayload(data as Payload);
-      // Only skip funnel after in-app confirm. `crmTriggered` alone (e.g. Telegram
-      // READY) must not skip — user still needs product-match + bundle + confirm.
       if (data.intentConfirmedAt) {
-        // #region agent log
-        fetch(
-          "http://127.0.0.1:7586/ingest/a06de864-e48c-47c4-804c-fea5dbfaf96a",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Debug-Session-Id": "22219e",
-            },
-            body: JSON.stringify({
-              sessionId: "22219e",
-              hypothesisId: "H1",
-              location: "app/product-match/page.tsx:load",
-              message: "product_match_redirect_intent",
-              data: {
-                segment: data.segment,
-                crmTriggered: data.alreadyCrm === true,
-              },
-              timestamp: Date.now(),
-              runId: "intent-reset-v1",
-            }),
-          },
-        ).catch(() => {});
-        // #endregion
         const pk = encodeURIComponent(data.productMatch?.productKey ?? "");
         const bundleQ =
           data.bundleOfferShown && data.bundleAccepted === true
@@ -105,30 +83,6 @@ function ProductMatchInner() {
         );
         return;
       }
-      // #region agent log
-      fetch(
-        "http://127.0.0.1:7586/ingest/a06de864-e48c-47c4-804c-fea5dbfaf96a",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Debug-Session-Id": "22219e",
-          },
-          body: JSON.stringify({
-            sessionId: "22219e",
-            hypothesisId: "H1",
-            location: "app/product-match/page.tsx:load",
-            message: "product_match_stay_funnel",
-            data: {
-              segment: data.segment,
-              crmTriggered: data.alreadyCrm === true,
-            },
-            timestamp: Date.now(),
-            runId: "intent-reset-v1",
-          }),
-        },
-      ).catch(() => {});
-      // #endregion
     } catch {
       setError("Session error");
     }
@@ -171,6 +125,12 @@ function ProductMatchInner() {
   }
 
   const pm = payload.productMatch;
+  const capital = payload.capital as Capital;
+  const primary = getCatalogProduct(pm.productKey);
+  const bundleRule =
+    pm.bundleOfferLine && pm.bonusLine
+      ? getBundleSecondaryOptions(capital)
+      : null;
 
   return (
     <div className="relative flex min-h-screen flex-col bg-gradient-to-b from-zinc-950 via-black to-zinc-950 text-white">
@@ -189,53 +149,161 @@ function ProductMatchInner() {
 
       <div className="relative mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pb-10 pt-8 sm:px-8">
         <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-500/90">
-          Your match
+          Your access level
         </p>
-        <h1 className="mb-4 font-serif text-2xl font-normal leading-snug tracking-tight text-zinc-50">
-          {pm.primaryTitle}
+        <h1 className="mb-6 font-serif text-2xl font-normal leading-snug tracking-tight text-zinc-50">
+          Based on your profile, here is what you unlock.
         </h1>
-        <p className="mb-6 text-sm leading-relaxed text-zinc-400">
-          {pm.primaryLine}
-        </p>
 
-        {pm.bundleOfferLine && pm.bonusLine ? (
+        <section className="mb-4 rounded-2xl border border-zinc-800 bg-zinc-950/90 p-5">
+          <div className="flex items-start justify-between gap-3 mb-1">
+            <div className="min-w-0">
+              <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">
+                Primary product
+              </p>
+              <h2 className="text-lg font-semibold text-zinc-50">
+                {primary.displayName}
+              </h2>
+              <p className="text-sm text-emerald-400/95 font-medium mt-0.5">
+                {primary.tagline}
+              </p>
+              {capital === "300_1000" ? (
+                <p className="text-xs text-amber-400/90 mt-2 leading-snug">
+                  At this tier you may be matched to{" "}
+                  <strong className="text-amber-300">FX Basics</strong> or{" "}
+                  <strong className="text-amber-300">GTMO Education</strong> —
+                  your specialist confirms which fits your level.
+                </p>
+              ) : null}
+            </div>
+            <div className="shrink-0 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-1.5">
+              <p className="text-emerald-400 text-xs font-semibold whitespace-nowrap">
+                ${pm.depositRequiredUsd}+ dep
+              </p>
+            </div>
+          </div>
+
+          <p className="text-sm text-zinc-400 mt-3 mb-4 leading-relaxed">
+            {primary.oneLiner}
+          </p>
+
+          <div className="space-y-2 mb-4">
+            {primary.benefitBullets.map((bullet, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="text-emerald-500 mt-0.5 text-xs shrink-0">
+                  ✓
+                </span>
+                <p className="text-sm text-zinc-300 leading-snug">{bullet}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="border-t border-zinc-800 pt-4">
+            <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-3">
+              Typical programme emphasis
+            </p>
+            <p className="text-[10px] text-zinc-600 mb-2">
+              Illustrative mix of content — not profit odds or guarantees.
+            </p>
+            <div className="grid grid-cols-3 gap-2 mb-2">
+              <div className="rounded-lg bg-black/60 border border-zinc-800 p-2 text-center">
+                <p className="text-base font-bold text-zinc-100">
+                  {primary.emphasis.structured}%
+                </p>
+                <p className="text-[10px] text-zinc-500 leading-tight">
+                  Structured learning
+                </p>
+              </div>
+              <div className="rounded-lg bg-black/60 border border-zinc-800 p-2 text-center">
+                <p className="text-base font-bold text-zinc-100">
+                  {primary.emphasis.live}%
+                </p>
+                <p className="text-[10px] text-zinc-500 leading-tight">
+                  Live engagement
+                </p>
+              </div>
+              <div className="rounded-lg bg-black/60 border border-zinc-800 p-2 text-center">
+                <p className="text-base font-bold text-zinc-100">
+                  {primary.emphasis.community}%
+                </p>
+                <p className="text-[10px] text-zinc-500 leading-tight">
+                  Community &amp; signals
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-zinc-500 italic">
+              {primary.emphasis.label}
+            </p>
+          </div>
+        </section>
+
+        {bundleRule ? (
           <section
-            className="mb-6 rounded-xl border border-amber-500/40 bg-amber-950/25 p-4 ring-1 ring-amber-500/20"
+            className="mb-4 rounded-2xl border border-amber-500/35 bg-amber-950/20 p-5 ring-1 ring-amber-500/15"
             aria-labelledby="bundle-heading"
           >
-            <h2
-              id="bundle-heading"
-              className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400"
-            >
-              Mini app exclusive
-            </h2>
-            <p className="mt-2 text-base font-semibold text-amber-100">
-              {pm.bundleOfferLine}
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-amber-400 text-sm" aria-hidden>
+                🎁
+              </span>
+              <h2
+                id="bundle-heading"
+                className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400"
+              >
+                Mini app exclusive
+              </h2>
+            </div>
+            <h3 className="text-base font-semibold text-amber-50 mb-1">
+              {bundleRule.description}
+            </h3>
+            <p className="text-sm text-amber-100/80 mb-4 leading-relaxed">
+              Because you applied through the mini app, you qualify for this on
+              your first deposit only. You&apos;ll confirm on the next screen.
             </p>
-            <p className="mt-1.5 text-sm leading-relaxed text-amber-100/85">
-              {pm.bonusLine}
-            </p>
-            <p className="mt-3 text-xs text-amber-200/70">
-              You&apos;ll confirm on the next screen whether to include this
-              add-on with your application.
-            </p>
+            {bundleRule.eligibleKeys.length > 0 ? (
+              <div>
+                <p className="text-[10px] text-amber-200/70 uppercase tracking-widest mb-3">
+                  {bundleRule.eligibleKeys.length === 1
+                    ? "Included add-on"
+                    : `Eligible add-ons — ${bundleRule.discountLabel}`}
+                </p>
+                <div className="space-y-2">
+                  {bundleRule.eligibleKeys.map((key) => {
+                    const p = getCatalogProduct(key);
+                    return (
+                      <div
+                        key={key}
+                        className="flex items-start gap-3 rounded-xl border border-zinc-800/80 bg-black/40 p-3"
+                      >
+                        <div className="shrink-0 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1">
+                          <span className="text-[10px] font-bold text-amber-400 uppercase">
+                            {bundleRule.discountLabel}
+                          </span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-zinc-100">
+                            {p.displayName}
+                          </p>
+                          <p className="text-xs text-zinc-400 mt-0.5 leading-snug">
+                            {p.oneLiner}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-zinc-500 mt-3 leading-relaxed">
+                  * {bundleRule.disclaimer}
+                </p>
+              </div>
+            ) : null}
           </section>
         ) : null}
 
-        <div className="mb-6 rounded-xl border border-zinc-800 bg-zinc-950/80 p-4 text-sm">
-          <p className="font-semibold text-zinc-200">
-            Minimum funding: ${pm.depositRequiredUsd}
-          </p>
-          <p className="mt-1 text-zinc-500">
-            Product: {productDisplayName(pm.productKey)}
-          </p>
-          {pm.bundleOfferLine ? (
-            <p className="mt-3 text-xs text-zinc-500">
-              Add-on summary also shown above — reserved for applicants who came
-              through this app.
-            </p>
-          ) : null}
-        </div>
+        <p className="text-[10px] text-zinc-600 text-center mb-6 leading-relaxed">
+          Programme emphasis percentages describe content structure, not
+          returns. Trading involves risk.
+        </p>
 
         <button
           type="button"
