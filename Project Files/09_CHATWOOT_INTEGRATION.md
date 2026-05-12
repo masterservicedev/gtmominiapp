@@ -86,7 +86,18 @@ export async function findContactByTelegramId(telegramId: number) {
 
 ---
 
-After a **HIGH** user confirms in `/confirm-intent`, the Next.js app sends the Telegram lead messages, resolves the mirrored Chatwoot conversation (see `findLatestConversationIdForTelegramUser` in `lib/chatwoot.ts`), then applies labels `qualified-lead`, `product-<tier>`, `deposit-pending` and assigns the **Closers** team when `CHATWOOT_CLOSERS_TEAM_ID` is set. Chatwoot **automation rules** on message content (e.g. `[GTMO QUALIFIED LEAD]`) can remain as a backup.
+## Mini app handoff (HIGH) — customer vs CRM
+
+When a **HIGH** user completes `/confirm-intent` (or uses the Telegram **READY** fallback in the bot), the **customer** only receives a short Telegram message from [`lib/leadCardContent.ts`](../lib/leadCardContent.ts) (`buildCustomerHandoffMessage` — matched product, deposit level, optional bundle line — **no** `[GTMO QUALIFIED LEAD]`, **no** CID, **no** “Agent action”).
+
+The full structured lead block (`buildQualifiedLeadCardText`) is posted to Chatwoot as a **private note** via [`lib/handoffHighIntent.ts`](../lib/handoffHighIntent.ts) (`attachInternalLeadToChatwoot`) after the conversation is resolved. Labels `qualified-lead`, `product-<tier>`, `deposit-pending` and team assignment still run from the API.
+
+**Automations:** Rules that fire on **incoming message contains `[GTMO QUALIFIED LEAD]`** may no longer see that string in the **Telegram** thread. Prefer:
+
+- Triggers on **labels** (e.g. conversation updated / label `qualified-lead` added), or  
+- If your Chatwoot plan supports it, automations on **private note** content containing `[GTMO QUALIFIED LEAD]`.
+
+Otherwise duplicate routing (label API + old message rule) is harmless if both match.
 
 ---
 

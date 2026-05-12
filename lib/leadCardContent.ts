@@ -1,4 +1,5 @@
 import type { ProductMatch, ProductKey } from "@/lib/productMatch";
+import { getProductMatch } from "@/lib/productMatch";
 import type { Capital } from "@/lib/scoring";
 import type { InferSelectModel } from "drizzle-orm";
 import type { questionnaireAnswers, users } from "@/lib/db/schema";
@@ -54,12 +55,61 @@ export type LeadCardExtras = {
   bundleAccepted: boolean | null;
 };
 
-/** User-facing pre-approval DM (before lead card block). */
+/** User-facing pre-approval DM (legacy READY path — prefer `buildCustomerHandoffMessage`). */
 export function buildPreApprovalUserMessage(): string {
   return `✅ You've been pre-approved for GTMO Trading access.\n\nA specialist from our team is reviewing your application now.\n\nPlease reply *READY* to confirm you're available to proceed.`;
 }
 
-/** Full `[GTMO QUALIFIED LEAD]` block for Telegram (and Chatwoot mirror). */
+/**
+ * Customer-visible Telegram copy only — no `[GTMO QUALIFIED LEAD]`, CID, or agent instructions.
+ * When `extras` is set (in-app confirm), reflects confirmed bundle choice.
+ */
+export function buildCustomerHandoffMessage(
+  user: UserRow,
+  answers: AnswerRow,
+  extras?: LeadCardExtras,
+): string {
+  const cap = capitalFromAnswers(answers?.capital);
+  const pm =
+    extras?.productMatch ??
+    getProductMatch(cap, user.bundleEligible ?? false, user.bundleUsed ?? false);
+  const productName = productDisplayName(pm.productKey);
+
+  const lines: string[] = [
+    `✅ You've been pre-approved for GTMO Trading access.`,
+    ``,
+    `Your matched offer: *${productName}* — from *$${pm.depositRequiredUsd}* funding via Vantage when you're ready.`,
+  ];
+
+  if (extras) {
+    if (extras.bundleOfferShown && extras.bundleAccepted === true && pm.bonusLine) {
+      lines.push(``, `Mini app add-on included: ${pm.bundleOfferLine}.`);
+    } else if (extras.bundleOfferShown && extras.bundleAccepted === false) {
+      lines.push(
+        ``,
+        `You're proceeding with the primary offer only (no bundle add-on).`,
+      );
+    }
+  } else if (
+    pm.bundleOfferLine &&
+    (user.bundleEligible ?? false) &&
+    !(user.bundleUsed ?? false)
+  ) {
+    lines.push(
+      ``,
+      `You may also be eligible for: *${pm.bundleOfferLine}* — tell your specialist if you'd like it included.`,
+    );
+  }
+
+  lines.push(
+    ``,
+    `A team member will follow up in this chat with next steps.`,
+  );
+
+  return lines.join("\n");
+}
+
+/** Full internal lead block for Chatwoot private note only — not for customer Telegram. */
 export function buildQualifiedLeadCardText(
   user: UserRow,
   answers: AnswerRow,

@@ -20,6 +20,10 @@
     "../lib/db/index.ts",
     "../lib/leadCardContent.ts",
     "../lib/productMatch.ts",
-    "../lib/scoring.ts"
+    "../lib/scoring.ts",
+    "../lib/handoffHighIntent.ts",
+    "../lib/chatwoot.ts",
+    "../lib/telegramBotApi.ts",
+    "../lib/voluum.ts"
   ]
 }

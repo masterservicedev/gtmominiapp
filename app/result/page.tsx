@@ -3,8 +3,21 @@
 import { PreApprovedConfetti } from "@/components/funnel/PreApprovedConfetti";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { productDisplayName } from "@/lib/leadCardContent";
+import type { ProductKey } from "@/lib/productMatch";
 
 const channelLink = process.env.NEXT_PUBLIC_CHANNEL_LINK || "#";
+
+function safeProductLabel(raw: string | null): string | null {
+  if (!raw) return null;
+  const keys: ProductKey[] = ["ebook", "vip", "fx_education", "school"];
+  if (!keys.includes(raw as ProductKey)) return null;
+  try {
+    return productDisplayName(raw as ProductKey);
+  } catch {
+    return null;
+  }
+}
 
 function ResultContent() {
   const params = useSearchParams();
@@ -13,6 +26,9 @@ function ResultContent() {
   const handoff = params.get("handoff") === "1";
   const intent = params.get("intent") === "1";
   const declined = params.get("declined") === "1";
+  const productKeyRaw = params.get("productKey");
+  const productLabel = safeProductLabel(productKeyRaw);
+  const bundleIncluded = params.get("bundle") === "1";
 
   if (exit === "age") {
     return (
@@ -36,20 +52,50 @@ function ResultContent() {
     declined &&
     (segment === "HIGH" || segment === "MID")
   ) {
+    const tier = productLabel ?? "this offer";
     return (
       <SoftExit
-        message="No problem. Join the free channel — we'll send a few light follow-ups over the next couple of days if you want to revisit your offer."
+        message={`You passed on ${tier} for now — that path is offered to others in queue. Join the channel below; you can reopen the mini app when timing lines up, and we may follow up with a short reminder.`}
         showChannel={true}
       />
     );
   }
 
-  if (segment === "HIGH") return <HighResult inAppHandoff={handoff} />;
-  if (segment === "MID") return <MidResult intentConfirmed={intent} />;
+  if (segment === "HIGH")
+    return (
+      <HighResult
+        inAppHandoff={handoff}
+        productLabel={productLabel}
+        bundleIncluded={bundleIncluded}
+      />
+    );
+  if (segment === "MID")
+    return (
+      <MidResult
+        intentConfirmed={intent}
+        productLabel={productLabel}
+        bundleIncluded={bundleIncluded}
+      />
+    );
   return <LowResult />;
 }
 
-function HighResult({ inAppHandoff }: { inAppHandoff: boolean }) {
+function HighResult({
+  inAppHandoff,
+  productLabel,
+  bundleIncluded,
+}: {
+  inAppHandoff: boolean;
+  productLabel: string | null;
+  bundleIncluded: boolean;
+}) {
+  const summary =
+    inAppHandoff && productLabel
+      ? `Your confirmed track: ${productLabel}${
+          bundleIncluded ? " (mini app add-on included)." : "."
+        }`
+      : null;
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-black text-white flex flex-col items-center justify-center px-6 text-center">
       <PreApprovedConfetti />
@@ -67,10 +113,17 @@ function HighResult({ inAppHandoff }: { inAppHandoff: boolean }) {
         <h1 className="text-2xl sm:text-3xl font-bold mb-3 bg-gradient-to-br from-white to-emerald-100/90 bg-clip-text text-transparent">
           You&apos;ve been pre-approved
         </h1>
-        <p className="text-gray-400 mb-8 text-sm leading-relaxed">
+        <p className="text-gray-400 mb-4 text-sm leading-relaxed">
           Based on your answers, a specialist from our team is being assigned to
           your application now.
         </p>
+        {summary ? (
+          <p className="mb-8 text-sm font-medium leading-relaxed text-emerald-200/90">
+            {summary}
+          </p>
+        ) : (
+          <div className="mb-8" />
+        )}
 
         <div className="w-full rounded-xl p-[1px] bg-gradient-to-br from-emerald-400/50 via-emerald-600/20 to-transparent mb-8 animate-result-glow">
           <div className="bg-gray-950/90 backdrop-blur-sm rounded-[11px] p-4 text-left text-sm border border-emerald-500/10">
@@ -110,17 +163,39 @@ function HighResult({ inAppHandoff }: { inAppHandoff: boolean }) {
   );
 }
 
-function MidResult({ intentConfirmed }: { intentConfirmed: boolean }) {
+function MidResult({
+  intentConfirmed,
+  productLabel,
+  bundleIncluded,
+}: {
+  intentConfirmed: boolean;
+  productLabel: string | null;
+  bundleIncluded: boolean;
+}) {
+  const intentLine =
+    intentConfirmed && productLabel
+      ? `Recorded: ${productLabel}${
+          bundleIncluded ? " with mini app add-on." : "."
+        }`
+      : null;
+
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6 text-center">
       <div className="text-5xl mb-4">📈</div>
       <h1 className="text-2xl font-bold mb-3">Welcome to GTMO Trading</h1>
       {intentConfirmed ? (
-        <p className="text-gray-400 mb-8 text-sm leading-relaxed">
-          Thanks — we&apos;ve recorded that you want to go deeper when the time
-          is right. Join the free channel below; our team may reach out when
-          capacity allows.
-        </p>
+        <>
+          {intentLine ? (
+            <p className="mb-3 text-sm font-medium text-amber-200/90">
+              {intentLine}
+            </p>
+          ) : null}
+          <p className="text-gray-400 mb-8 text-sm leading-relaxed">
+            Thanks — we&apos;ve recorded that you want to go deeper when the time
+            is right. Join the free channel below; our team may reach out when
+            capacity allows.
+          </p>
+        </>
       ) : (
         <p className="text-gray-400 mb-8 text-sm leading-relaxed">
           Join the free channel, follow the live trades, and when you&apos;re

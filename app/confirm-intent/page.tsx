@@ -6,6 +6,7 @@ import { FunnelProgress } from "@/components/funnel/FunnelProgress";
 import { normalizeEntryVariant, type AdVariant } from "@/lib/funnel/normalize";
 import { getFunnelConfig, getPreQuestionnaireSteps } from "@/lib/funnel/resolve";
 import { getThemeClasses } from "@/lib/funnel/theme";
+import { trackFunnelEvent } from "@/lib/funnel/track";
 import { loadWebApp } from "@/lib/twa";
 import type { ProductMatch } from "@/lib/productMatch";
 import { productDisplayName } from "@/lib/leadCardContent";
@@ -66,6 +67,12 @@ function ConfirmIntentInner() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (payload?.productMatch.bundleOfferLine) {
+      setAcceptBundle(true);
+    }
+  }, [payload]);
+
   const onYes = async () => {
     if (!payload || busy) return;
     const pm = payload.productMatch;
@@ -89,10 +96,19 @@ function ConfirmIntentInner() {
         return;
       }
       const seg = (data.segment as string) || payload.segment;
+      const pk = encodeURIComponent(payload.productMatch.productKey);
+      const bundleQ =
+        bundleShown && typeof acceptBundle === "boolean"
+          ? `&bundle=${acceptBundle ? "1" : "0"}`
+          : "";
       if (data.handled === "mid_record_only") {
-        router.replace(`/result?segment=${encodeURIComponent(seg)}&intent=1`);
+        router.replace(
+          `/result?segment=${encodeURIComponent(seg)}&intent=1&productKey=${pk}${bundleQ}`,
+        );
       } else {
-        router.replace(`/result?segment=${encodeURIComponent(seg)}&handoff=1`);
+        router.replace(
+          `/result?segment=${encodeURIComponent(seg)}&handoff=1&productKey=${pk}${bundleQ}`,
+        );
       }
     } catch {
       setError("Network error");
@@ -105,14 +121,19 @@ function ConfirmIntentInner() {
     setBusy(true);
     try {
       const WebApp = await loadWebApp();
+      const pk = encodeURIComponent(payload.productMatch.productKey);
+      const seg = encodeURIComponent(payload.segment);
+      void trackFunnelEvent("intent_decline", {
+        variant,
+        productKey: payload.productMatch.productKey,
+        segment: payload.segment,
+      });
       await fetch("/api/decline-intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ initData: WebApp.initData }),
       });
-      router.replace(
-        `/result?segment=${encodeURIComponent(payload.segment)}&declined=1`,
-      );
+      router.replace(`/result?segment=${seg}&declined=1&productKey=${pk}`);
     } catch {
       setError("Network error");
       setBusy(false);
@@ -177,18 +198,47 @@ function ConfirmIntentInner() {
         </p>
 
         {bundleShown ? (
-          <label className="mb-8 flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-800 bg-zinc-950/80 p-4 text-sm text-zinc-300">
-            <input
-              type="checkbox"
-              checked={acceptBundle}
-              onChange={(e) => setAcceptBundle(e.target.checked)}
-              className="mt-1 h-4 w-4 shrink-0 rounded border-zinc-600"
-            />
-            <span>
-              I want the mini app bundle: {pm.bundleOfferLine}
-              {pm.bonusLine ? ` (${pm.bonusLine})` : ""}
-            </span>
-          </label>
+          <div className="mb-8 space-y-3">
+            <div className="rounded-xl border border-amber-500/35 bg-amber-950/20 p-4 ring-1 ring-amber-500/15">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400">
+                Mini app exclusive add-on
+              </p>
+              <p className="mt-2 text-sm font-semibold text-amber-100">
+                {pm.bundleOfferLine}
+              </p>
+              {pm.bonusLine ? (
+                <p className="mt-1 text-sm text-amber-100/85">{pm.bonusLine}</p>
+              ) : null}
+              <p className="mt-3 text-xs text-zinc-500">
+                Choose whether to include this with your application (defaults
+                to included).
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setAcceptBundle(true)}
+                className={`rounded-xl border py-3 text-xs font-semibold transition-colors sm:text-sm ${
+                  acceptBundle
+                    ? "border-amber-500 bg-amber-500/20 text-amber-100"
+                    : "border-zinc-700 bg-zinc-950/50 text-zinc-400 hover:border-zinc-600"
+                }`}
+              >
+                Include add-on
+              </button>
+              <button
+                type="button"
+                onClick={() => setAcceptBundle(false)}
+                className={`rounded-xl border py-3 text-xs font-semibold transition-colors sm:text-sm ${
+                  !acceptBundle
+                    ? "border-zinc-400 bg-zinc-800/80 text-zinc-100"
+                    : "border-zinc-700 bg-zinc-950/50 text-zinc-400 hover:border-zinc-600"
+                }`}
+              >
+                Primary only
+              </button>
+            </div>
+          </div>
         ) : (
           <div className="mb-8" />
         )}

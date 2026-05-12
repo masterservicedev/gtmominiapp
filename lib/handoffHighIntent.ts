@@ -6,7 +6,7 @@ import {
   type ProductKey,
 } from "@/lib/productMatch";
 import {
-  buildPreApprovalUserMessage,
+  buildCustomerHandoffMessage,
   buildQualifiedLeadCardText,
   capitalFromAnswers,
   type LeadCardExtras,
@@ -15,6 +15,7 @@ import { telegramSendMessage } from "@/lib/telegramBotApi";
 import {
   findLatestConversationIdForTelegramUser,
   applyQualifiedLeadLabels,
+  addChatwootNote,
 } from "@/lib/chatwoot";
 import { voluumPostbackUrl } from "@/lib/voluum";
 import axios from "axios";
@@ -22,36 +23,51 @@ import axios from "axios";
 type UserRow = InferSelectModel<typeof users>;
 type AnswerRow = InferSelectModel<typeof questionnaireAnswers> | null;
 
+/** Customer Telegram only — internal card goes to Chatwoot private note. */
 export async function sendHighIntentTelegramLead(
   user: UserRow,
   answers: AnswerRow,
   extras: LeadCardExtras,
 ): Promise<void> {
-  await telegramSendMessage(user.telegramId, buildPreApprovalUserMessage(), {
-    parse_mode: "Markdown",
-  });
   await telegramSendMessage(
     user.telegramId,
-    buildQualifiedLeadCardText(user, answers, extras),
+    buildCustomerHandoffMessage(user, answers, extras),
+    { parse_mode: "Markdown" },
   );
 }
 
-export async function runChatwootLabelsForHandoff(
+/**
+ * Post full lead card as Chatwoot private note, then labels + team.
+ * If no conversation exists yet, logs and skips (does not DM internal card to user).
+ */
+export async function attachInternalLeadToChatwoot(
   telegramId: number,
   productKey: ProductKey,
+  user: UserRow,
+  answers: AnswerRow,
+  extras?: LeadCardExtras,
 ): Promise<string | null> {
   const conversationId =
     await findLatestConversationIdForTelegramUser(telegramId);
-  if (conversationId) {
-    await applyQualifiedLeadLabels(
-      conversationId,
-      productKeyToChatwootLabelSuffix(productKey),
+  if (!conversationId) {
+    console.warn(
+      "[handoff] No Chatwoot conversation for telegram_id",
+      telegramId,
+      "- private note and labels skipped until thread exists",
     );
+    return null;
   }
+  await addChatwootNote(
+    conversationId,
+    buildQualifiedLeadCardText(user, answers, extras),
+  );
+  await applyQualifiedLeadLabels(
+    conversationId,
+    productKeyToChatwootLabelSuffix(productKey),
+  );
   return conversationId;
 }
 
-/** Fire Voluum postback when user has CID (same as bot sendLead). */
 export async function fireCrmVoluumPostback(voluumCid: string | null) {
   if (!voluumCid || !process.env.VOLUUM_POSTBACK_URL) return;
   try {

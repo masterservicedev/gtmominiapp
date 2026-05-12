@@ -55,7 +55,10 @@ function ProductMatchInner() {
         return;
       }
       if (data.intentDeclinedAt) {
-        router.replace(`/result?segment=${data.segment}&declined=1`);
+        const pk = encodeURIComponent(data.productMatch?.productKey ?? "");
+        router.replace(
+          `/result?segment=${data.segment}&declined=1&productKey=${pk}`,
+        );
         return;
       }
     } catch {
@@ -127,6 +130,30 @@ function ProductMatchInner() {
           {pm.primaryLine}
         </p>
 
+        {pm.bundleOfferLine && pm.bonusLine ? (
+          <section
+            className="mb-6 rounded-xl border border-amber-500/40 bg-amber-950/25 p-4 ring-1 ring-amber-500/20"
+            aria-labelledby="bundle-heading"
+          >
+            <h2
+              id="bundle-heading"
+              className="text-xs font-bold uppercase tracking-[0.18em] text-amber-400"
+            >
+              Mini app exclusive
+            </h2>
+            <p className="mt-2 text-base font-semibold text-amber-100">
+              {pm.bundleOfferLine}
+            </p>
+            <p className="mt-1.5 text-sm leading-relaxed text-amber-100/85">
+              {pm.bonusLine}
+            </p>
+            <p className="mt-3 text-xs text-amber-200/70">
+              You&apos;ll confirm on the next screen whether to include this
+              add-on with your application.
+            </p>
+          </section>
+        ) : null}
+
         <div className="mb-6 rounded-xl border border-zinc-800 bg-zinc-950/80 p-4 text-sm">
           <p className="font-semibold text-zinc-200">
             Minimum funding: ${pm.depositRequiredUsd}
@@ -135,9 +162,9 @@ function ProductMatchInner() {
             Product: {productDisplayName(pm.productKey)}
           </p>
           {pm.bundleOfferLine ? (
-            <p className="mt-3 text-amber-200/90">
-              Mini app bundle: {pm.bundleOfferLine}
-              {pm.bonusLine ? ` — ${pm.bonusLine}` : null}
+            <p className="mt-3 text-xs text-zinc-500">
+              Add-on summary also shown above — reserved for applicants who came
+              through this app.
             </p>
           ) : null}
         </div>

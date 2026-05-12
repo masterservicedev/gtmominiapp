@@ -8,7 +8,7 @@ import { getProductMatch } from "@/lib/productMatch";
 import { capitalFromAnswers } from "@/lib/leadCardContent";
 import {
   sendHighIntentTelegramLead,
-  runChatwootLabelsForHandoff,
+  attachInternalLeadToChatwoot,
   fireCrmVoluumPostback,
   buildLeadExtrasFromState,
 } from "@/lib/handoffHighIntent";
@@ -142,9 +142,12 @@ export async function POST(req: NextRequest) {
 
     await sendHighIntentTelegramLead(user, answers, extras);
 
-    const conversationId = await runChatwootLabelsForHandoff(
+    const conversationId = await attachInternalLeadToChatwoot(
       user.telegramId,
       productMatch.productKey,
+      user,
+      answers,
+      extras,
     );
 
     await db

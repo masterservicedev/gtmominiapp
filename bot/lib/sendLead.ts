@@ -5,9 +5,11 @@ import { users, events, questionnaireAnswers } from "../../lib/db/schema";
 import axios from "axios";
 import { voluumPostbackUrl } from "./voluum";
 import {
-  buildPreApprovalUserMessage,
-  buildQualifiedLeadCardText,
+  buildCustomerHandoffMessage,
+  capitalFromAnswers,
 } from "../../lib/leadCardContent";
+import { getProductMatch } from "../../lib/productMatch";
+import { attachInternalLeadToChatwoot } from "../../lib/handoffHighIntent";
 
 type UserRow = typeof users.$inferSelect;
 
@@ -21,17 +23,29 @@ async function getLatestAnswers(userId: string) {
   return row ?? null;
 }
 
-/** Telegram READY fallback — no in-app product block (legacy path). */
+/** Telegram READY fallback — customer DM + Chatwoot private note with internal card. */
 export async function sendLeadCard(api: Api, user: UserRow) {
   const answers = await getLatestAnswers(user.id);
 
-  await api.sendMessage(user.telegramId, buildPreApprovalUserMessage(), {
-    parse_mode: "Markdown",
-  });
-
   await api.sendMessage(
     user.telegramId,
-    buildQualifiedLeadCardText(user, answers, undefined),
+    buildCustomerHandoffMessage(user, answers, undefined),
+    { parse_mode: "Markdown" },
+  );
+
+  const cap = capitalFromAnswers(answers?.capital);
+  const pm = getProductMatch(
+    cap,
+    user.bundleEligible ?? false,
+    user.bundleUsed ?? false,
+  );
+
+  await attachInternalLeadToChatwoot(
+    user.telegramId,
+    pm.productKey,
+    user,
+    answers,
+    undefined,
   );
 
   await db
