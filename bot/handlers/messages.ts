@@ -38,6 +38,18 @@ export async function handleMessage(ctx: Context) {
   }
 
   if (text === "ready" && user.segment === "HIGH" && !user.crmTriggered) {
+    if (user.intentDeclinedAt) {
+      await ctx.reply(
+        "You previously chose not to connect right now. Open the mini app when you're ready — you can continue from there.",
+      );
+      return;
+    }
+    if (user.intentConfirmedAt) {
+      await ctx.reply(
+        "We already received your confirmation. Check this chat for messages from our team.",
+      );
+      return;
+    }
     await sendLeadCard(ctx.api, user);
     return;
   }

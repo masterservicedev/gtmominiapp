@@ -29,18 +29,25 @@ export function VideoOffer({
     !src || minWatchSeconds <= 0,
   );
   const firedRef = useRef(false);
+  const unlockedRef = useRef(unlocked);
+  unlockedRef.current = unlocked;
+  const onThresholdMetRef = useRef(onThresholdMet);
+  onThresholdMetRef.current = onThresholdMet;
 
+  /** Refs keep this stable so the HLS init effect does not re-run on unlock/parent re-render (live crash). */
   const checkUnlock = useCallback(
     (sec: number) => {
       if (!src || minWatchSeconds <= 0) return;
-      if (unlocked || sec < minWatchSeconds) return;
+      if (unlockedRef.current || sec < minWatchSeconds) return;
+      unlockedRef.current = true;
       setUnlocked(true);
-      if (!firedRef.current && onThresholdMet) {
+      const cb = onThresholdMetRef.current;
+      if (!firedRef.current && cb) {
         firedRef.current = true;
-        onThresholdMet(sec);
+        cb(sec);
       }
     },
-    [minWatchSeconds, onThresholdMet, unlocked, src],
+    [minWatchSeconds, src],
   );
 
   useEffect(() => {
@@ -117,11 +124,14 @@ export function VideoOffer({
         hlsRef.current = null;
       }
     };
-  }, [src, checkUnlock]);
+  }, [src, minWatchSeconds, checkUnlock]);
+
+  const onUnlockReadyRef = useRef(onUnlockReady);
+  onUnlockReadyRef.current = onUnlockReady;
 
   useEffect(() => {
-    onUnlockReady?.(unlocked);
-  }, [unlocked, onUnlockReady]);
+    onUnlockReadyRef.current?.(unlocked);
+  }, [unlocked]);
 
   const progress =
     src && minWatchSeconds > 0

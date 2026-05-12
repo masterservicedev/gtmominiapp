@@ -86,6 +86,10 @@ export async function findContactByTelegramId(telegramId: number) {
 
 ---
 
+After a **HIGH** user confirms in `/confirm-intent`, the Next.js app sends the Telegram lead messages, resolves the mirrored Chatwoot conversation (see `findLatestConversationIdForTelegramUser` in `lib/chatwoot.ts`), then applies labels `qualified-lead`, `product-<tier>`, `deposit-pending` and assigns the **Closers** team when `CHATWOOT_CLOSERS_TEAM_ID` is set. Chatwoot **automation rules** on message content (e.g. `[GTMO QUALIFIED LEAD]`) can remain as a backup.
+
+---
+
 ## Chatwoot Automation Rules to Configure
 
 Go to: Chatwoot → Settings → Automation → New Automation

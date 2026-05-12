@@ -106,6 +106,7 @@ export async function POST(req: NextRequest) {
           step: i,
           scheduledAt: schedules[i]!,
           status: "pending",
+          nurtureKind: "mid",
         });
       }
     }

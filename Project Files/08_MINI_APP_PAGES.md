@@ -5,6 +5,8 @@
 ```
 /           → Entry experience (video or LP based on variant)
 /qualify    → 5-step questionnaire with progress bar
+/product-match → After score (HIGH/MID): shows product tier + bundle from questionnaire
+/confirm-intent → Yes / Not now — HIGH triggers Telegram lead + Chatwoot labels; MID records intent only
 /result     → Post-score result screen (HIGH / MID / LOW path)
 /analytics  → Internal dashboard (protected)
 ```

@@ -8,7 +8,18 @@
     "skipLibCheck": true,
     "outDir": "dist",
     "rootDir": "..",
-    "noEmit": true
+    "noEmit": true,
+    "baseUrl": "..",
+    "paths": {
+      "@/*": ["./*"]
+    }
   },
-  "include": ["./**/*.ts", "../lib/db/schema.ts", "../lib/db/index.ts"]
+  "include": [
+    "./**/*.ts",
+    "../lib/db/schema.ts",
+    "../lib/db/index.ts",
+    "../lib/leadCardContent.ts",
+    "../lib/productMatch.ts",
+    "../lib/scoring.ts"
+  ]
 }

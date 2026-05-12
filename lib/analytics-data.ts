@@ -25,6 +25,10 @@ export async function getAnalyticsPayload() {
           COUNT(*) FILTER (WHERE e.event_type = 'questionnaire_start')::int as questionnaire_starts,
           COUNT(*) FILTER (WHERE e.event_type = 'questionnaire_processing_shown')::int as questionnaire_processing_shown,
           COUNT(*) FILTER (WHERE e.event_type = 'questionnaire_complete')::int as questionnaire_done,
+          COUNT(*) FILTER (WHERE e.event_type = 'product_match_view')::int as product_match_views,
+          COUNT(*) FILTER (WHERE e.event_type = 'intent_confirm')::int as intent_confirms,
+          COUNT(*) FILTER (WHERE e.event_type = 'intent_decline')::int as intent_declines,
+          COUNT(*) FILTER (WHERE e.event_type = 'handoff_confirmed')::int as handoff_confirmed,
           COUNT(*) FILTER (WHERE e.event_type = 'crm_triggered')::int as crm_leads
         FROM users u
         LEFT JOIN events e ON e.user_id = u.id

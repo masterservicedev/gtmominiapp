@@ -14,6 +14,17 @@ const nurtureMessages = [
     `Last message from us for now, ${firstName}.\n\nIf the timing is right and you're ready to start — our team is available to walk you through everything step by step.\n\nReply *READY* and we'll connect you now.`,
 ];
 
+const intentDeclineNurtureMessages = [
+  (firstName: string) =>
+    `Hi ${firstName},\n\nYou weren't ready to connect with a specialist yet — totally fine.\n\nStay in the free channel and watch how we trade live. When timing feels right, open the mini app again and we can pick up where you left off.`,
+
+  (firstName: string) =>
+    `${firstName}, quick follow-up.\n\nIf your situation has changed and you'd like to explore funding + the offer we showed you, just open the app and continue from there. 📲`,
+
+  (firstName: string) =>
+    `Last nudge from me, ${firstName}.\n\nIf you want a specialist to walk you through the next step, reply *READY* here or reopen the mini app when you're ready.`,
+];
+
 export async function processNurtureQueue(bot: Bot) {
   const now = new Date();
 
@@ -45,7 +56,10 @@ export async function processNurtureQueue(bot: Bot) {
         continue;
       }
 
-      const template = nurtureMessages[item.step];
+      const kind = item.nurtureKind ?? "mid";
+      const templates =
+        kind === "intent_decline" ? intentDeclineNurtureMessages : nurtureMessages;
+      const template = templates[item.step];
       if (!template) continue;
 
       const message = template(user.firstName || "there");

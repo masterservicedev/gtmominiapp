@@ -11,6 +11,8 @@ import { trackFunnelEvent } from "@/lib/funnel/track";
 import { loadWebApp } from "@/lib/twa";
 
 const QUESTIONNAIRE_STEPS = 5;
+/** Post-questionnaire: product match + confirm intent */
+const POST_QUALIFY_STEPS = 2;
 
 const steps = [
   {
@@ -90,7 +92,7 @@ function QualifyInner() {
   const cfg = getFunnelConfig(variant);
   const t = getThemeClasses(cfg.theme);
   const preSteps = getPreQuestionnaireSteps(variant);
-  const totalFunnelSteps = preSteps + QUESTIONNAIRE_STEPS;
+  const totalFunnelSteps = preSteps + QUESTIONNAIRE_STEPS + POST_QUALIFY_STEPS;
 
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -148,6 +150,13 @@ function QualifyInner() {
 
         if (data.exit) {
           router.push(`/result?exit=${data.reason}`);
+          return;
+        }
+
+        if (data.segment === "HIGH" || data.segment === "MID") {
+          router.push(
+            `/product-match?variant=${encodeURIComponent(variant)}`,
+          );
           return;
         }
 

@@ -10,6 +10,9 @@ function ResultContent() {
   const params = useSearchParams();
   const segment = params.get("segment");
   const exit = params.get("exit");
+  const handoff = params.get("handoff") === "1";
+  const intent = params.get("intent") === "1";
+  const declined = params.get("declined") === "1";
 
   if (exit === "age") {
     return (
@@ -29,12 +32,24 @@ function ResultContent() {
     );
   }
 
-  if (segment === "HIGH") return <HighResult />;
-  if (segment === "MID") return <MidResult />;
+  if (
+    declined &&
+    (segment === "HIGH" || segment === "MID")
+  ) {
+    return (
+      <SoftExit
+        message="No problem. Join the free channel — we'll send a few light follow-ups over the next couple of days if you want to revisit your offer."
+        showChannel={true}
+      />
+    );
+  }
+
+  if (segment === "HIGH") return <HighResult inAppHandoff={handoff} />;
+  if (segment === "MID") return <MidResult intentConfirmed={intent} />;
   return <LowResult />;
 }
 
-function HighResult() {
+function HighResult({ inAppHandoff }: { inAppHandoff: boolean }) {
   return (
     <div className="relative min-h-screen overflow-hidden bg-black text-white flex flex-col items-center justify-center px-6 text-center">
       <PreApprovedConfetti />
@@ -65,10 +80,17 @@ function HighResult() {
             <ul className="text-gray-400 space-y-1">
               <li>• Join the free signals channel below</li>
               <li>• You&apos;ll receive a message from our team shortly</li>
-              <li>
-                • Reply <strong className="text-white">READY</strong> to confirm
-                your availability
-              </li>
+              {inAppHandoff ? (
+                <li>
+                  • Check this <strong className="text-white">Telegram</strong>{" "}
+                  chat — we sent your confirmed offer details for the team
+                </li>
+              ) : (
+                <li>
+                  • Reply <strong className="text-white">READY</strong> in this
+                  chat if you haven&apos;t confirmed in the app yet
+                </li>
+              )}
             </ul>
           </div>
         </div>
@@ -88,15 +110,23 @@ function HighResult() {
   );
 }
 
-function MidResult() {
+function MidResult({ intentConfirmed }: { intentConfirmed: boolean }) {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6 text-center">
       <div className="text-5xl mb-4">📈</div>
       <h1 className="text-2xl font-bold mb-3">Welcome to GTMO Trading</h1>
-      <p className="text-gray-400 mb-8 text-sm leading-relaxed">
-        Join the free channel, follow the live trades, and when you&apos;re
-        ready to go deeper — our team will be here.
-      </p>
+      {intentConfirmed ? (
+        <p className="text-gray-400 mb-8 text-sm leading-relaxed">
+          Thanks — we&apos;ve recorded that you want to go deeper when the time
+          is right. Join the free channel below; our team may reach out when
+          capacity allows.
+        </p>
+      ) : (
+        <p className="text-gray-400 mb-8 text-sm leading-relaxed">
+          Join the free channel, follow the live trades, and when you&apos;re
+          ready to go deeper — our team will be here.
+        </p>
+      )}
 
       <a
         href={channelLink}

@@ -60,6 +60,10 @@ export const eventTypeValues = [
   "bot_nurtured",
   "deposit_confirmed",
   "rescore",
+  "product_match_view",
+  "intent_confirm",
+  "intent_decline",
+  "handoff_confirmed",
 ] as const;
 
 export type EventType = (typeof eventTypeValues)[number];
@@ -91,6 +95,11 @@ export const users = pgTable("users", {
   chatwootConversationId: text("chatwoot_conversation_id"),
   depositTotal: integer("deposit_total").default(0),
   productsUnlocked: text("products_unlocked").array().default([]),
+  confirmedProductKey: text("confirmed_product_key"),
+  intentConfirmedAt: timestamp("intent_confirmed_at"),
+  intentDeclinedAt: timestamp("intent_declined_at"),
+  bundleOfferShown: boolean("bundle_offer_shown").default(false),
+  bundleAccepted: boolean("bundle_accepted"),
   createdAt: timestamp("created_at").defaultNow(),
   questionnaireCompletedAt: timestamp("questionnaire_completed_at"),
   crmTriggeredAt: timestamp("crm_triggered_at"),
@@ -157,5 +166,7 @@ export const nurtureQueue = pgTable("nurture_queue", {
   scheduledAt: timestamp("scheduled_at").notNull(),
   sentAt: timestamp("sent_at"),
   status: text("status").default("pending"),
+  /** `mid` = post-score MID nurture; `intent_decline` = user declined in-app intent step */
+  nurtureKind: text("nurture_kind").default("mid"),
   createdAt: timestamp("created_at").defaultNow(),
 });

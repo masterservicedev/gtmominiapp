@@ -246,4 +246,7 @@ Products are confirmed manually by agents (not automated). An array is the simpl
 `bundleUsed` = already claimed the bundle on first deposit (prevents double-claiming)
 
 ### The nurtureQueue table
-MID intent users need Day 0 / Day 1 / Day 2 follow-up messages. This table stores the scheduled messages so the bot can process them via a polling loop rather than requiring a scheduler service.
+MID intent users need Day 0 / Day 1 / Day 2 follow-up messages. This table stores the scheduled messages so the bot can process them via a polling loop rather than requiring a scheduler service. Column `nurture_kind` distinguishes the default MID post-score sequence (`mid`) from the follow-up sequence after a user taps **Not right now** on the in-app intent step (`intent_decline`).
+
+### Post-qualify intent fields on `users`
+`confirmed_product_key`, `intent_confirmed_at`, `intent_declined_at`, `bundle_offer_shown`, and `bundle_accepted` support the `/product-match` → `/confirm-intent` flow. See `lib/db/schema.ts` for exact types. Run `npm run db:push` after pulling so Neon gets new columns and new `event_type` enum values.

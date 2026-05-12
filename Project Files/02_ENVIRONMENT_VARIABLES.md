@@ -15,6 +15,7 @@ CHATWOOT_BASE_URL=https://chat.workspacegtmo.com
 CHATWOOT_API_TOKEN=your_chatwoot_api_token
 CHATWOOT_MINIAPP_INBOX_ID=your_inbox_id_number
 CHATWOOT_ACCOUNT_ID=1
+CHATWOOT_CLOSERS_TEAM_ID=1
 
 # Voluum
 VOLUUM_POSTBACK_URL=https://t.voluum.com/postback
@@ -57,6 +58,9 @@ BotFather → your mini app bot → /token
 
 ### CHATWOOT_API_TOKEN
 Chatwoot → Profile Settings → Access Token
+
+### CHATWOOT_CLOSERS_TEAM_ID
+Chatwoot → Settings → Teams → open **Closers** (or your closing team) → the numeric **team id** is often visible in the URL or team settings API. Used when a HIGH user confirms intent in the mini app: the app assigns the mirrored conversation to this team and applies labels.
 
 ### CHATWOOT_MINIAPP_INBOX_ID
 Chatwoot → Settings → Inboxes → Mini App Leads → Settings → scroll to bottom → Inbox ID number
