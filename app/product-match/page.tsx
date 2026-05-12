@@ -55,6 +55,30 @@ function ProductMatchInner() {
       // Only skip funnel after in-app confirm. `crmTriggered` alone (e.g. Telegram
       // READY) must not skip — user still needs product-match + bundle + confirm.
       if (data.intentConfirmedAt) {
+        // #region agent log
+        fetch(
+          "http://127.0.0.1:7586/ingest/a06de864-e48c-47c4-804c-fea5dbfaf96a",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Debug-Session-Id": "22219e",
+            },
+            body: JSON.stringify({
+              sessionId: "22219e",
+              hypothesisId: "H1",
+              location: "app/product-match/page.tsx:load",
+              message: "product_match_redirect_intent",
+              data: {
+                segment: data.segment,
+                crmTriggered: data.alreadyCrm === true,
+              },
+              timestamp: Date.now(),
+              runId: "intent-reset-v1",
+            }),
+          },
+        ).catch(() => {});
+        // #endregion
         const pk = encodeURIComponent(data.productMatch?.productKey ?? "");
         const bundleQ =
           data.bundleOfferShown && data.bundleAccepted === true
@@ -81,6 +105,30 @@ function ProductMatchInner() {
         );
         return;
       }
+      // #region agent log
+      fetch(
+        "http://127.0.0.1:7586/ingest/a06de864-e48c-47c4-804c-fea5dbfaf96a",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Debug-Session-Id": "22219e",
+          },
+          body: JSON.stringify({
+            sessionId: "22219e",
+            hypothesisId: "H1",
+            location: "app/product-match/page.tsx:load",
+            message: "product_match_stay_funnel",
+            data: {
+              segment: data.segment,
+              crmTriggered: data.alreadyCrm === true,
+            },
+            timestamp: Date.now(),
+            runId: "intent-reset-v1",
+          }),
+        },
+      ).catch(() => {});
+      // #endregion
     } catch {
       setError("Session error");
     }

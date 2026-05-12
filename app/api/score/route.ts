@@ -68,6 +68,9 @@ export async function POST(req: NextRequest) {
       cappedScore: result.cappedScore,
     });
 
+    const hadIntentBefore = Boolean(user.intentConfirmedAt);
+    const hadDeclineBefore = Boolean(user.intentDeclinedAt);
+
     await db
       .update(users)
       .set({
@@ -75,8 +78,37 @@ export async function POST(req: NextRequest) {
         segment: result.segment,
         questionnaireCompleted: true,
         questionnaireCompletedAt: new Date(),
+        /** New answers = new post-funnel round; stale intent skips product-match otherwise. */
+        intentConfirmedAt: null,
+        intentDeclinedAt: null,
+        confirmedProductKey: null,
+        bundleOfferShown: false,
+        bundleAccepted: null,
       })
       .where(eq(users.id, user.id));
+
+    // #region agent log
+    fetch("http://127.0.0.1:7586/ingest/a06de864-e48c-47c4-804c-fea5dbfaf96a", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "22219e",
+      },
+      body: JSON.stringify({
+        sessionId: "22219e",
+        hypothesisId: "H1",
+        location: "app/api/score/route.ts:post-update",
+        message: "questionnaire_rescore_intent_cleared",
+        data: {
+          hadIntentBefore,
+          hadDeclineBefore,
+          segment: result.segment,
+        },
+        timestamp: Date.now(),
+        runId: "intent-reset-v1",
+      }),
+    }).catch(() => {});
+    // #endregion
 
     await db.insert(events).values({
       userId: user.id,
