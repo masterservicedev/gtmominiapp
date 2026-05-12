@@ -36,8 +36,8 @@ function ProductMatchInner() {
   const cfg = getFunnelConfig(variant);
   const t = getThemeClasses(cfg.theme);
   const preSteps = getPreQuestionnaireSteps(variant);
-  const totalFunnelSteps = preSteps + 7;
-  const progressStep = preSteps + 6;
+  const totalFunnelSteps = preSteps + 8;
+  const progressStep = preSteps + 7;
 
   const [payload, setPayload] = useState<Payload | null>(null);
   const [error, setError] = useState<string | null>(null);

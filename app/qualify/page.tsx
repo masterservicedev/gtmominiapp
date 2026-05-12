@@ -11,8 +11,8 @@ import { trackFunnelEvent } from "@/lib/funnel/track";
 import { loadWebApp } from "@/lib/twa";
 
 const QUESTIONNAIRE_STEPS = 5;
-/** Post-questionnaire: product match + confirm intent */
-const POST_QUALIFY_STEPS = 2;
+/** Post-questionnaire: value bridge + product match + confirm intent */
+const POST_QUALIFY_STEPS = 3;
 
 const steps = [
   {
@@ -154,9 +154,13 @@ function QualifyInner() {
         }
 
         if (data.segment === "HIGH" || data.segment === "MID") {
-          router.push(
-            `/product-match?variant=${encodeURIComponent(variant)}`,
-          );
+          const vb = new URLSearchParams({
+            variant: String(variant),
+            capital: String(data.capital ?? ""),
+            segment: String(data.segment ?? ""),
+            score: String(data.score ?? ""),
+          });
+          router.push(`/value-bridge?${vb.toString()}`);
           return;
         }
 

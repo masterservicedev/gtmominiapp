@@ -56,6 +56,7 @@ export const eventTypeValues = [
   "questionnaire_start",
   "questionnaire_complete",
   "questionnaire_processing_shown",
+  "value_bridge_view",
   "crm_triggered",
   "bot_nurtured",
   "deposit_confirmed",

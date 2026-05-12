@@ -10,6 +10,8 @@ import {
 import { eq } from "drizzle-orm";
 import { calculateScore } from "@/lib/scoring";
 import { voluumPostbackUrl } from "@/lib/voluum";
+import { capitalFromAnswers } from "@/lib/leadCardContent";
+import { getProductMatch } from "@/lib/productMatch";
 
 export async function POST(req: NextRequest) {
   try {
@@ -126,10 +128,19 @@ export async function POST(req: NextRequest) {
       fetch(url, { method: "GET" }).catch(() => {});
     }
 
+    const cap = capitalFromAnswers(answers.capital);
+    const bundleEligible = user.bundleEligible ?? true;
+    const bundleUsed = user.bundleUsed ?? false;
+    const productMatchPreview = getProductMatch(cap, bundleEligible, bundleUsed);
+
     return NextResponse.json({
       success: true,
       score: result.cappedScore,
       segment: result.segment,
+      capital: answers.capital,
+      bundleEligible,
+      bundleUsed,
+      productKey: productMatchPreview.productKey,
       channelLink: process.env.NEXT_PUBLIC_CHANNEL_LINK,
       requiresConfirmation: result.segment === "HIGH",
     });
