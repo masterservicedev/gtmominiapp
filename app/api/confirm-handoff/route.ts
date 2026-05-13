@@ -12,6 +12,7 @@ import {
   fireCrmVoluumPostback,
   buildLeadExtrasFromState,
 } from "@/lib/handoffHighIntent";
+import { scheduleHighReactivationNurture } from "@/lib/nurtureSchedule";
 
 async function cancelPendingNurture(userId: string) {
   await db
@@ -88,11 +89,6 @@ export async function POST(req: NextRequest) {
     }
 
     const now = new Date();
-    const setBundleUsed =
-      bundleEligible &&
-      !bundleUsed &&
-      bundleShown &&
-      bundleAccepted === true;
 
     await cancelPendingNurture(user.id);
 
@@ -104,7 +100,6 @@ export async function POST(req: NextRequest) {
           confirmedProductKey: productMatch.productKey,
           bundleOfferShown: bundleShown,
           bundleAccepted,
-          bundleUsed: setBundleUsed ? true : user.bundleUsed,
         })
         .where(eq(users.id, user.id));
 
@@ -152,7 +147,6 @@ export async function POST(req: NextRequest) {
         confirmedProductKey: productMatch.productKey,
         bundleOfferShown: bundleShown,
         bundleAccepted,
-        bundleUsed: setBundleUsed ? true : user.bundleUsed,
         crmTriggered: true,
         crmTriggeredAt: crmAlreadyFired
           ? (user.crmTriggeredAt ?? now)
@@ -189,6 +183,8 @@ export async function POST(req: NextRequest) {
       });
 
       await fireCrmVoluumPostback(user.voluumCid);
+
+      await scheduleHighReactivationNurture(user.id, user.telegramId, now);
     }
 
     return NextResponse.json({

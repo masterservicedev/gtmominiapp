@@ -14,6 +14,8 @@ export interface ValidatedInitData {
   query_id?: string;
   auth_date: number;
   hash: string;
+  /** Telegram Mini App `start_param` when opened via `?startapp=` / menu. */
+  startParam?: string;
 }
 
 export function validateInitData(initData: string): ValidatedInitData {
@@ -63,5 +65,6 @@ export function validateInitData(initData: string): ValidatedInitData {
     query_id: params.get("query_id") || undefined,
     auth_date: authDate,
     hash,
+    startParam: params.get("start_param") || undefined,
   };
 }

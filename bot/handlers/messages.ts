@@ -4,6 +4,11 @@ import { users, events } from "../../lib/db/schema";
 import { eq } from "drizzle-orm";
 import { sendLeadCard } from "../lib/sendLead";
 import { getMiniAppUrl, getMiniAppWebAppUrl } from "../lib/config";
+import { notifyReactivationFromTelegramReady } from "../../lib/reactivateHandoff";
+import {
+  findLatestReEngagementBroadcastSent,
+  logBroadcastReply,
+} from "../../lib/broadcastAttribution";
 
 export async function handleMessage(ctx: Context) {
   const telegramId = ctx.from?.id;
@@ -37,11 +42,28 @@ export async function handleMessage(ctx: Context) {
     return;
   }
 
-  if (text === "ready" && user.segment === "HIGH" && !user.crmTriggered) {
+  if (text === "ready") {
+    const last = await findLatestReEngagementBroadcastSent(user.id);
+    if (last) {
+      await logBroadcastReply(
+        user.id,
+        user.telegramId,
+        last,
+        "telegram_ready",
+        user.country,
+      );
+    }
+  }
+
+  if (text === "ready" && user.segment === "HIGH") {
     if (user.intentDeclinedAt) {
       await ctx.reply(
         "You previously chose not to connect right now. Open the mini app when you're ready — you can continue from there.",
       );
+      return;
+    }
+    if (user.crmTriggered) {
+      await notifyReactivationFromTelegramReady(user);
       return;
     }
     if (user.intentConfirmedAt) {

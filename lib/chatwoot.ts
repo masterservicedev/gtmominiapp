@@ -79,6 +79,69 @@ type ConvPayload = {
   created_at?: number;
 };
 
+export type ConversationStatus = {
+  status: string | null;
+  assigneeId: number | null;
+  teamId: number | null;
+  inboxId: number | null;
+};
+
+export async function getConversationStatus(
+  conversationId: string,
+): Promise<ConversationStatus | null> {
+  if (!ACCOUNT_ID) return null;
+  try {
+    const { data } = await chatwoot.get<{
+      status?: string;
+      meta?: {
+        assignee?: { id?: number };
+        team?: { id?: number };
+        inbox_id?: number;
+      };
+    }>(`/accounts/${ACCOUNT_ID}/conversations/${conversationId}`);
+    return {
+      status: data.status ?? null,
+      assigneeId: data.meta?.assignee?.id ?? null,
+      teamId: data.meta?.team?.id ?? null,
+      inboxId: data.meta?.inbox_id ?? null,
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Chatwoot getConversationStatus error:", msg);
+    return null;
+  }
+}
+
+/** Open conversations with no assignee (for ops insight). Returns null if Chatwoot is unavailable. */
+export async function countOpenUnassignedConversations(): Promise<number | null> {
+  if (!ACCOUNT_ID) return null;
+  try {
+    const { data } = await chatwoot.get<{
+      data?: { id?: number }[];
+      payload?: { id?: number }[];
+      meta?: { all_count?: number; count?: number };
+    }>(`/accounts/${ACCOUNT_ID}/conversations`, {
+      params: {
+        status: "open",
+        assignee_type: "unassigned",
+        page: 1,
+      },
+    });
+    const metaCount = data.meta?.all_count ?? data.meta?.count;
+    if (typeof metaCount === "number") return metaCount;
+    const list = Array.isArray(data.data)
+      ? data.data
+      : Array.isArray(data.payload)
+        ? data.payload
+        : [];
+    return list.length;
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Chatwoot unassigned count error:", msg);
+    return null;
+  }
+}
+
 /** After a Telegram DM is mirrored into Chatwoot, resolve conversation id for labels. */
 export async function findLatestConversationIdForTelegramUser(
   telegramId: number,

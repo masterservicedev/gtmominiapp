@@ -69,6 +69,7 @@ export async function POST(req: NextRequest) {
         scheduledAt: schedules[i]!,
         status: "pending",
         nurtureKind: "intent_decline",
+        broadcastType: "nurture",
       });
     }
 

@@ -12,6 +12,10 @@ import { calculateScore } from "@/lib/scoring";
 import { voluumPostbackUrl } from "@/lib/voluum";
 import { capitalFromAnswers } from "@/lib/leadCardContent";
 import { getProductMatch } from "@/lib/productMatch";
+import {
+  scheduleLowDay14,
+  scheduleMidExtendedNurture,
+} from "@/lib/nurtureSchedule";
 
 export async function POST(req: NextRequest) {
   try {
@@ -99,12 +103,13 @@ export async function POST(req: NextRequest) {
       country: user.country,
     });
 
+    const scoredAt = new Date();
+
     if (result.segment === "MID") {
-      const now = new Date();
       const schedules = [
-        new Date(now.getTime()),
-        new Date(now.getTime() + 24 * 60 * 60 * 1000),
-        new Date(now.getTime() + 48 * 60 * 60 * 1000),
+        new Date(scoredAt.getTime()),
+        new Date(scoredAt.getTime() + 24 * 60 * 60 * 1000),
+        new Date(scoredAt.getTime() + 48 * 60 * 60 * 1000),
       ];
 
       for (let i = 0; i < schedules.length; i++) {
@@ -115,8 +120,14 @@ export async function POST(req: NextRequest) {
           scheduledAt: schedules[i]!,
           status: "pending",
           nurtureKind: "mid",
+          broadcastType: "nurture",
         });
       }
+      await scheduleMidExtendedNurture(user.id, user.telegramId, scoredAt);
+    }
+
+    if (result.segment === "LOW") {
+      await scheduleLowDay14(user.id, user.telegramId, scoredAt);
     }
 
     if (user.voluumCid && process.env.VOLUUM_POSTBACK_URL) {

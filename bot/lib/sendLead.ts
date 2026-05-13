@@ -10,6 +10,7 @@ import {
 } from "../../lib/leadCardContent";
 import { getProductMatch } from "../../lib/productMatch";
 import { attachInternalLeadToChatwoot } from "../../lib/handoffHighIntent";
+import { scheduleHighReactivationNurture } from "../../lib/nurtureSchedule";
 
 type UserRow = typeof users.$inferSelect;
 
@@ -25,6 +26,7 @@ async function getLatestAnswers(userId: string) {
 
 /** Telegram READY fallback — customer DM + Chatwoot private note with internal card. */
 export async function sendLeadCard(api: Api, user: UserRow) {
+  const crmWasNew = !user.crmTriggered;
   const answers = await getLatestAnswers(user.id);
 
   await api.sendMessage(
@@ -72,5 +74,13 @@ export async function sendLeadCard(api: Api, user: UserRow) {
     } catch (e) {
       console.error("Voluum postback failed:", e);
     }
+  }
+
+  if (crmWasNew && user.segment === "HIGH") {
+    await scheduleHighReactivationNurture(
+      user.id,
+      user.telegramId,
+      new Date(),
+    );
   }
 }

@@ -1,6 +1,7 @@
 import { Bot } from "grammy";
 import { handleStart } from "./handlers/start";
 import { handleMessage } from "./handlers/messages";
+import { handleCallbackQuery } from "./handlers/callbacks";
 import { processNurtureQueue } from "./lib/nurture";
 import { getBotToken } from "./lib/config";
 import "dotenv/config";
@@ -15,6 +16,7 @@ const bot = new Bot(token);
 
 bot.command("start", handleStart);
 bot.on("message:text", handleMessage);
+bot.on("callback_query:data", handleCallbackQuery);
 
 bot.catch((err) => {
   console.error("Bot error:", err);

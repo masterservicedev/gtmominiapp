@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
+import { users, events } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { addChatwootNote } from "@/lib/chatwoot";
 import { getLatestQuestionnaireAnswers } from "@/lib/db/questionnaire";
+import { voluumPostbackUrl } from "@/lib/voluum";
+import {
+  collectLabelTitles,
+  conversationHasDepositConfirmedLabel,
+  extractDepositAmountUsd,
+} from "@/lib/chatwootDeposit";
 
 function extractTelegramId(payload: Record<string, unknown>): number | null {
   const meta = payload.meta as Record<string, unknown> | undefined;
@@ -32,51 +38,133 @@ function extractConversationId(
   return String(id);
 }
 
+function getConversation(
+  payload: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+  return payload.conversation as Record<string, unknown> | undefined;
+}
+
+async function handleDepositConfirmed(
+  payload: Record<string, unknown>,
+): Promise<void> {
+  const conversation = getConversation(payload);
+  const conversationId = extractConversationId(payload);
+  if (!conversationId) return;
+
+  const telegramId = extractTelegramId(payload);
+
+  const [byConv] = await db
+    .select()
+    .from(users)
+    .where(eq(users.chatwootConversationId, conversationId))
+    .limit(1);
+
+  let user = byConv;
+  if (!user && telegramId != null) {
+    const [byTg] = await db
+      .select()
+      .from(users)
+      .where(eq(users.telegramId, telegramId))
+      .limit(1);
+    user = byTg;
+  }
+
+  if (!user || !user.miniAppUser) return;
+
+  const titles = collectLabelTitles(conversation);
+  if (!conversationHasDepositConfirmedLabel(titles)) return;
+
+  if (user.bundleUsed) return;
+
+  const amount = extractDepositAmountUsd(conversation, payload);
+  const depositTotal =
+    amount != null ? amount : (user.depositTotal ?? 0) || 0;
+
+  await db
+    .update(users)
+    .set({
+      bundleUsed: true,
+      depositTotal: depositTotal > 0 ? depositTotal : user.depositTotal,
+    })
+    .where(eq(users.id, user.id));
+
+  await db.insert(events).values({
+    userId: user.id,
+    telegramId: user.telegramId,
+    eventType: "deposit_confirmed",
+    metadata: {
+      conversationId,
+      depositAmountUsd: amount,
+      source: "chatwoot_webhook",
+    },
+    country: user.country,
+  });
+
+  if (user.voluumCid && process.env.VOLUUM_POSTBACK_URL) {
+    const url = voluumPostbackUrl(
+      process.env.VOLUUM_POSTBACK_URL,
+      user.voluumCid,
+      "deposit_confirmed",
+    );
+    if (url) fetch(url, { method: "GET" }).catch(() => {});
+  }
+}
+
+async function handleReturningUserNote(
+  payload: Record<string, unknown>,
+): Promise<void> {
+  const telegramId = extractTelegramId(payload);
+  if (!telegramId) return;
+
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.telegramId, telegramId))
+    .limit(1);
+
+  if (!user || !user.miniAppUser) return;
+
+  const conversationId = extractConversationId(payload);
+  if (!conversationId) return;
+
+  const latest = await getLatestQuestionnaireAnswers(user.id);
+  const daysSince = Math.floor(
+    (Date.now() - new Date(user.createdAt!).getTime()) / (1000 * 60 * 60 * 24),
+  );
+
+  const note = [
+    `⚡ RETURNING MINI APP USER`,
+    ``,
+    `Originally qualified: ${daysSince} days ago`,
+    `Score at entry: ${user.score} (${user.segment})`,
+    `Capital declared: ${latest?.capital ?? "see DB"}`,
+    `Entry variant: ${user.entryVariant || "unknown"}`,
+    `Source CID: ${user.voluumCid || "none"}`,
+    `Products owned: ${user.productsUnlocked?.join(", ") || "none"}`,
+    `Bundle eligible: ${user.bundleEligible && !user.bundleUsed ? "YES — first deposit" : "NO"}`,
+  ].join("\n");
+
+  await addChatwootNote(conversationId, note);
+}
+
 export async function POST(req: NextRequest) {
   try {
     const payload = (await req.json()) as Record<string, unknown>;
     const event = String(payload.event || "");
 
+    if (
+      event === "conversation_updated" ||
+      event === "conversation_status_changed"
+    ) {
+      await handleDepositConfirmed(payload);
+      return NextResponse.json({ ok: true });
+    }
+
     if (!["conversation_created", "message_created"].includes(event)) {
       return NextResponse.json({ ok: true });
     }
 
-    const telegramId = extractTelegramId(payload);
-    if (!telegramId) {
-      return NextResponse.json({ ok: true });
-    }
-
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.telegramId, telegramId))
-      .limit(1);
-
-    if (!user || !user.miniAppUser) {
-      return NextResponse.json({ ok: true });
-    }
-
-    const conversationId = extractConversationId(payload);
-    if (!conversationId) return NextResponse.json({ ok: true });
-
-    const latest = await getLatestQuestionnaireAnswers(user.id);
-    const daysSince = Math.floor(
-      (Date.now() - new Date(user.createdAt!).getTime()) / (1000 * 60 * 60 * 24),
-    );
-
-    const note = [
-      `⚡ RETURNING MINI APP USER`,
-      ``,
-      `Originally qualified: ${daysSince} days ago`,
-      `Score at entry: ${user.score} (${user.segment})`,
-      `Capital declared: ${latest?.capital ?? "see DB"}`,
-      `Entry variant: ${user.entryVariant || "unknown"}`,
-      `Source CID: ${user.voluumCid || "none"}`,
-      `Products owned: ${user.productsUnlocked?.join(", ") || "none"}`,
-      `Bundle eligible: ${user.bundleEligible && !user.bundleUsed ? "YES — first deposit" : "NO"}`,
-    ].join("\n");
-
-    await addChatwootNote(conversationId, note);
+    await handleReturningUserNote(payload);
 
     return NextResponse.json({ ok: true });
   } catch (error: unknown) {

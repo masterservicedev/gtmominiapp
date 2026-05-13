@@ -60,6 +60,8 @@ export type LeadCardExtras = {
   productMatch: ProductMatch;
   bundleOfferShown: boolean;
   bundleAccepted: boolean | null;
+  /** Set when the user is picking up after a broadcast /reactivate confirm. */
+  reactivation?: boolean;
 };
 
 /** User-facing pre-approval DM (legacy READY path — prefer `buildCustomerHandoffMessage`). */
@@ -110,7 +112,7 @@ export function buildCustomerHandoffMessage(
 
   if (extras) {
     const lines: string[] = [
-      `✅ Your confirmed track: *${productName}* — from *$${pm.depositRequiredUsd}* funding via Vantage when you're ready.`,
+      `✅ We saved your selection: *${productName}* — *$${pm.depositRequiredUsd}* minimum via Vantage when you're ready to fund.`,
       ...bundleLines,
       ...closing,
       ``,
@@ -122,7 +124,7 @@ export function buildCustomerHandoffMessage(
   const lines: string[] = [
     `✅ You've been pre-approved for GTMO Trading access.`,
     ``,
-    `Your matched offer: *${productName}* — from *$${pm.depositRequiredUsd}* funding via Vantage when you're ready.`,
+    `Your offer: *${productName}* — *$${pm.depositRequiredUsd}* minimum via Vantage when you're ready to fund.`,
     ...bundleLines,
     ...closing,
   ];
@@ -157,8 +159,12 @@ export function buildQualifiedLeadCardText(
         ].join("\n")
       : "";
 
+  const header = extras?.reactivation
+    ? `[GTMO REACTIVATION LEAD]`
+    : `[GTMO QUALIFIED LEAD]`;
+
   return [
-    `[GTMO QUALIFIED LEAD]`,
+    header,
     ``,
     `Score: ${user.score} ${emoji}`,
     `Capital declared: ${answers?.capital?.replace(/_/g, " ") || "unknown"}`,
@@ -174,6 +180,12 @@ export function buildQualifiedLeadCardText(
     `Mini app user: ${user.miniAppUser ? "YES" : "NO"}`,
     `Bundle eligible: ${user.bundleEligible ? "YES — first deposit" : "NO"}`,
     `Products owned: ${user.productsUnlocked?.length ? user.productsUnlocked.join(", ") : "none"}`,
+    ...(extras?.reactivation
+      ? [
+          ``,
+          `Reactivation: YES — pick up with existing context (no cold intro).`,
+        ]
+      : []),
     ``,
     `→ Offer to lead with: ${offerLine}`,
     ``,

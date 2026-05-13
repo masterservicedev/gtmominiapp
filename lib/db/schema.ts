@@ -65,6 +65,9 @@ export const eventTypeValues = [
   "intent_confirm",
   "intent_decline",
   "handoff_confirmed",
+  "reactivation_confirm",
+  "broadcast_sent",
+  "broadcast_reply",
 ] as const;
 
 export type EventType = (typeof eventTypeValues)[number];
@@ -82,9 +85,17 @@ export const users = pgTable("users", {
   languageCode: text("language_code"),
   voluumCid: text("voluum_cid"),
   entryVariant: text("entry_variant"),
+  /** From Web App URL query (?utm_*) on first open; backfilled on repeat opens when sent. */
+  utmSource: text("utm_source"),
+  utmCampaign: text("utm_campaign"),
+  utmContent: text("utm_content"),
   source: text("source").default("mini_app"),
   country: text("country"),
   countryCode: text("country_code"),
+  /** Client IP at first mini app session (from edge headers). */
+  signupIp: text("signup_ip"),
+  /** Client IP at most recent `/api/init` (session). */
+  lastSeenIp: text("last_seen_ip"),
   score: integer("score"),
   segment: segmentEnum("segment").default("UNSCORED"),
   miniAppUser: boolean("mini_app_user").default(true),
@@ -169,5 +180,20 @@ export const nurtureQueue = pgTable("nurture_queue", {
   status: text("status").default("pending"),
   /** `mid` = post-score MID nurture; `intent_decline` = user declined in-app intent step */
   nurtureKind: text("nurture_kind").default("mid"),
+  /** nurture = default 0–2 day copy; other values drive re-engagement broadcasts. */
+  broadcastType: text("broadcast_type").default("nurture"),
+  /** A/B/C copy variant; assigned at schedule time for re-engagement rows. */
+  messageVariant: text("message_variant").default("A"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const broadcastOffers = pgTable("broadcast_offers", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .references(() => users.id)
+    .notNull(),
+  offerType: text("offer_type").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  claimed: boolean("claimed").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });

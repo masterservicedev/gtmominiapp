@@ -14,7 +14,9 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:6001](http://localhost:6001) with your browser to see the result.
+
+(Next.js refuses **port 6000** — it is treated as reserved for X11. This project uses **6001** for `dev` / `start` instead. To expose **6000** externally, forward it with e.g. `socat TCP-LISTEN:6000,fork TCP:127.0.0.1:6001`.)
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

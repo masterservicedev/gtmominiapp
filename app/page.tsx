@@ -4,42 +4,27 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { loadWebApp } from "@/lib/twa";
 import { normalizeEntryVariant } from "@/lib/funnel/normalize";
+import { parseStartParam } from "@/lib/startParam";
 
-/** True when this segment is meant as a funnel variant (ad4, code, etc.). */
-function looksLikeVariantSegment(s: string): boolean {
-  const v = s.trim().toLowerCase();
-  if (!v) return false;
-  if (v === "code" || v === "gtmocode") return true;
-  return /^ad\d+$/.test(v);
-}
-
-/**
- * Voluum-style: prefix_clickid_variant (3+ parts → cid at [1], variant at [2]).
- * Also: clickid_variant (2 parts) or single startapp=ad4 (1 part).
- * Single unknown token → treat as click id only (not forced to ad1).
- */
-function parseStartParam(startParam: string) {
-  const raw = (startParam || "").trim();
-  if (!raw || raw.startsWith("ref_")) {
-    return { cid: null, variant: null };
+/** UTM params from Web App URL query (Telegram may open the mini app with ?utm_*=…). */
+function utmFromLocationSearch(): {
+  utmSource: string | null;
+  utmCampaign: string | null;
+  utmContent: string | null;
+} {
+  if (typeof window === "undefined") {
+    return { utmSource: null, utmCampaign: null, utmContent: null };
   }
-  const parts = raw.split("_").filter((p) => p.length > 0);
-  const n = parts.length;
-
-  if (n >= 3) {
-    return { cid: parts[1] ?? null, variant: parts[2] ?? null };
-  }
-  if (n === 2) {
-    return { cid: parts[0] ?? null, variant: parts[1] ?? null };
-  }
-  if (n === 1) {
-    const only = parts[0]!;
-    if (looksLikeVariantSegment(only)) {
-      return { cid: null, variant: only };
-    }
-    return { cid: only, variant: null };
-  }
-  return { cid: null, variant: null };
+  const q = new URLSearchParams(window.location.search);
+  const pick = (k: string) => {
+    const v = q.get(k);
+    return v && v.trim() ? v.trim() : null;
+  };
+  return {
+    utmSource: pick("utm_source"),
+    utmCampaign: pick("utm_campaign"),
+    utmContent: pick("utm_content"),
+  };
 }
 
 export default function EntryPage() {
@@ -55,15 +40,20 @@ export default function EntryPage() {
         WebApp.expand();
 
         const startParam = WebApp.initDataUnsafe?.start_param || "";
-        const { cid, variant: v } = parseStartParam(startParam);
+        const parsed = parseStartParam(startParam);
+        const utm = utmFromLocationSearch();
 
         return fetch("/api/init", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             initData: WebApp.initData,
-            voluumCid: cid,
-            entryVariant: v,
+            startParam,
+            voluumCid: parsed.cid,
+            entryVariant: parsed.variant,
+            utmSource: utm.utmSource,
+            utmCampaign: utm.utmCampaign,
+            utmContent: utm.utmContent,
           }),
         })
           .then((res) => res.json())

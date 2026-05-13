@@ -24,7 +24,10 @@ VOLUUM_POSTBACK_URL=https://t.voluum.com/postback
 NEXT_PUBLIC_BOT_USERNAME=YourMiniAppBot
 NEXT_PUBLIC_CHANNEL_LINK=https://t.me/your_channel
 ANALYTICS_SECRET=long_random_string_for_dashboard_auth
+ADMIN_SECRET=long_random_string_for_admin_dashboard_auth
 ```
+
+Use **`ADMIN_SECRET`** for `/admin` and `/api/admin/*`. Open **`/api/admin/gate?secret=…`** or **`/admin?secret=…`** (middleware forwards to the gate) to set the HttpOnly `admin_auth` cookie. Scripts may use the **`x-admin-secret`** header; the admin UI can also send `sessionStorage["x-admin-secret"]` (see `app/admin/_components/adminApi.ts`). On production, rotate the secret and add network restrictions — avoid sharing the gate URL in public channels. For campaign deep links and UTM fields on users, see [UTM_TRACKING_SETUP.md](UTM_TRACKING_SETUP.md).
 
 ## bot/.env (grammY bot on Railway)
 

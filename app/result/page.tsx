@@ -90,84 +90,110 @@ function HighResult({
   bundleIncluded: boolean;
 }) {
   const confirmedInApp = Boolean(inAppHandoff && productLabel);
-  const summary = confirmedInApp
-    ? `Your confirmed track: ${productLabel}${
-        bundleIncluded ? " (mini app add-on included)." : "."
-      }`
+  const programmeLine = confirmedInApp
+    ? `${productLabel}${bundleIncluded ? " — mini app add-on included" : ""}`
     : null;
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-black text-white flex flex-col items-center justify-center px-6 text-center">
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-gradient-to-b from-zinc-950 via-black to-zinc-950 text-white">
       <PreApprovedConfetti />
       <div
-        className="absolute inset-0 pointer-events-none opacity-40"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(16,185,129,0.12),_transparent_55%)]"
         aria-hidden
-      >
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[120%] max-w-2xl h-48 bg-emerald-500/15 blur-3xl rounded-full motion-safe:animate-pulse" />
-      </div>
+      />
 
-      <div className="relative w-full max-w-md animate-result-pop-in opacity-0">
-        <div className="text-5xl mb-4 motion-safe:animate-[bounce_1s_ease-in-out_1]">
-          ✅
+      <div className="relative mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pb-10 pt-10 text-left sm:px-8 animate-result-pop-in opacity-0">
+        <div className="mb-6 flex justify-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/15 ring-1 ring-emerald-500/35 motion-safe:animate-[bounce_1s_ease-in-out_1]">
+            <svg
+              className="h-7 w-7 text-emerald-400"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.25"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+          </div>
         </div>
-        {confirmedInApp && summary ? (
+
+        <p className="mb-2 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-emerald-500/90">
+          Application received
+        </p>
+
+        {confirmedInApp && programmeLine ? (
           <>
-            <h1 className="text-2xl sm:text-3xl font-bold mb-3 bg-gradient-to-br from-white to-emerald-100/90 bg-clip-text text-transparent">
-              Your offer is confirmed
+            <h1 className="mb-3 text-center font-serif text-xl font-normal leading-snug tracking-tight text-zinc-50 md:text-2xl">
+              We&apos;ve saved your selection
             </h1>
-            <p className="mb-4 text-base sm:text-lg font-medium leading-relaxed text-emerald-200/95">
-              {summary}
+            <p className="mb-2 text-center text-sm font-medium leading-relaxed text-emerald-200/90">
+              {programmeLine}
             </p>
-            <p className="text-gray-500 mb-8 text-xs leading-relaxed">
-              You&apos;re pre-approved for GTMO access — a specialist is picking
-              up your application from here.
+            <p className="mb-8 text-center text-sm leading-relaxed text-zinc-400">
+              You&apos;re pre-approved for GTMO access. A specialist will pick
+              up from here and message you in this Telegram chat with next
+              steps.
             </p>
           </>
         ) : (
           <>
-            <h1 className="text-2xl sm:text-3xl font-bold mb-3 bg-gradient-to-br from-white to-emerald-100/90 bg-clip-text text-transparent">
-              You&apos;ve been pre-approved
+            <h1 className="mb-3 text-center font-serif text-xl font-normal leading-snug tracking-tight text-zinc-50 md:text-2xl">
+              You&apos;re pre-approved
             </h1>
-            <p className="text-gray-400 mb-4 text-sm leading-relaxed">
-              Based on your answers, a specialist from our team is being assigned
-              to your application now.
+            <p className="mb-8 text-center text-sm leading-relaxed text-zinc-400">
+              Based on your answers, we&apos;re assigning a specialist to your
+              application. They&apos;ll reach out in this chat when it&apos;s
+              your turn.
             </p>
-            <div className="mb-8" />
           </>
         )}
 
-        <div className="w-full rounded-xl p-[1px] bg-gradient-to-br from-emerald-400/50 via-emerald-600/20 to-transparent mb-8 animate-result-glow">
-          <div className="bg-gray-950/90 backdrop-blur-sm rounded-[11px] p-4 text-left text-sm border border-emerald-500/10">
-            <p className="text-emerald-400 font-semibold mb-2">
-              ⚡ What happens next
-            </p>
-            <ul className="text-gray-400 space-y-1">
-              <li>• Join the free signals channel below</li>
-              <li>• You&apos;ll receive a message from our team shortly</li>
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-950/90 p-5 mb-6">
+          <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-3">
+            What happens next
+          </p>
+          <div className="space-y-2">
+            <div className="flex items-start gap-2">
+              <span className="text-zinc-600 text-xs mt-0.5 shrink-0">1.</span>
+              <p className="text-sm text-zinc-300 leading-snug">
+                Join the free signals channel using the button below.
+              </p>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-zinc-600 text-xs mt-0.5 shrink-0">2.</span>
+              <p className="text-sm text-zinc-300 leading-snug">
+                Watch for a message from our team in this Telegram chat.
+              </p>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-zinc-600 text-xs mt-0.5 shrink-0">3.</span>
               {inAppHandoff ? (
-                <li>
-                  • Check this <strong className="text-white">Telegram</strong>{" "}
-                  chat — we sent your confirmed offer details for the team
-                </li>
+                <p className="text-sm text-zinc-300 leading-snug">
+                  We&apos;ve sent a short summary here so your specialist has
+                  your details in one place.
+                </p>
               ) : (
-                <li>
-                  • Reply <strong className="text-white">READY</strong> in this
-                  chat if you haven&apos;t confirmed in the app yet
-                </li>
+                <p className="text-sm text-zinc-300 leading-snug">
+                  If you haven&apos;t finished confirming in the app yet, reply{" "}
+                  <strong className="text-zinc-100">READY</strong> in this chat.
+                </p>
               )}
-            </ul>
+            </div>
           </div>
         </div>
 
         <a
           href={channelLink}
-          className="block w-full bg-emerald-500 text-black font-bold py-4 rounded-xl text-center mb-4 shadow-[0_0_24px_rgba(16,185,129,0.35)] hover:bg-emerald-400 transition-colors"
+          className="mb-4 w-full rounded-xl bg-emerald-500 py-4 text-center text-sm font-semibold text-black transition-colors hover:bg-emerald-400"
         >
-          🚀 Join the Channel
+          Join the signals channel
         </a>
 
-        <p className="text-xs text-gray-600">
-          Spots are limited — applications are reviewed in real time
+        <p className="text-center text-[10px] leading-relaxed text-zinc-600">
+          We review applications in order as team capacity allows.
         </p>
       </div>
     </div>

@@ -7,7 +7,6 @@ import { FunnelProgress } from "@/components/funnel/FunnelProgress";
 import { normalizeEntryVariant, type AdVariant } from "@/lib/funnel/normalize";
 import { getFunnelConfig, getPreQuestionnaireSteps } from "@/lib/funnel/resolve";
 import { getThemeClasses } from "@/lib/funnel/theme";
-import { trackFunnelEvent } from "@/lib/funnel/track";
 import { loadWebApp } from "@/lib/twa";
 import type { ProductMatch } from "@/lib/productMatch";
 import { productDisplayName } from "@/lib/leadCardContent";
@@ -320,30 +319,6 @@ function ConfirmIntentInner() {
     }
   };
 
-  const onNo = async () => {
-    if (!payload || busy) return;
-    setBusy(true);
-    try {
-      const WebApp = await loadWebApp();
-      const pk = encodeURIComponent(payload.productMatch.productKey);
-      const seg = encodeURIComponent(payload.segment);
-      void trackFunnelEvent("intent_decline", {
-        variant,
-        productKey: payload.productMatch.productKey,
-        segment: payload.segment,
-      });
-      await fetch("/api/decline-intent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ initData: WebApp.initData }),
-      });
-      router.replace(`/result?segment=${seg}&declined=1&productKey=${pk}`);
-    } catch {
-      setError("Network error");
-      setBusy(false);
-    }
-  };
-
   if (error && !payload) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6 text-center">
@@ -488,7 +463,7 @@ function ConfirmIntentInner() {
           </p>
         ) : null}
 
-        <div className="mt-auto flex flex-col gap-3">
+        <div className="mt-auto flex flex-col">
           <button
             type="button"
             disabled={busy}
@@ -496,14 +471,6 @@ function ConfirmIntentInner() {
             className={`w-full rounded-xl py-4 text-sm font-semibold ${t.accentBg} text-black ${t.accentBgHover} transition-colors disabled:opacity-50`}
           >
             {busy ? "…" : "Yes — connect me with a specialist"}
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void onNo()}
-            className="w-full rounded-xl border border-zinc-700 py-4 text-sm font-semibold text-zinc-200 hover:bg-zinc-900 disabled:opacity-50"
-          >
-            Not right now
           </button>
         </div>
       </div>

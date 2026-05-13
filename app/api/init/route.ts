@@ -5,23 +5,57 @@ import { users, events, offers } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import axios from "axios";
 import { normalizeEntryVariant } from "@/lib/funnel/normalize";
+import { parseStartParam } from "@/lib/startParam";
+import { getClientIpRaw, normalizeStoredClientIp } from "@/lib/client-ip";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { initData, voluumCid, entryVariant } = body;
+    const {
+      initData,
+      voluumCid,
+      entryVariant,
+      utmSource,
+      utmCampaign,
+      utmContent,
+      startParam,
+    } = body as {
+      initData?: unknown;
+      voluumCid?: string | null;
+      entryVariant?: string | null;
+      utmSource?: string | null;
+      utmCampaign?: string | null;
+      utmContent?: string | null;
+      startParam?: string | null;
+    };
+
+    if (typeof initData !== "string") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const { user: tgUser } = validateInitData(initData);
 
-    const ip =
-      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      req.headers.get("x-real-ip") ||
-      "0.0.0.0";
+    /** Authoritative parse of Telegram `start_param` (also sent raw from client for logging consistency). */
+    const parsed = parseStartParam(
+      typeof startParam === "string" ? startParam : "",
+    );
+
+    const fromBodyCid =
+      typeof voluumCid === "string" && voluumCid.trim()
+        ? voluumCid.trim()
+        : null;
+    const fromParsedCid = parsed.cid?.trim() || null;
+    /** Prefer `start_param` cid over body when present (campaign links). */
+    const effectiveCid = fromParsedCid ?? fromBodyCid;
+
+    const ipRaw = getClientIpRaw(req);
+    const ipForGeo = ipRaw || "0.0.0.0";
+    const storedClientIp = normalizeStoredClientIp(ipRaw);
 
     let country: string | null = null;
     let countryCode: string | null = null;
     try {
-      const geo = await axios.get(`https://ipapi.co/${ip}/json/`, {
+      const geo = await axios.get(`https://ipapi.co/${ipForGeo}/json/`, {
         timeout: 5000,
       });
       country = geo.data.country_name ?? null;
@@ -47,8 +81,12 @@ export async function POST(req: NextRequest) {
       .from(offers)
       .where(eq(offers.active, true));
 
-    /** Opened from bot/link with ?startapp= (Telegram passes start_param). */
+    /** Explicit `entryVariant` from client wins; then `start_param` `var`; then offer rotation / sticky user. */
     let variant: string | null | undefined = fromClient;
+    const fromStartVariant = parsed.variant?.trim();
+    if (!variant && fromStartVariant) {
+      variant = fromStartVariant;
+    }
 
     if (!variant) {
       if (activeOffers.length === 0) {
@@ -65,6 +103,29 @@ export async function POST(req: NextRequest) {
 
     const normalizedVariant = normalizeEntryVariant(variant);
 
+    const trimAttr = (v: unknown) =>
+      typeof v === "string" && v.trim() ? v.trim().slice(0, 512) : null;
+    /** URL/query UTM wins when set; else map from `start_param` (`src` / `cmp`). `utm_content` stays URL-only. */
+    const nextUtmSource =
+      trimAttr(utmSource) ??
+      (parsed.source?.trim() ? parsed.source.trim().slice(0, 512) : null);
+    const nextUtmCampaign =
+      trimAttr(utmCampaign) ??
+      (parsed.campaign?.trim()
+        ? parsed.campaign.trim().slice(0, 512)
+        : null);
+    const nextUtmContent = trimAttr(utmContent);
+    const utmPatch =
+      nextUtmSource != null ||
+      nextUtmCampaign != null ||
+      nextUtmContent != null
+        ? {
+            ...(nextUtmSource != null ? { utmSource: nextUtmSource } : {}),
+            ...(nextUtmCampaign != null ? { utmCampaign: nextUtmCampaign } : {}),
+            ...(nextUtmContent != null ? { utmContent: nextUtmContent } : {}),
+          }
+        : {};
+
     let userId: string;
 
     if (existing.length === 0) {
@@ -75,10 +136,15 @@ export async function POST(req: NextRequest) {
           username: tgUser.username || null,
           firstName: tgUser.first_name || null,
           languageCode: tgUser.language_code || null,
-          voluumCid: voluumCid || null,
+          voluumCid: effectiveCid,
           entryVariant: normalizedVariant,
+          utmSource: nextUtmSource,
+          utmCampaign: nextUtmCampaign,
+          utmContent: nextUtmContent,
           country,
           countryCode,
+          signupIp: storedClientIp,
+          lastSeenIp: storedClientIp,
           source: "mini_app",
           miniAppUser: true,
           bundleEligible: true,
@@ -92,11 +158,13 @@ export async function POST(req: NextRequest) {
         .update(users)
         .set({
           lastSeenAt: new Date(),
+          country,
+          countryCode,
+          lastSeenIp: storedClientIp,
+          ...utmPatch,
+          ...(effectiveCid ? { voluumCid: effectiveCid } : {}),
           ...(fromClient
-            ? {
-                entryVariant: normalizedVariant,
-                ...(voluumCid ? { voluumCid } : {}),
-              }
+            ? { entryVariant: normalizedVariant }
             : activeOffers.length === 0
               ? { entryVariant: normalizedVariant }
               : {}),
@@ -110,8 +178,9 @@ export async function POST(req: NextRequest) {
       eventType: "app_open",
       metadata: {
         variant: normalizedVariant,
-        cid: voluumCid,
+        cid: effectiveCid,
         returning: existing.length > 0,
+        ...(storedClientIp ? { ip: storedClientIp } : {}),
       },
       country,
     });
