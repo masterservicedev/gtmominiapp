@@ -149,17 +149,29 @@ function ProductMatchInner() {
 
       <div className="relative mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pb-10 pt-8 sm:px-8">
         <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-500/90">
-          Your access level
+          Your recommended access path
         </p>
-        <h1 className="mb-6 font-serif text-2xl font-normal leading-snug tracking-tight text-zinc-50">
-          Based on your profile, here is what you unlock.
+        <h1 className="mb-5 font-serif text-xl font-normal leading-snug tracking-tight text-zinc-50 md:text-2xl">
+          Based on your answers, we&apos;ve matched you with the support level
+          that fits your starting capital, experience, and readiness.
         </h1>
+
+        <div className="mb-5 rounded-xl border border-zinc-700/50 bg-zinc-900/40 p-4">
+          <p className="text-sm leading-relaxed text-zinc-300">
+            <span className="font-semibold text-zinc-50">
+              You are not paying for a course.
+            </span>{" "}
+            Your funding goes into your own trading account with Vantage. GTMO
+            access is activated as part of the partnership after your account is
+            funded and verified by our team.
+          </p>
+        </div>
 
         <section className="mb-4 rounded-2xl border border-zinc-800 bg-zinc-950/90 p-5">
           <div className="flex items-start justify-between gap-3 mb-1">
             <div className="min-w-0">
               <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">
-                Primary product
+                Access activated
               </p>
               <h2 className="text-lg font-semibold text-zinc-50">
                 {primary.displayName}
@@ -169,16 +181,17 @@ function ProductMatchInner() {
               </p>
               {capital === "300_1000" ? (
                 <p className="text-xs text-amber-400/90 mt-2 leading-snug">
-                  At this tier you may be matched to{" "}
-                  <strong className="text-amber-300">FX Basics</strong> or{" "}
-                  <strong className="text-amber-300">GTMO Education</strong> —
-                  your specialist confirms which fits your level.
+                  Also available at this tier: FX Basics or Education — your
+                  specialist confirms which fits your level.
                 </p>
               ) : null}
             </div>
-            <div className="shrink-0 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-1.5">
-              <p className="text-emerald-400 text-xs font-semibold whitespace-nowrap">
-                ${pm.depositRequiredUsd}+ dep
+            <div className="shrink-0 max-w-[46%] rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1.5 text-right sm:max-w-none">
+              <p className="text-[10px] font-semibold uppercase leading-tight tracking-wide text-emerald-400/90 sm:text-xs">
+                Minimum account funding
+              </p>
+              <p className="text-xs font-semibold text-emerald-400 sm:text-sm">
+                ${pm.depositRequiredUsd}+
               </p>
             </div>
           </div>
@@ -200,7 +213,7 @@ function ProductMatchInner() {
 
           <div className="border-t border-zinc-800 pt-4">
             <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-3">
-              Typical programme emphasis
+              How your access is structured
             </p>
             <p className="text-[10px] text-zinc-600 mb-2">
               Illustrative mix of content — not profit odds or guarantees.
@@ -258,7 +271,7 @@ function ProductMatchInner() {
             </h3>
             <p className="text-sm text-amber-100/80 mb-4 leading-relaxed">
               Because you applied through the mini app, you qualify for this on
-              your first deposit only. You&apos;ll confirm on the next screen.
+              your first deposit only.
             </p>
             {bundleRule.eligibleKeys.length > 0 ? (
               <div>
@@ -301,8 +314,9 @@ function ProductMatchInner() {
         ) : null}
 
         <p className="text-[10px] text-zinc-600 text-center mb-6 leading-relaxed">
-          Programme emphasis percentages describe content structure, not
-          returns. Trading involves risk.
+          Programme emphasis percentages are illustrative of content structure
+          and do not represent profit probabilities or guaranteed returns.
+          Trading involves risk.
         </p>
 
         <button
@@ -312,7 +326,7 @@ function ProductMatchInner() {
           }
           className={`mt-auto w-full rounded-xl py-4 text-sm font-semibold ${t.accentBg} text-black ${t.accentBgHover} transition-colors`}
         >
-          Continue
+          Continue to activation →
         </button>
       </div>
     </div>

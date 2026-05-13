@@ -164,6 +164,17 @@ function QualifyInner() {
           return;
         }
 
+        if (data.segment === "LOW" && data.capital === "under_100") {
+          const vb = new URLSearchParams({
+            variant: String(variant),
+            capital: String(data.capital ?? ""),
+            segment: String(data.segment ?? ""),
+            score: String(data.score ?? ""),
+          });
+          router.push(`/value-bridge?${vb.toString()}`);
+          return;
+        }
+
         router.push(`/result?segment=${data.segment}`);
       } catch {
         setProcessing(false);

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { FunnelProgress } from "@/components/funnel/FunnelProgress";
@@ -8,6 +9,8 @@ import { getFunnelConfig, getPreQuestionnaireSteps } from "@/lib/funnel/resolve"
 import { getThemeClasses } from "@/lib/funnel/theme";
 import { trackFunnelEvent } from "@/lib/funnel/track";
 import type { Capital } from "@/lib/scoring";
+
+const channelLink = process.env.NEXT_PUBLIC_CHANNEL_LINK || "#";
 
 const CAPITALS: Capital[] = [
   "under_100",
@@ -20,97 +23,156 @@ function isCapital(raw: string | null): raw is Capital {
   return raw !== null && CAPITALS.includes(raw as Capital);
 }
 
-const tierContent: Record<
-  Capital,
-  {
-    headline: string;
-    subheadline: string;
-    context: string;
-    stats: { value: string; label: string }[];
-    valuePoints: string[];
-    transition: string;
-  }
-> = {
+type TierContent = {
+  qualifyHeadline: string;
+  qualifySub: string;
+  whatGoesWrong: { heading: string; body: string };
+  howAccessHelps: { heading: string; body: string };
+  processProof: { value: string; label: string }[];
+  activatesAfterFunding: string[];
+  miniAppBonus: string | null;
+  transition: string;
+};
+
+const tierContent: Record<Capital, TierContent> = {
   under_100: {
-    headline: "Every serious trader started exactly where you are.",
-    subheadline: "The difference is what they had access to.",
-    context:
-      "Starting with under $100 is not a limitation — it is a decision to build correctly from the beginning. The traders inside this community who now generate consistent returns did not start with large capital. They started with the right structure.",
-    stats: [
-      { value: "10,000+", label: "active traders in the community" },
-      { value: "1,150+", label: "pips delivered in a single week" },
-      { value: "23/24", label: "take profits hit last week" },
+    qualifyHeadline: "You are at the start of this journey.",
+    qualifySub:
+      "That is not a barrier. It is where every serious trader begins.",
+    whatGoesWrong: {
+      heading: "What usually goes wrong at this stage",
+      body: "Most people with under $100 try to trade their way to a bigger account before they understand the basics. They lose what they have, get frustrated, and exit the market entirely. The capital is not the problem. The approach is.",
+    },
+    howAccessHelps: {
+      heading: "What the channel gives you instead",
+      body: "The free GTMO signals channel is live every day. You can follow real entries, exits, and risk management in real time — without risking a single dollar — until you understand the structure and are ready to act on it properly.",
+    },
+    processProof: [
+      { value: "Daily", label: "live sessions in the free channel" },
+      {
+        value: "Real",
+        label: "entries, exits and stops shown every time",
+      },
+      { value: "Free", label: "channel access while you build readiness" },
     ],
-    valuePoints: [
-      "Access to a trader who executes live every single day — not pre-recorded theory",
-      "Signals with full context: entry, exit, stop loss, and the reasoning behind each call",
-      "A community where traders at every level share the same setups in real time",
-      "The foundational knowledge to understand what you are trading and why",
-    ],
-    transition: "Here is what your access unlocks.",
+    activatesAfterFunding: [],
+    miniAppBonus: null,
+    transition:
+      "Join the channel. Watch the process. Come back when you are ready to activate.",
   },
 
   "100_300": {
-    headline: "You are not just funding an account. You are joining an operation.",
-    subheadline: "This is what $100 actually buys you access to.",
-    context:
-      "The traders generating consistent results inside this community are not doing it alone. They follow a live trader who manages real positions every day, calls entries in real time, and has built a track record across Gold, Crypto, and FX. Your deposit is the key that opens that environment.",
-    stats: [
-      { value: "$35,000+", label: "secured on a single NFP setup" },
-      { value: "10,000+", label: "traders following the same signals" },
-      { value: "Daily", label: "live sessions — not weekly, not monthly" },
+    qualifyHeadline: "You are starting seriously.",
+    qualifySub:
+      "Small capital managed with structure outperforms large capital managed without it.",
+    whatGoesWrong: {
+      heading: "What usually goes wrong at this stage",
+      body: "Traders at this level often follow signals without understanding why an entry was taken, where the stop logic came from, or how to size a position correctly for their account. One bad trade sequence wipes the account — not because the signals were wrong, but because the execution framework was missing.",
+    },
+    howAccessHelps: {
+      heading: "How your access changes that",
+      body: "VIP access puts you inside the environment where entries are explained in real time, not just posted. You see the reasoning, the risk management, and the exits as they happen. That is the difference between following blindly and building a repeatable approach.",
+    },
+    processProof: [
+      {
+        value: "23/24",
+        label:
+          "take profits hit last week — all shared live with entries, exits, and risk management in real time",
+      },
+      {
+        value: "Daily",
+        label: "live sessions — entries called before execution, not after",
+      },
+      {
+        value: "10,000+",
+        label: "traders in the community following the same setups",
+      },
     ],
-    valuePoints: [
-      "Daily signals across Gold (XAU/USD), Crypto, and major FX pairs — not just one market",
-      "Live position management — watch stops move, partials close, risk get managed in real time",
-      "Direct access to the affiliated broker with deposit bonuses not available publicly",
-      "A 56-page strategy guide written by the trader himself — not an outsourced PDF",
+    activatesAfterFunding: [
+      "VIP signals channel — Gold, Crypto, and FX daily",
+      "Live trade explanations with entry, exit and stop logic shown in real time",
+      "Direct access to the affiliated broker with deposit bonuses",
+      "Community of active traders at your level",
     ],
-    transition: "Here is exactly what you unlock at your level.",
+    miniAppBonus:
+      "Because you applied through the mini app, the GTMO Ebook — 56 pages of signal strategy — is included with your VIP access at no extra cost.",
+    transition: "Here is your recommended access path.",
   },
 
   "300_1000": {
-    headline:
-      "You have the capital to trade properly. Now get the structure to do it consistently.",
-    subheadline: "Most traders at your level fail because of knowledge gaps, not money.",
-    context:
-      "Having $300 to $1,000 available means you can trade real size and see real results. What separates the traders who compound at this level from those who give it back is understanding. Not luck. Not more capital. Understanding market structure, timing, and how to execute the setups being called — correctly.",
-    stats: [
-      { value: "230+", label: "pips on a single NFP day" },
-      { value: "56 pages", label: "of documented strategy and signal methodology" },
-      { value: "Live", label: "chart views and analysis not shared publicly" },
+    qualifyHeadline: "You have enough capital to trade seriously.",
+    qualifySub: "At this level, structure matters more than size.",
+    whatGoesWrong: {
+      heading: "What usually goes wrong at this stage",
+      body: "Traders with $300–$1,000 often have enough confidence to take positions but not enough structure to manage them under pressure. They understand the basics but misread entries, overtrade during volatility, or ignore risk management when a trade moves against them. The account erodes slowly — not from one disaster, but from consistent small mistakes that compound.",
+    },
+    howAccessHelps: {
+      heading: "How your access changes that",
+      body: "The education path we activate at this level is designed specifically for traders who are past beginner stage but need a framework. You follow a live trader who explains every move in real time, and access structured learning that builds the habits serious trading requires.",
+    },
+    processProof: [
+      {
+        value: "1,150+",
+        label: "pips called live in community sessions in a single week",
+      },
+      {
+        value: "Real-time",
+        label:
+          "trade breakdowns — entry, exit, and risk explained before execution",
+      },
+      {
+        value: "Live",
+        label: "chart views and analysis not shared publicly",
+      },
     ],
-    valuePoints: [
-      "Structured curriculum that explains the why behind every signal call",
-      "Live trading sessions that show execution, not just entry points",
-      "Access to exclusive strategies developed and refined over years of live trading",
-      "A community of traders at your level sharing results, questions, and context daily",
-      "The broker infrastructure to act on signals with the right conditions and bonuses",
+    activatesAfterFunding: [
+      "FX Basics or Education channel — your specialist confirms which fits your level",
+      "Structured curriculum covering market structure, setups, and execution discipline",
+      "Ongoing live context from the GTMO trader as markets move",
+      "Community support from traders operating at your capital level",
     ],
-    transition:
-      "Here is what your level unlocks — including your exclusive bundle.",
+    miniAppBonus:
+      "Because you applied through the mini app, you can add a second product at 50% off when you speak with your specialist. Your specialist confirms which primary product fits your level first.",
+    transition: "Here is your recommended access path.",
   },
 
   "1000_plus": {
-    headline: "You are ready to operate at a level most traders never reach.",
-    subheadline:
-      "The infrastructure to do it consistently is what you are about to unlock.",
-    context:
-      "With $1,000 or more ready to deploy, you are in the position most traders spend years trying to reach. The question at this level is not whether you can trade — it is whether you have the right information, the right signals, and the right community around you when you do. That is exactly what this environment is built to provide.",
-    stats: [
-      { value: "$35,000+", label: "secured by the community in a single session" },
-      { value: "1,150+", label: "pips delivered in one trading week" },
-      { value: "100%", label: "live — every session, every signal, every day" },
+    qualifyHeadline: "You are ready to operate at full access.",
+    qualifySub:
+      "The infrastructure to do it with structure is what activates next.",
+    whatGoesWrong: {
+      heading: "What usually goes wrong at this stage",
+      body: "Traders with $1,000+ available often have the capital to take meaningful positions but enter the market without surrounding infrastructure — no structured education, no live context, no community. They trade in isolation, rely on fragmented information, and make decisions without a repeatable framework. The capital is there. The system is not.",
+    },
+    howAccessHelps: {
+      heading: "How your access changes that",
+      body: "Full GTMO access surrounds your capital with everything a serious trader needs — structured video courses, live sessions where real positions are opened and managed in real time, exclusive strategies, and a community of 10,000+ traders operating in the same environment.",
+    },
+    processProof: [
+      {
+        value: "$35,000+",
+        label:
+          "secured in community sessions during a single NFP event — managed live with full risk transparency",
+      },
+      {
+        value: "1,150+",
+        label: "pips called live in a single trading week",
+      },
+      {
+        value: "100%",
+        label: "live — every session, every signal, every day",
+      },
     ],
-    valuePoints: [
-      "The complete GTMO trading curriculum — every course, every strategy, every chart view",
-      "Live sessions where you watch real positions being opened and managed, not simulated",
-      "Exclusive strategies not available in the free channel or any public resource",
-      "The full community infrastructure — 10,000+ traders, daily analysis, broker access",
+    activatesAfterFunding: [
+      "Full GTMO School — all video courses, beginner to advanced",
+      "Exclusive chart views and technical analysis not published publicly",
+      "Live trading sessions — positions opened and managed in real time",
+      "Exclusive strategies developed and tested by the channel trader",
       "Member pricing on all future GTMO products and events",
-      "One additional product of your choice — free, as a mini app member",
     ],
-    transition: "Here is the full breakdown of what you are getting.",
+    miniAppBonus:
+      "Because you applied through the mini app, one additional product of your choice is included with your School access — completely free. Confirmed with your specialist after funding.",
+    transition: "Here is your full access path.",
   },
 };
 
@@ -147,12 +209,10 @@ function ValueBridgeInner() {
   }, [capital, content, router, variant]);
 
   function handleContinue() {
-    if (!capital) return;
+    if (!capital || capital === "under_100") return;
     setRevealing(true);
     window.setTimeout(() => {
-      router.push(
-        `/product-match?variant=${encodeURIComponent(variant)}`,
-      );
+      router.push(`/product-match?variant=${encodeURIComponent(variant)}`);
     }, BRIDGE_DELAY_MS);
   }
 
@@ -164,7 +224,7 @@ function ValueBridgeInner() {
     );
   }
 
-  return (
+  const shell = (children: ReactNode) => (
     <div className="relative flex min-h-screen flex-col bg-gradient-to-b from-zinc-950 via-black to-zinc-950 text-white">
       <div
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(245,158,11,0.12),transparent)]"
@@ -178,73 +238,180 @@ function ValueBridgeInner() {
           theme={cfg.theme}
         />
       </div>
+      {children}
+    </div>
+  );
 
+  if (capital === "under_100") {
+    return shell(
       <div className="relative mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pb-10 pt-8 sm:px-8">
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-500/90">
-          Before we show you your access
-        </p>
-        <h1 className="text-2xl font-semibold leading-tight tracking-tight text-zinc-50 mb-3">
-          {content.headline}
-        </h1>
-        <p className="text-base text-emerald-400/95 font-medium leading-snug mb-6">
-          {content.subheadline}
-        </p>
+        <div className="mb-7">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-emerald-500/90">
+            Your path
+          </p>
+          <h1 className="mb-3 font-serif text-2xl font-normal leading-snug tracking-tight text-zinc-50 md:text-[1.75rem]">
+            {content.qualifyHeadline}
+          </h1>
+          <p className="text-sm font-medium leading-snug text-emerald-400/95">
+            {content.qualifySub}
+          </p>
+        </div>
 
-        <p className="text-sm text-zinc-300 leading-relaxed mb-7">
-          {content.context}
-        </p>
+        <div className="mb-4 rounded-2xl border border-zinc-800/80 bg-zinc-950/40 p-5">
+          <p className="mb-3 text-[10px] text-zinc-500 uppercase tracking-widest">
+            {content.whatGoesWrong.heading}
+          </p>
+          <p className="text-sm leading-relaxed text-zinc-300">
+            {content.whatGoesWrong.body}
+          </p>
+        </div>
 
-        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-7">
-          {content.stats.map((stat, i) => (
+        <div className="mb-6 rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5">
+          <p className="mb-3 text-[10px] text-zinc-500 uppercase tracking-widest">
+            {content.howAccessHelps.heading}
+          </p>
+          <p className="text-sm leading-relaxed text-zinc-300">
+            {content.howAccessHelps.body}
+          </p>
+        </div>
+
+        <div className="mb-8 grid grid-cols-3 gap-2 sm:gap-3">
+          {content.processProof.map((stat, i) => (
             <div
               key={i}
               className="rounded-xl border border-zinc-800 bg-zinc-950/80 p-3 text-center"
             >
-              <p className="text-base sm:text-lg font-bold text-zinc-50 leading-tight">
+              <p className="text-base font-bold leading-tight text-zinc-50">
                 {stat.value}
               </p>
-              <p className="text-[10px] sm:text-xs text-zinc-500 mt-1 leading-tight">
+              <p className="mt-1 text-[10px] leading-tight text-zinc-500 sm:text-xs">
                 {stat.label}
               </p>
             </div>
           ))}
         </div>
 
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5 mb-7">
-          <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-4">
-            What you are joining
-          </p>
-          <div className="space-y-3">
-            {content.valuePoints.map((point, i) => (
-              <div key={i} className="flex items-start gap-3">
-                <span className="text-emerald-500 mt-0.5 text-sm shrink-0">
-                  ✓
-                </span>
-                <p className="text-sm text-zinc-300 leading-snug">{point}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <p className="text-sm text-zinc-500 text-center mb-6 leading-relaxed">
+        <p className="mb-6 text-center text-sm leading-relaxed text-zinc-500">
           {content.transition}
         </p>
 
-        <p className="text-[10px] text-zinc-600 text-center mb-4 leading-relaxed">
+        <p className="mb-4 text-center text-[10px] leading-relaxed text-zinc-600">
           Figures and examples refer to community-reported outcomes and are not
           guarantees of your results. Trading involves risk.
         </p>
 
-        <button
-          type="button"
-          onClick={handleContinue}
-          disabled={revealing}
-          className={`mt-auto w-full rounded-xl py-4 text-sm font-semibold ${t.accentBg} text-black ${t.accentBgHover} transition-colors disabled:opacity-70`}
+        <a
+          href={channelLink}
+          className="mt-auto block w-full rounded-xl bg-white py-4 text-center text-sm font-semibold text-black transition-colors hover:bg-zinc-100"
         >
-          {revealing ? "Loading your access…" : "Show me what I unlock →"}
-        </button>
+          Join the free channel →
+        </a>
+      </div>,
+    );
+  }
+
+  return shell(
+    <div className="relative mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pb-10 pt-8 sm:px-8">
+      <div className="mb-7">
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-emerald-500/90">
+          Your access path
+        </p>
+        <h1 className="mb-3 font-serif text-2xl font-normal leading-snug tracking-tight text-zinc-50 md:text-[1.75rem]">
+          {content.qualifyHeadline}
+        </h1>
+        <p className="text-sm font-medium leading-snug text-emerald-400/95">
+          {content.qualifySub}
+        </p>
       </div>
-    </div>
+
+      <div className="mb-4 rounded-2xl border border-zinc-800/80 bg-zinc-950/40 p-5">
+        <p className="mb-3 text-[10px] text-zinc-500 uppercase tracking-widest">
+          {content.whatGoesWrong.heading}
+        </p>
+        <p className="text-sm leading-relaxed text-zinc-300">
+          {content.whatGoesWrong.body}
+        </p>
+      </div>
+
+      <div className="mb-4 rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5">
+        <p className="mb-3 text-[10px] text-zinc-500 uppercase tracking-widest">
+          {content.howAccessHelps.heading}
+        </p>
+        <p className="text-sm leading-relaxed text-zinc-300">
+          {content.howAccessHelps.body}
+        </p>
+      </div>
+
+      <div className="mb-4 grid grid-cols-3 gap-2 sm:gap-3">
+        {content.processProof.map((stat, i) => (
+          <div
+            key={i}
+            className="rounded-xl border border-zinc-800 bg-zinc-950/80 p-3 text-center"
+          >
+            <p className="text-base font-bold leading-tight text-zinc-50 sm:text-lg">
+              {stat.value}
+            </p>
+            <p className="mt-1 text-[10px] leading-tight text-zinc-500 sm:text-xs">
+              {stat.label}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {content.activatesAfterFunding.length > 0 ? (
+        <div className="mb-4 rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5">
+          <p className="mb-4 text-[10px] text-zinc-500 uppercase tracking-widest">
+            What activates after your account is funded
+          </p>
+          <div className="space-y-2">
+            {content.activatesAfterFunding.map((item, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="mt-0.5 shrink-0 text-xs text-emerald-500">
+                  ✓
+                </span>
+                <p className="text-sm leading-snug text-zinc-300">{item}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {content.miniAppBonus ? (
+        <div className="mb-6 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="text-sm text-amber-400" aria-hidden>
+              🎁
+            </span>
+            <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
+              Mini app activation bonus
+            </p>
+          </div>
+          <p className="text-sm leading-relaxed text-zinc-300">
+            {content.miniAppBonus}
+          </p>
+        </div>
+      ) : null}
+
+      <p className="mb-6 text-center text-sm leading-relaxed text-zinc-500">
+        {content.transition}
+      </p>
+
+      <p className="mb-4 text-center text-[10px] leading-relaxed text-zinc-600">
+        Figures and examples refer to community-reported outcomes and are not
+        guarantees of your results. Trading involves risk.
+      </p>
+
+      <button
+        type="button"
+        onClick={handleContinue}
+        disabled={revealing}
+        className={`mt-auto w-full rounded-xl py-4 text-sm font-semibold ${t.accentBg} text-black ${t.accentBgHover} transition-colors disabled:opacity-70`}
+      >
+        {revealing
+          ? "Loading your access path…"
+          : "Continue to activation →"}
+      </button>
+    </div>,
   );
 }
 

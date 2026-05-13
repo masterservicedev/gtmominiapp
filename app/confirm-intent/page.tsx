@@ -9,7 +9,6 @@ import { getFunnelConfig, getPreQuestionnaireSteps } from "@/lib/funnel/resolve"
 import { getThemeClasses } from "@/lib/funnel/theme";
 import { loadWebApp } from "@/lib/twa";
 import type { ProductMatch } from "@/lib/productMatch";
-import { productDisplayName } from "@/lib/leadCardContent";
 import type { Capital } from "@/lib/scoring";
 
 type Payload = {
@@ -157,9 +156,9 @@ function Summary1000Plus({ bundle }: { bundle: boolean }) {
 
 function getNextSteps(capital: Capital, bundle: boolean): string[] {
   const base = [
-    "A specialist sends you a Vantage registration link",
-    "You fund your account at the minimum required",
-    "Your products are activated after deposit confirmation by our team",
+    "Your specialist sends the correct Vantage registration link",
+    "You fund your account at the minimum required level",
+    "Your GTMO access is activated after your deposit is verified by our team",
   ];
 
   if (capital === "300_1000" && bundle) {
@@ -178,7 +177,10 @@ function getNextSteps(capital: Capital, bundle: boolean): string[] {
   }
 
   if (capital === "100_300" && bundle) {
-    return [...base, "Ebook access activated alongside VIP on confirmation"];
+    return [
+      ...base,
+      "Ebook access is activated alongside VIP once deposit is confirmed",
+    ];
   }
 
   return base;
@@ -368,15 +370,13 @@ function ConfirmIntentInner() {
           Final step
         </p>
         <h1 className="mb-3 font-serif text-xl font-normal leading-snug tracking-tight text-zinc-50 md:text-2xl">
-          Confirm your selection
+          Confirm your activation path
         </h1>
         <p className="mb-6 text-sm leading-relaxed text-zinc-400">
-          You qualify for {productDisplayName(pm.productKey)}
-          {bundleShown && acceptBundle && pm.bonusLine
-            ? " with the mini app bundle"
-            : ""}
-          . A specialist will send your Vantage link and activate access after
-          deposit confirmation.
+          You&apos;ve been matched with your access level. Your specialist will
+          send the correct Vantage registration link, confirm your funding
+          level, and activate your GTMO access after your account deposit is
+          verified.
         </p>
 
         {bundleShown ? (
@@ -425,13 +425,13 @@ function ConfirmIntentInner() {
 
         <div className="rounded-2xl border border-zinc-800 bg-zinc-950/90 p-5 mb-4">
           <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-3">
-            What you are getting
+            Access activated on funding
           </p>
           <TierSummary capital={capital} bundle={bundleForSummary} />
           <div className="flex items-center justify-between pt-4 mt-2 border-t border-zinc-800">
-            <p className="text-sm text-zinc-400">Minimum deposit required</p>
+            <p className="text-sm text-zinc-400">Minimum account funding</p>
             <p className="text-base font-bold text-zinc-50">
-              ${pm.depositRequiredUsd} via Vantage
+              ${pm.depositRequiredUsd}+ via Vantage
             </p>
           </div>
         </div>
@@ -470,7 +470,7 @@ function ConfirmIntentInner() {
             onClick={() => void onYes()}
             className={`w-full rounded-xl py-4 text-sm font-semibold ${t.accentBg} text-black ${t.accentBgHover} transition-colors disabled:opacity-50`}
           >
-            {busy ? "…" : "Yes — connect me with a specialist"}
+            {busy ? "…" : "Yes — activate my access path"}
           </button>
         </div>
       </div>
