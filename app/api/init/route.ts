@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
       if (activeOffers.length === 0) {
         /** No active offers: do NOT use sticky user row (ops cleared rotation). */
         const fb = process.env.FUNNEL_FALLBACK_VARIANT?.trim();
-        variant = fb || "ad4";
+        variant = fb || "ad5";
       } else if (existing.length > 0 && existing[0]!.entryVariant) {
         variant = existing[0]!.entryVariant;
       } else {
