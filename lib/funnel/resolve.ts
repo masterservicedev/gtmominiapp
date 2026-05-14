@@ -15,7 +15,7 @@ export function getEffectiveOffer(variant: AdVariant): OfferBlock {
   return funnelContent.ad4.offer!;
 }
 
-/** Screens before questionnaire: gate + offer (code_landing variants). Always 2 for ad4/ad5. */
+/** Screens before questionnaire: gate + offer. Always 2 for funnel_template variants (ad4/ad5/ad6). */
 export function getPreQuestionnaireSteps(): number {
   return 2;
 }

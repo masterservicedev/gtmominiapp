@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CodeLandingOffer } from "@/components/funnel/CodeLandingOffer";
+import { FunnelRenderer } from "@/components/funnel/FunnelRenderer";
 import { FunnelProgress } from "@/components/funnel/FunnelProgress";
 import { SocialProofTicker } from "@/components/funnel/SocialProofTicker";
 import { VideoOffer } from "@/components/funnel/VideoOffer";
@@ -13,6 +14,7 @@ import {
   getPreQuestionnaireSteps,
 } from "@/lib/funnel/resolve";
 import { getAccentPalette } from "@/lib/funnel/palette";
+import { getFunnelTemplateConfig } from "@/lib/funnel/configs/registry";
 import { trackFunnelEvent } from "@/lib/funnel/track";
 
 function OfferInner() {
@@ -48,6 +50,18 @@ function OfferInner() {
     await trackFunnelEvent("offer_complete", { variant });
     router.push(`/qualify?variant=${encodeURIComponent(variant)}`);
   }, [router, variant]);
+
+  if (offer.mode === "funnel_template") {
+    return (
+      <FunnelRenderer
+        config={getFunnelTemplateConfig(variant as AdVariant)}
+        variant={variant as AdVariant}
+        palette={palette}
+        progressCurrent={offerStepIndex}
+        progressTotal={preTotal}
+      />
+    );
+  }
 
   if (offer.mode === "code_landing") {
     return (

@@ -28,6 +28,7 @@ const COUNTRY_CARD_LIMIT = 8;
 const VARIANT_NAMES: Record<string, string> = {
   ad4: "Ad creative — version 4",
   ad5: "Ad creative — version 5 (code landing)",
+  ad6: "Ad creative — version 6 (corporate trust layout)",
 };
 
 const SOURCE_NAMES: Record<string, string> = {

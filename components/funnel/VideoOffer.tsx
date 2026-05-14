@@ -9,6 +9,8 @@ type Props = {
   poster?: string;
   minWatchSeconds: number;
   palette?: FunnelAccentPalette;
+  /** When set, drives the watch-progress fill (e.g. hex from funnel theme). */
+  progressBarColor?: string;
   onThresholdMet?: (seconds: number) => void;
   onUnlockReady?: (ready: boolean) => void;
 };
@@ -18,6 +20,7 @@ export function VideoOffer({
   poster,
   minWatchSeconds,
   palette = funnelPaletteAmber,
+  progressBarColor,
   onThresholdMet,
   onUnlockReady,
 }: Props) {
@@ -169,8 +172,12 @@ export function VideoOffer({
       </div>
       <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
         <div
-          className={`h-full ${t.accentBg} transition-all`}
-          style={{ width: `${progress}%` }}
+          className={`h-full transition-all ${progressBarColor ? "" : t.accentBg}`}
+          style={
+            progressBarColor
+              ? { width: `${progress}%`, backgroundColor: progressBarColor }
+              : { width: `${progress}%` }
+          }
         />
       </div>
       {!unlocked && minWatchSeconds > 0 ? (

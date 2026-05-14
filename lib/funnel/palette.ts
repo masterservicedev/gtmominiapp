@@ -82,6 +82,46 @@ export const funnelPaletteVioletSky: FunnelAccentPalette = {
   valueBridgeEyebrow: "text-sky-400/95",
 };
 
+export const funnelPaletteEmeraldSlate: FunnelAccentPalette = {
+  accentBg: "bg-emerald-600",
+  accentBgHover: "hover:bg-emerald-500",
+  accentButtonText: "text-white",
+  accentText: "text-emerald-400",
+  accentTextOnLight: "text-emerald-700",
+  accentBorder: "border-emerald-500",
+  accentRing: "ring-emerald-500",
+  progressFrom: "from-emerald-500",
+  selectedBg: "bg-emerald-500/10",
+  primaryButtonShadow: "shadow-emerald-900/25",
+  questionnaireEyebrow: "text-emerald-500/90",
+  qualifyOptionSelected:
+    "border-emerald-500/70 bg-emerald-500/[0.1] text-zinc-50 shadow-[0_0_0_1px_rgba(16,185,129,0.2)] ring-1 ring-emerald-500/30",
+  joinBandMutedText: "text-emerald-100/90",
+  joinBulletCardBorder: "border-emerald-400/30",
+  fomoActivityRing: "ring-emerald-400/45",
+  fomoSpotsLowBorder: "border-emerald-500/70",
+  fomoSpotsAccent: "text-emerald-300/95",
+  livePingOuter: "bg-emerald-400",
+  liveDot: "bg-emerald-500",
+  liveDotShadow: "shadow-[0_0_6px_rgba(16,185,129,0.85)]",
+  liveLabel: "text-emerald-300/95",
+  pageRadialGlow:
+    "bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(16,185,129,0.12),transparent)]",
+  bridgeHeadline: "text-emerald-400/95",
+  bridgeSubline: "text-emerald-300/90",
+  bridgeCheckmark: "text-emerald-500",
+  bonusPanelBorder: "border-emerald-500/20",
+  bonusPanelBg: "bg-emerald-500/5",
+  bonusPanelAccent: "text-emerald-400",
+  bundleLineAccent: "text-emerald-400/95",
+  bundleToggleSelected: "border-emerald-500 bg-emerald-500/20 text-emerald-50",
+  bundleDiscountLabel: "text-emerald-300",
+  processingBackdrop:
+    "bg-[radial-gradient(ellipse_70%_45%_at_50%_0%,rgba(16,185,129,0.1),transparent)]",
+  processingDot: "bg-emerald-500",
+  valueBridgeEyebrow: "text-emerald-500/90",
+};
+
 export function getAccentPalette(cfg: FunnelVariantConfig): FunnelAccentPalette {
   return cfg.accentPalette ?? funnelPaletteAmber;
 }

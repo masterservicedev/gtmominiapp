@@ -100,6 +100,10 @@ export type CodeLandingOfferBlock = {
   disclaimerParagraphs?: string[];
 };
 
+export type FunnelTemplateOfferBlock = {
+  mode: "funnel_template";
+};
+
 export type OfferBlock =
   | {
       mode: "video";
@@ -124,7 +128,8 @@ export type OfferBlock =
       bullets: string[];
       imageUrl?: string;
     }
-  | CodeLandingOfferBlock;
+  | CodeLandingOfferBlock
+  | FunnelTemplateOfferBlock;
 
 export type PositioningGateCopy = {
   headline: string;
