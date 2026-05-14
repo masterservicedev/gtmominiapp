@@ -31,6 +31,7 @@ const VARIANT_NAMES: Record<string, string> = {
   lp1: "Landing page — version 1",
   lp2: "Landing page — version 2",
   ad4: "Ad creative — version 4",
+  ad5: "Ad creative — version 5 (code landing)",
 };
 
 const SOURCE_NAMES: Record<string, string> = {

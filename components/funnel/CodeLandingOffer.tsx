@@ -203,7 +203,7 @@ export function CodeLandingOffer({
           current={progressCurrent}
           total={progressTotal}
           label={
-            variant === "ad4"
+            variant === "ad4" || variant === "ad5"
               ? undefined
               : `Step ${progressCurrent} — ${projectName}`
           }

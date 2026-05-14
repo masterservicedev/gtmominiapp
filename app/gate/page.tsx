@@ -35,7 +35,11 @@ function GateInner() {
         <FunnelProgress
           current={1}
           total={preTotal}
-          label={variant === "ad4" ? undefined : "Step 1 — positioning"}
+          label={
+            variant === "ad4" || variant === "ad5"
+              ? undefined
+              : "Step 1 — positioning"
+          }
           theme={cfg.theme}
         />
       }
