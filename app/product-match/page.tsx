@@ -68,7 +68,7 @@ function ProductMatchInner() {
   const variant = normalizeEntryVariant(params.get("variant")) as AdVariant;
   const cfg = getFunnelConfig(variant);
   const t = getThemeClasses(cfg.theme);
-  const preSteps = getPreQuestionnaireSteps(variant);
+  const preSteps = getPreQuestionnaireSteps();
   const totalFunnelSteps = preSteps + 8;
   const progressStep = preSteps + 7;
 

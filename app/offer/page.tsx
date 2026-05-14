@@ -22,7 +22,7 @@ function OfferInner() {
   const cfg = getFunnelConfig(variant);
   const offer = getEffectiveOffer(variant as AdVariant);
   const t = getThemeClasses(cfg.theme);
-  const preTotal = getPreQuestionnaireSteps(variant as AdVariant);
+  const preTotal = getPreQuestionnaireSteps();
   const offerStepIndex = 2;
 
   const [videoUnlocked, setVideoUnlocked] = useState(

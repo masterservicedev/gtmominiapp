@@ -4,7 +4,7 @@ import { Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FunnelProgress } from "@/components/funnel/FunnelProgress";
 import { PositioningGate } from "@/components/funnel/PositioningGate";
-import { normalizeEntryVariant, type AdVariant } from "@/lib/funnel/normalize";
+import { normalizeEntryVariant } from "@/lib/funnel/normalize";
 import { getFunnelConfig, getPreQuestionnaireSteps } from "@/lib/funnel/resolve";
 import { trackFunnelEvent } from "@/lib/funnel/track";
 
@@ -13,7 +13,7 @@ function GateInner() {
   const params = useSearchParams();
   const variant = normalizeEntryVariant(params.get("variant"));
   const cfg = getFunnelConfig(variant);
-  const preTotal = getPreQuestionnaireSteps(variant as AdVariant);
+  const preTotal = getPreQuestionnaireSteps();
 
   const onContinue = useCallback(async () => {
     await trackFunnelEvent("funnel_gate_complete", { variant });
