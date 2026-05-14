@@ -23,7 +23,7 @@ function OfferInner() {
   const offer = getEffectiveOffer(variant as AdVariant);
   const t = getThemeClasses(cfg.theme);
   const preTotal = getPreQuestionnaireSteps(variant as AdVariant);
-  const offerStepIndex = variant === "ad2" ? 3 : 2;
+  const offerStepIndex = 2;
 
   const [videoUnlocked, setVideoUnlocked] = useState(
     offer.mode !== "video"

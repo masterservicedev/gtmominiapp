@@ -17,11 +17,7 @@ function GateInner() {
 
   const onContinue = useCallback(async () => {
     await trackFunnelEvent("funnel_gate_complete", { variant });
-    if (variant === "ad2") {
-      router.push(`/prelander?variant=${encodeURIComponent(variant)}`);
-    } else {
-      router.push(`/offer?variant=${encodeURIComponent(variant)}`);
-    }
+    router.push(`/offer?variant=${encodeURIComponent(variant)}`);
   }, [router, variant]);
 
   return (
@@ -35,11 +31,7 @@ function GateInner() {
         <FunnelProgress
           current={1}
           total={preTotal}
-          label={
-            variant === "ad4" || variant === "ad5"
-              ? undefined
-              : "Step 1 — positioning"
-          }
+          label={undefined}
           theme={cfg.theme}
         />
       }

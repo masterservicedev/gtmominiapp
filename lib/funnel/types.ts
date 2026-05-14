@@ -105,9 +105,8 @@ export type PrelanderCopy = {
 
 export type FunnelVariantConfig = {
   positioningGate: PositioningGateCopy;
-  /** ad2 only */
   prelander?: PrelanderCopy;
-  /** ad2: reuse ad1 offer creative */
+  /** When set, resolve offer from another variant (unused for ad4/ad5-only). */
   offerVariantId?: AdVariant;
   offer?: OfferBlock;
   socialProofTicker?: string[];

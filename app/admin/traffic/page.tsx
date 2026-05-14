@@ -26,10 +26,6 @@ const COUNTRY_ROW_LIMIT = 400;
 const COUNTRY_CARD_LIMIT = 8;
 
 const VARIANT_NAMES: Record<string, string> = {
-  vid1: "Video — version 1",
-  vid2: "Video — version 2",
-  lp1: "Landing page — version 1",
-  lp2: "Landing page — version 2",
   ad4: "Ad creative — version 4",
   ad5: "Ad creative — version 5 (code landing)",
 };

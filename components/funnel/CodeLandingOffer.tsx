@@ -202,11 +202,7 @@ export function CodeLandingOffer({
         <FunnelProgress
           current={progressCurrent}
           total={progressTotal}
-          label={
-            variant === "ad4" || variant === "ad5"
-              ? undefined
-              : `Step ${progressCurrent} — ${projectName}`
-          }
+          label={undefined}
           theme={theme}
           surface="onLight"
         />
