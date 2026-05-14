@@ -3,15 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "start": "npx ts-node --project tsconfig.json index.ts",
-    "dev": "npx ts-node --project tsconfig.json index.ts"
+    "start": "TS_NODE_PROJECT=./tsconfig.json node -r tsconfig-paths/register -r ts-node/register ./index.ts",
+    "dev": "TS_NODE_PROJECT=./tsconfig.json node -r tsconfig-paths/register -r ts-node/register ./index.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
     "axios": "^1.7.9",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.45.2",
-    "grammy": "^1.31.3"
+    "grammy": "^1.31.3",
+    "tsconfig-paths": "^4.2.0"
   },
   "devDependencies": {
     "@types/node": "^20",
