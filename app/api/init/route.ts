@@ -5,6 +5,7 @@ import { users, events, offers } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import axios from "axios";
 import { normalizeEntryVariant } from "@/lib/funnel/normalize";
+import { pickWeightedOfferName } from "@/lib/funnel/pickWeightedOfferName";
 import { parseStartParam } from "@/lib/startParam";
 import { getClientIpRaw, normalizeStoredClientIp } from "@/lib/client-ip";
 
@@ -96,8 +97,7 @@ export async function POST(req: NextRequest) {
       } else if (existing.length > 0 && existing[0]!.entryVariant) {
         variant = existing[0]!.entryVariant;
       } else {
-        variant =
-          activeOffers[Math.floor(Math.random() * activeOffers.length)]!.name;
+        variant = pickWeightedOfferName(activeOffers);
       }
     }
 
