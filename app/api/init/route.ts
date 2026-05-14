@@ -5,7 +5,6 @@ import { users, events, offers } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import axios from "axios";
 import { normalizeEntryVariant } from "@/lib/funnel/normalize";
-import { pickWeightedOfferName } from "@/lib/funnel/pickWeightedOfferName";
 import { parseStartParam } from "@/lib/startParam";
 import { getClientIpRaw, normalizeStoredClientIp } from "@/lib/client-ip";
 
@@ -82,7 +81,7 @@ export async function POST(req: NextRequest) {
       .from(offers)
       .where(eq(offers.active, true));
 
-    /** Explicit `entryVariant` from client wins; then `start_param` variant; else weighted offer pool (no DB sticky). */
+    /** Explicit `entryVariant` from client wins; then `start_param` `var`; then offer rotation / sticky user. */
     let variant: string | null | undefined = fromClient;
     const fromStartVariant = parsed.variant?.trim();
     if (!variant && fromStartVariant) {
@@ -94,39 +93,15 @@ export async function POST(req: NextRequest) {
         /** No active offers: do NOT use sticky user row (ops cleared rotation). */
         const fb = process.env.FUNNEL_FALLBACK_VARIANT?.trim();
         variant = fb || "ad5";
+      } else if (existing.length > 0 && existing[0]!.entryVariant) {
+        variant = existing[0]!.entryVariant;
       } else {
-        /** Weighted pick among active offers — do not reuse DB entry_variant or rotation never changes. */
-        variant = pickWeightedOfferName(activeOffers);
+        variant =
+          activeOffers[Math.floor(Math.random() * activeOffers.length)]!.name;
       }
     }
 
     const normalizedVariant = normalizeEntryVariant(variant);
-
-    // #region agent log
-    fetch("http://127.0.0.1:7586/ingest/a06de864-e48c-47c4-804c-fea5dbfaf96a", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "22219e",
-      },
-      body: JSON.stringify({
-        sessionId: "22219e",
-        runId: "post-sticky-removal",
-        hypothesisId: "H_sticky_bypass",
-        location: "app/api/init/route.ts:after_pick",
-        message: "init variant resolved",
-        data: {
-          hasFromClient: Boolean(fromClient),
-          fromStartVariant: fromStartVariant ?? null,
-          priorSticky: existing[0]?.entryVariant ?? null,
-          activeCount: activeOffers.length,
-          pickedRaw: variant ?? null,
-          normalizedVariant,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
 
     const trimAttr = (v: unknown) =>
       typeof v === "string" && v.trim() ? v.trim().slice(0, 512) : null;
@@ -188,8 +163,11 @@ export async function POST(req: NextRequest) {
           lastSeenIp: storedClientIp,
           ...utmPatch,
           ...(effectiveCid ? { voluumCid: effectiveCid } : {}),
-          /** Keep DB aligned with last resolved funnel (weighted rotation updates each open). */
-          entryVariant: normalizedVariant,
+          ...(fromClient
+            ? { entryVariant: normalizedVariant }
+            : activeOffers.length === 0
+              ? { entryVariant: normalizedVariant }
+              : {}),
         })
         .where(eq(users.telegramId, tgUser.id));
     }

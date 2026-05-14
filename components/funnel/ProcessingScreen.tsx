@@ -1,23 +1,23 @@
 "use client";
 
-import type { FunnelTheme } from "@/lib/funnel/types";
+import type { FunnelAccentPalette } from "@/lib/funnel/types";
+import { funnelPaletteAmber } from "@/lib/funnel/palette";
 
 type Props = {
   message?: string;
-  theme?: FunnelTheme;
+  palette?: FunnelAccentPalette;
 };
 
 export function ProcessingScreen({
   message = "Reviewing your application…",
-  theme = "emerald",
+  palette = funnelPaletteAmber,
 }: Props) {
-  const dot =
-    theme === "amber" ? "bg-amber-500" : "bg-emerald-500";
+  const dot = palette.processingDot;
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-b from-zinc-950 via-black to-zinc-950 px-8">
       <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_45%_at_50%_0%,rgba(245,158,11,0.1),transparent)]"
+        className={`pointer-events-none absolute inset-0 ${palette.processingBackdrop}`}
         aria-hidden
       />
       <div className="relative flex flex-col items-center">

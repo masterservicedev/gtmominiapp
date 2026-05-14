@@ -12,7 +12,7 @@ import {
   getFunnelConfig,
   getPreQuestionnaireSteps,
 } from "@/lib/funnel/resolve";
-import { getThemeClasses } from "@/lib/funnel/theme";
+import { getAccentPalette } from "@/lib/funnel/palette";
 import { trackFunnelEvent } from "@/lib/funnel/track";
 
 function OfferInner() {
@@ -21,7 +21,8 @@ function OfferInner() {
   const variant = normalizeEntryVariant(params.get("variant"));
   const cfg = getFunnelConfig(variant);
   const offer = getEffectiveOffer(variant as AdVariant);
-  const t = getThemeClasses(cfg.theme);
+  const palette = getAccentPalette(cfg);
+  const t = palette;
   const preTotal = getPreQuestionnaireSteps();
   const offerStepIndex = 2;
 
@@ -53,7 +54,7 @@ function OfferInner() {
       <CodeLandingOffer
         offer={offer}
         variant={variant as AdVariant}
-        theme={cfg.theme ?? "amber"}
+        palette={palette}
         progressCurrent={offerStepIndex}
         progressTotal={preTotal}
       />
@@ -72,7 +73,7 @@ function OfferInner() {
         current={offerStepIndex}
         total={preTotal}
         label={`Step ${offerStepIndex} — ${stepLabel}`}
-        theme={cfg.theme}
+        palette={palette}
       />
 
       <div className="flex-1 px-6 pt-6 max-w-lg mx-auto w-full space-y-6">
@@ -92,7 +93,7 @@ function OfferInner() {
             src={offer.video.src}
             poster={offer.video.poster}
             minWatchSeconds={offer.video.minWatchSeconds}
-            theme={cfg.theme}
+            palette={palette}
             onUnlockReady={setVideoUnlocked}
             onThresholdMet={(seconds) =>
               trackFunnelEvent("offer_watched", {
@@ -146,7 +147,7 @@ function OfferInner() {
           className={`w-full py-4 rounded-xl font-semibold text-sm transition-colors ${
             offer.mode === "video" && !videoUnlocked
               ? "bg-zinc-800 text-zinc-600 cursor-not-allowed"
-              : `${t.accentBg} text-black ${t.accentBgHover}`
+              : `${t.accentBg} ${t.accentButtonText} ${t.accentBgHover}`
           }`}
         >
           {offer.ctaLabel}

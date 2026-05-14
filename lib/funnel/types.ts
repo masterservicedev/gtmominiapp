@@ -1,6 +1,43 @@
 import type { AdVariant } from "./normalize";
 
-export type FunnelTheme = "emerald" | "amber";
+/** Per-variant Tailwind class bundles — copy “styling from the pasted funnel” here. */
+export type FunnelAccentPalette = {
+  accentBg: string;
+  accentBgHover: string;
+  /** Primary filled buttons (gate, questionnaire, etc.) */
+  accentButtonText: string;
+  accentText: string;
+  accentTextOnLight: string;
+  accentBorder: string;
+  accentRing: string;
+  progressFrom: string;
+  selectedBg: string;
+  primaryButtonShadow: string;
+  questionnaireEyebrow: string;
+  qualifyOptionSelected: string;
+  joinBandMutedText: string;
+  joinBulletCardBorder: string;
+  fomoActivityRing: string;
+  fomoSpotsLowBorder: string;
+  fomoSpotsAccent: string;
+  livePingOuter: string;
+  liveDot: string;
+  liveDotShadow: string;
+  liveLabel: string;
+  pageRadialGlow: string;
+  bridgeHeadline: string;
+  bridgeSubline: string;
+  bridgeCheckmark: string;
+  bonusPanelBorder: string;
+  bonusPanelBg: string;
+  bonusPanelAccent: string;
+  bundleLineAccent: string;
+  bundleToggleSelected: string;
+  bundleDiscountLabel: string;
+  processingBackdrop: string;
+  processingDot: string;
+  valueBridgeEyebrow: string;
+};
 
 export type VideoOfferConfig = {
   src: string;
@@ -110,5 +147,5 @@ export type FunnelVariantConfig = {
   offerVariantId?: AdVariant;
   offer?: OfferBlock;
   socialProofTicker?: string[];
-  theme?: FunnelTheme;
+  accentPalette?: FunnelAccentPalette;
 };

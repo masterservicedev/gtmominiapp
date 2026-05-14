@@ -10,7 +10,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FunnelProgress } from "@/components/funnel/FunnelProgress";
 import { normalizeEntryVariant, type AdVariant } from "@/lib/funnel/normalize";
 import { getFunnelConfig, getPreQuestionnaireSteps } from "@/lib/funnel/resolve";
-import { getThemeClasses } from "@/lib/funnel/theme";
+import { getAccentPalette } from "@/lib/funnel/palette";
 import { loadWebApp } from "@/lib/twa";
 import type { ProductMatch } from "@/lib/productMatch";
 import {
@@ -38,7 +38,8 @@ function ConfirmIntentInner() {
   const params = useSearchParams();
   const variant = normalizeEntryVariant(params.get("variant")) as AdVariant;
   const cfg = getFunnelConfig(variant);
-  const t = getThemeClasses(cfg.theme);
+  const palette = getAccentPalette(cfg);
+  const t = palette;
   const preSteps = getPreQuestionnaireSteps();
   const totalFunnelSteps = preSteps + 8;
   const progressStep = preSteps + 8;
@@ -188,7 +189,7 @@ function ConfirmIntentInner() {
         <button
           type="button"
           onClick={() => router.replace("/qualify")}
-          className={`rounded-xl px-6 py-3 text-sm font-semibold ${t.accentBg} text-black`}
+          className={`rounded-xl px-6 py-3 text-sm font-semibold ${t.accentBg} ${t.accentButtonText}`}
         >
           Back
         </button>
@@ -228,7 +229,7 @@ function ConfirmIntentInner() {
   return (
     <div className="relative flex min-h-screen flex-col bg-gradient-to-b from-zinc-950 via-black to-zinc-950 text-white">
       <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(245,158,11,0.12),transparent)]"
+        className={`pointer-events-none absolute inset-0 ${palette.pageRadialGlow}`}
         aria-hidden
       />
       <div className="relative border-b border-zinc-800/80 bg-black/40 backdrop-blur-sm">
@@ -236,7 +237,7 @@ function ConfirmIntentInner() {
           current={progressStep}
           total={totalFunnelSteps}
           label={`Step ${progressStep} of ${totalFunnelSteps}`}
-          theme={cfg.theme}
+          palette={palette}
         />
       </div>
 
@@ -248,7 +249,7 @@ function ConfirmIntentInner() {
           {primary.displayName}
         </h1>
         {bundleShown ? (
-          <p className="mb-5 text-sm font-medium text-amber-400/95">
+          <p className={`mb-5 text-sm font-medium ${palette.bundleLineAccent}`}>
             + {pm.bundleOfferLine}
           </p>
         ) : (
@@ -263,7 +264,7 @@ function ConfirmIntentInner() {
               onClick={() => setAcceptBundle(true)}
               className={`rounded-xl border py-2.5 text-xs font-semibold transition-colors sm:text-sm ${
                 acceptBundle
-                  ? "border-amber-500 bg-amber-500/20 text-amber-100"
+                  ? palette.bundleToggleSelected
                   : "border-zinc-700 bg-zinc-950/50 text-zinc-400 hover:border-zinc-600"
               } disabled:opacity-50`}
             >
@@ -294,7 +295,9 @@ function ConfirmIntentInner() {
           {bundleShown && acceptBundle && bundleRule ? (
             <div className="flex items-center justify-between gap-3 border-b border-zinc-800 py-2.5">
               <p className="text-sm text-zinc-400">Bonus</p>
-              <p className="text-right text-sm font-semibold uppercase tracking-wide text-amber-400">
+              <p
+                className={`text-right text-sm font-semibold uppercase tracking-wide ${palette.bundleDiscountLabel}`}
+              >
                 {bundleRule.discountLabel}
               </p>
             </div>
@@ -339,7 +342,7 @@ function ConfirmIntentInner() {
             type="button"
             disabled={locked}
             onClick={() => void onYes()}
-            className={`w-full rounded-xl py-4 text-sm font-semibold ${t.accentBg} text-black ${t.accentBgHover} transition-colors disabled:opacity-50`}
+            className={`w-full rounded-xl py-4 text-sm font-semibold ${t.accentBg} ${t.accentButtonText} ${t.accentBgHover} transition-colors disabled:opacity-50`}
           >
             {busy ? "…" : "Activate my access"}
           </button>

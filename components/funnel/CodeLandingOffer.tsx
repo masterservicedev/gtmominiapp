@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import { FunnelProgress } from "@/components/funnel/FunnelProgress";
 import { VideoOffer } from "@/components/funnel/VideoOffer";
 import type { AdVariant } from "@/lib/funnel/normalize";
-import type { CodeLandingOfferBlock } from "@/lib/funnel/types";
-import type { FunnelTheme } from "@/lib/funnel/types";
+import type { CodeLandingOfferBlock, FunnelAccentPalette } from "@/lib/funnel/types";
 import { trackFunnelEvent } from "@/lib/funnel/track";
 
 const MEDIA_BASE =
@@ -65,7 +64,7 @@ const FOMO_TIMES = ["2 min", "5 min", "8 min", "12 min", "15 min"];
 type Props = {
   offer: CodeLandingOfferBlock;
   variant: AdVariant;
-  theme: FunnelTheme;
+  palette: FunnelAccentPalette;
   progressCurrent: number;
   progressTotal: number;
 };
@@ -73,16 +72,15 @@ type Props = {
 export function CodeLandingOffer({
   offer,
   variant,
-  theme,
+  palette,
   progressCurrent,
   progressTotal,
 }: Props) {
   const router = useRouter();
   const { projectName } = offer;
-  const accentBg = theme === "amber" ? "bg-amber-500" : "bg-emerald-500";
-  const accentHover =
-    theme === "amber" ? "hover:bg-amber-400" : "hover:bg-emerald-400";
-  const accentText = theme === "amber" ? "text-amber-600" : "text-emerald-600";
+  const accentBg = palette.accentBg;
+  const accentHover = palette.accentBgHover;
+  const accentText = palette.accentTextOnLight;
 
   const [ctaBusy, setCtaBusy] = useState(false);
   const [fomoCountry, setFomoCountry] = useState("United States");
@@ -203,7 +201,7 @@ export function CodeLandingOffer({
           current={progressCurrent}
           total={progressTotal}
           label={undefined}
-          theme={theme}
+          palette={palette}
           surface="onLight"
         />
       </header>
@@ -216,7 +214,7 @@ export function CodeLandingOffer({
                 src={offer.video.src}
                 poster={offer.video.poster}
                 minWatchSeconds={offer.video.minWatchSeconds}
-                theme={theme}
+                palette={palette}
                 onThresholdMet={(seconds) =>
                   trackFunnelEvent("offer_watched", {
                     variant,
@@ -293,7 +291,9 @@ export function CodeLandingOffer({
               {offer.midPageUrgency.title}
             </h2>
             {offer.midPageUrgency.subtitle ? (
-              <p className="mt-4 text-center text-sm leading-relaxed text-amber-100/85">
+              <p
+                className={`mt-4 text-center text-sm leading-relaxed ${palette.joinBandMutedText}`}
+              >
                 {offer.midPageUrgency.subtitle}
               </p>
             ) : null}
@@ -301,7 +301,7 @@ export function CodeLandingOffer({
               {offer.midPageUrgency.bullets.map((b) => (
                 <li
                   key={b}
-                  className="flex gap-3 rounded-xl border border-amber-500/25 bg-black/30 px-4 py-3.5 backdrop-blur-sm"
+                  className={`flex gap-3 rounded-xl border ${palette.joinBulletCardBorder} bg-black/30 px-4 py-3.5 backdrop-blur-sm`}
                 >
                   <span
                     className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${accentBg}`}
@@ -447,7 +447,7 @@ export function CodeLandingOffer({
                   <li key={l.label}>
                     <a
                       href={l.href}
-                      className={`${accentText} hover:underline underline-offset-4`}
+                      className={`${palette.accentTextOnLight} hover:underline underline-offset-4`}
                     >
                       {l.label}
                     </a>
@@ -475,15 +475,19 @@ export function CodeLandingOffer({
         {showActivity ? (
           <div
             className={`flex w-full max-w-sm items-start justify-center gap-1.5 rounded-md border border-zinc-700/90 bg-zinc-950/95 px-2.5 py-1 text-[10px] leading-snug text-zinc-100 shadow-md backdrop-blur-sm md:max-w-[17rem] md:justify-start ${
-              activityPulse ? "ring-1 ring-amber-500/40" : ""
+              activityPulse ? `ring-1 ${palette.fomoActivityRing}` : ""
             }`}
           >
             <span className="relative mt-0.5 flex h-2 w-2 shrink-0" aria-hidden>
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60 motion-reduce:animate-none" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.85)]" />
+              <span
+                className={`absolute inline-flex h-full w-full animate-ping rounded-full ${palette.livePingOuter} opacity-60 motion-reduce:animate-none`}
+              />
+              <span
+                className={`relative inline-flex h-2 w-2 rounded-full ${palette.liveDot} ${palette.liveDotShadow}`}
+              />
             </span>
             <span className="min-w-0 flex-1 text-left text-zinc-200">
-              <span className="font-semibold text-emerald-400/95">Live</span>
+              <span className={`font-semibold ${palette.liveLabel}`}>Live</span>
               {" - User from "}
               <span className="text-zinc-100">{fomoCountry}</span>
               {" joined "}
@@ -495,10 +499,12 @@ export function CodeLandingOffer({
         {showSpots ? (
           <div
             className={`w-full max-w-sm rounded-md border border-zinc-700/90 bg-zinc-950/95 px-2.5 py-1 text-center text-[10px] leading-tight text-zinc-100 shadow-md backdrop-blur-sm md:max-w-[12rem] md:text-right ${
-              spots <= 5 ? "border-amber-600/70" : ""
+              spots <= 5 ? palette.fomoSpotsLowBorder : ""
             } ${spotsShake ? "md:translate-x-0.5" : ""}`}
           >
-            <span className="font-semibold text-amber-400/95">{spots}</span>
+            <span className={`font-semibold ${palette.fomoSpotsAccent}`}>
+              {spots}
+            </span>
             <span className="text-zinc-300"> spots open</span>
             <span className="text-zinc-500"> · </span>
             <span className="text-zinc-400">limited intake</span>
@@ -515,7 +521,7 @@ export function CodeLandingOffer({
             type="button"
             onClick={continueToQualify}
             disabled={ctaBusy}
-            className={`min-h-[48px] w-full rounded-lg py-3 text-sm font-semibold text-zinc-950 transition-colors sm:w-auto sm:min-w-[200px] sm:px-8 ${accentBg} ${accentHover} disabled:opacity-60`}
+            className={`min-h-[48px] w-full rounded-lg py-3 text-sm font-semibold ${palette.accentButtonText} transition-colors sm:w-auto sm:min-w-[200px] sm:px-8 ${accentBg} ${accentHover} disabled:opacity-60`}
           >
             {ctaBusy ? "…" : offer.primaryCtaLabel}
           </button>

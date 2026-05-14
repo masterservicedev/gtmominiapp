@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { FunnelProgress } from "@/components/funnel/FunnelProgress";
 import { normalizeEntryVariant, type AdVariant } from "@/lib/funnel/normalize";
 import { getFunnelConfig, getPreQuestionnaireSteps } from "@/lib/funnel/resolve";
-import { getThemeClasses } from "@/lib/funnel/theme";
+import { getAccentPalette } from "@/lib/funnel/palette";
 import { trackFunnelEvent } from "@/lib/funnel/track";
 import type { Capital } from "@/lib/scoring";
 
@@ -185,7 +185,8 @@ function ValueBridgeInner() {
 
   const variant = normalizeEntryVariant(params.get("variant")) as AdVariant;
   const cfg = getFunnelConfig(variant);
-  const t = getThemeClasses(cfg.theme);
+  const palette = getAccentPalette(cfg);
+  const t = palette;
   const preSteps = getPreQuestionnaireSteps();
   const totalFunnelSteps = preSteps + 8;
   const progressStep = preSteps + 6;
@@ -227,7 +228,7 @@ function ValueBridgeInner() {
   const shell = (children: ReactNode) => (
     <div className="relative flex min-h-screen flex-col bg-gradient-to-b from-zinc-950 via-black to-zinc-950 text-white">
       <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(245,158,11,0.12),transparent)]"
+        className={`pointer-events-none absolute inset-0 ${palette.pageRadialGlow}`}
         aria-hidden
       />
       <div className="relative border-b border-zinc-800/80 bg-black/40 backdrop-blur-sm">
@@ -235,7 +236,7 @@ function ValueBridgeInner() {
           current={progressStep}
           total={totalFunnelSteps}
           label={`Step ${progressStep} of ${totalFunnelSteps}`}
-          theme={cfg.theme}
+          palette={palette}
         />
       </div>
       {children}
@@ -246,13 +247,15 @@ function ValueBridgeInner() {
     return shell(
       <div className="relative mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pb-10 pt-8 sm:px-8">
         <div className="mb-7">
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-emerald-500/90">
+          <p
+            className={`mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] ${palette.valueBridgeEyebrow}`}
+          >
             Your path
           </p>
           <h1 className="mb-3 font-serif text-2xl font-normal leading-snug tracking-tight text-zinc-50 md:text-[1.75rem]">
             {content.qualifyHeadline}
           </h1>
-          <p className="text-sm font-medium leading-snug text-emerald-400/95">
+          <p className={`text-sm font-medium leading-snug ${palette.bridgeHeadline}`}>
             {content.qualifySub}
           </p>
         </div>
@@ -313,13 +316,13 @@ function ValueBridgeInner() {
   return shell(
     <div className="relative mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pb-10 pt-8 sm:px-8">
       <div className="mb-7">
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-emerald-500/90">
+        <p className={`mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] ${palette.valueBridgeEyebrow}`}>
           Your access path
         </p>
         <h1 className="mb-3 font-serif text-2xl font-normal leading-snug tracking-tight text-zinc-50 md:text-[1.75rem]">
           {content.qualifyHeadline}
         </h1>
-        <p className="text-sm font-medium leading-snug text-emerald-400/95">
+        <p className={`text-sm font-medium leading-snug ${palette.bridgeHeadline}`}>
           {content.qualifySub}
         </p>
       </div>
@@ -366,7 +369,7 @@ function ValueBridgeInner() {
           <div className="space-y-2">
             {content.activatesAfterFunding.map((item, i) => (
               <div key={i} className="flex items-start gap-2">
-                <span className="mt-0.5 shrink-0 text-xs text-emerald-500">
+                <span className={`mt-0.5 shrink-0 text-xs ${palette.bridgeCheckmark}`}>
                   ✓
                 </span>
                 <p className="text-sm leading-snug text-zinc-300">{item}</p>
@@ -377,12 +380,16 @@ function ValueBridgeInner() {
       ) : null}
 
       {content.miniAppBonus ? (
-        <div className="mb-6 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5">
+        <div
+          className={`mb-6 rounded-2xl border ${palette.bonusPanelBorder} ${palette.bonusPanelBg} p-5`}
+        >
           <div className="mb-2 flex items-center gap-2">
-            <span className="text-sm text-amber-400" aria-hidden>
+            <span className={`text-sm ${palette.bonusPanelAccent}`} aria-hidden>
               🎁
             </span>
-            <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
+            <p
+              className={`text-xs font-semibold uppercase tracking-widest ${palette.bonusPanelAccent}`}
+            >
               Mini app activation bonus
             </p>
           </div>
@@ -405,7 +412,7 @@ function ValueBridgeInner() {
         type="button"
         onClick={handleContinue}
         disabled={revealing}
-        className={`mt-auto w-full rounded-xl py-4 text-sm font-semibold ${t.accentBg} text-black ${t.accentBgHover} transition-colors disabled:opacity-70`}
+        className={`mt-auto w-full rounded-xl py-4 text-sm font-semibold ${t.accentBg} ${t.accentButtonText} ${t.accentBgHover} transition-colors disabled:opacity-70`}
       >
         {revealing
           ? "Loading your access path…"

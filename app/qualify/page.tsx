@@ -6,7 +6,7 @@ import { FunnelProgress } from "@/components/funnel/FunnelProgress";
 import { ProcessingScreen } from "@/components/funnel/ProcessingScreen";
 import { normalizeEntryVariant, type AdVariant } from "@/lib/funnel/normalize";
 import { getFunnelConfig, getPreQuestionnaireSteps } from "@/lib/funnel/resolve";
-import { getThemeClasses } from "@/lib/funnel/theme";
+import { getAccentPalette } from "@/lib/funnel/palette";
 import { trackFunnelEvent } from "@/lib/funnel/track";
 import { loadWebApp } from "@/lib/twa";
 
@@ -90,7 +90,8 @@ function QualifyInner() {
   const params = useSearchParams();
   const variant = normalizeEntryVariant(params.get("variant")) as AdVariant;
   const cfg = getFunnelConfig(variant);
-  const t = getThemeClasses(cfg.theme);
+  const palette = getAccentPalette(cfg);
+  const t = palette;
   const preSteps = getPreQuestionnaireSteps();
   const totalFunnelSteps = preSteps + QUESTIONNAIRE_STEPS + POST_QUALIFY_STEPS;
 
@@ -187,10 +188,10 @@ function QualifyInner() {
 
   return (
     <>
-      {processing ? <ProcessingScreen theme={cfg.theme} /> : null}
+      {processing ? <ProcessingScreen palette={palette} /> : null}
       <div className="relative flex min-h-screen flex-col bg-gradient-to-b from-zinc-950 via-black to-zinc-950 text-white">
         <div
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(245,158,11,0.12),transparent)]"
+          className={`pointer-events-none absolute inset-0 ${palette.pageRadialGlow}`}
           aria-hidden
         />
         <div className="relative border-b border-zinc-800/80 bg-black/40 backdrop-blur-sm">
@@ -198,12 +199,14 @@ function QualifyInner() {
             current={funnelStepNumber}
             total={totalFunnelSteps}
             label={`Step ${funnelStepNumber} of ${totalFunnelSteps}`}
-            theme={cfg.theme}
+            palette={palette}
           />
         </div>
 
         <div className="relative mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pb-10 pt-6 sm:px-8 sm:pt-8">
-          <p className="mb-6 text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-500/90">
+          <p
+            className={`mb-6 text-[10px] font-semibold uppercase tracking-[0.22em] ${palette.questionnaireEyebrow}`}
+          >
             Application · Question {step.step} of {QUESTIONNAIRE_STEPS}
           </p>
 
@@ -224,7 +227,7 @@ function QualifyInner() {
                 onClick={() => handleSelect(opt.value)}
                 className={`w-full rounded-xl border px-5 py-4 text-left text-[15px] leading-snug transition-all duration-200 ${
                   selected === opt.value
-                    ? `border-amber-500/70 bg-amber-500/[0.08] text-zinc-50 shadow-[0_0_0_1px_rgba(245,158,11,0.2)] ring-1 ring-amber-500/30`
+                    ? palette.qualifyOptionSelected
                     : "border-zinc-700/80 bg-zinc-900/40 text-zinc-300 hover:border-zinc-500 hover:bg-zinc-800/50 active:scale-[0.99]"
                 }`}
               >
@@ -239,7 +242,7 @@ function QualifyInner() {
             disabled={!selected || processing}
             className={`mt-8 w-full rounded-xl py-4 text-sm font-semibold tracking-wide shadow-lg transition-all ${
               selected && !processing
-                ? `${t.accentBg} text-zinc-950 shadow-amber-900/25 ${t.accentBgHover}`
+                ? `${t.accentBg} ${t.accentButtonText} ${t.primaryButtonShadow} ${t.accentBgHover}`
                 : "cursor-not-allowed border border-zinc-800 bg-zinc-900/50 text-zinc-600"
             }`}
           >

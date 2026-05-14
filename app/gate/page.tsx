@@ -6,6 +6,7 @@ import { FunnelProgress } from "@/components/funnel/FunnelProgress";
 import { PositioningGate } from "@/components/funnel/PositioningGate";
 import { normalizeEntryVariant } from "@/lib/funnel/normalize";
 import { getFunnelConfig, getPreQuestionnaireSteps } from "@/lib/funnel/resolve";
+import { getAccentPalette } from "@/lib/funnel/palette";
 import { trackFunnelEvent } from "@/lib/funnel/track";
 
 function GateInner() {
@@ -14,6 +15,7 @@ function GateInner() {
   const variant = normalizeEntryVariant(params.get("variant"));
   const cfg = getFunnelConfig(variant);
   const preTotal = getPreQuestionnaireSteps();
+  const palette = getAccentPalette(cfg);
 
   const onContinue = useCallback(async () => {
     await trackFunnelEvent("funnel_gate_complete", { variant });
@@ -32,10 +34,10 @@ function GateInner() {
           current={1}
           total={preTotal}
           label={undefined}
-          theme={cfg.theme}
+          palette={palette}
         />
       }
-      theme={cfg.theme}
+      palette={palette}
       onContinue={onContinue}
     />
   );

@@ -1,8 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import type { FunnelTheme } from "@/lib/funnel/types";
-import { getThemeClasses } from "@/lib/funnel/theme";
+import type { FunnelAccentPalette } from "@/lib/funnel/types";
+import { funnelPaletteAmber } from "@/lib/funnel/palette";
 import { SocialProofTicker } from "./SocialProofTicker";
 
 type Props = {
@@ -13,7 +13,7 @@ type Props = {
   tickerLines?: string[];
   /** Rendered below ticker, above main copy (e.g. funnel progress). */
   header?: ReactNode;
-  theme?: FunnelTheme;
+  palette?: FunnelAccentPalette;
   onContinue: () => void;
 };
 
@@ -24,10 +24,10 @@ export function PositioningGate({
   logoSrc,
   tickerLines,
   header,
-  theme = "emerald",
+  palette = funnelPaletteAmber,
   onContinue,
 }: Props) {
-  const t = getThemeClasses(theme);
+  const t = palette;
   const centered = Boolean(logoSrc);
   const subParagraphs = subcopy?.includes("\n\n")
     ? subcopy.split("\n\n").filter(Boolean)
@@ -79,7 +79,7 @@ export function PositioningGate({
         <button
           type="button"
           onClick={onContinue}
-          className={`w-full py-4 rounded-xl font-semibold text-sm ${t.accentBg} text-black ${t.accentBgHover} transition-colors`}
+          className={`w-full py-4 rounded-xl font-semibold text-sm ${t.accentBg} ${t.accentButtonText} ${t.accentBgHover} transition-colors`}
         >
           {ctaLabel}
         </button>

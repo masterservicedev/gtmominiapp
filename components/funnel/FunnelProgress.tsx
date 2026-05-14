@@ -1,14 +1,14 @@
 "use client";
 
-import { getThemeClasses } from "@/lib/funnel/theme";
-import type { FunnelTheme } from "@/lib/funnel/types";
+import type { FunnelAccentPalette } from "@/lib/funnel/types";
+import { funnelPaletteAmber } from "@/lib/funnel/palette";
 
 type Props = {
   current: number;
   total: number;
   label?: string;
-  theme?: FunnelTheme;
-  /** Light pages (e.g. code offer): neutral track so the theme accent is the visible strip. */
+  palette?: FunnelAccentPalette;
+  /** Light pages (e.g. code offer): neutral track so the accent is the visible strip. */
   surface?: "onDark" | "onLight";
 };
 
@@ -16,10 +16,10 @@ export function FunnelProgress({
   current,
   total,
   label,
-  theme = "emerald",
+  palette = funnelPaletteAmber,
   surface = "onDark",
 }: Props) {
-  const t = getThemeClasses(theme);
+  const t = palette;
   const pct = total > 0 ? Math.min(100, (current / total) * 100) : 0;
   const trackClass =
     surface === "onLight" ? "bg-zinc-200/95" : "bg-zinc-800";

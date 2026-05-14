@@ -1,14 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { FunnelTheme } from "@/lib/funnel/types";
-import { getThemeClasses } from "@/lib/funnel/theme";
+import type { FunnelAccentPalette } from "@/lib/funnel/types";
+import { funnelPaletteAmber } from "@/lib/funnel/palette";
 
 type Props = {
   src: string;
   poster?: string;
   minWatchSeconds: number;
-  theme?: FunnelTheme;
+  palette?: FunnelAccentPalette;
   onThresholdMet?: (seconds: number) => void;
   onUnlockReady?: (ready: boolean) => void;
 };
@@ -17,11 +17,11 @@ export function VideoOffer({
   src,
   poster,
   minWatchSeconds,
-  theme = "emerald",
+  palette = funnelPaletteAmber,
   onThresholdMet,
   onUnlockReady,
 }: Props) {
-  const t = getThemeClasses(theme);
+  const t = palette;
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<{ destroy: () => void } | null>(null);
   const [played, setPlayed] = useState(0);

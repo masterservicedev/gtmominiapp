@@ -1,4 +1,5 @@
 import type { FunnelVariantConfig } from "./types";
+import { funnelPaletteAmber } from "./palette";
 
 const VIDEO_SRC =
   typeof process !== "undefined"
@@ -8,7 +9,7 @@ const VIDEO_SRC =
     : "";
 
 export const ad4VariantConfig: FunnelVariantConfig = {
-  theme: "amber",
+  accentPalette: funnelPaletteAmber,
   positioningGate: {
     /** Step 1 gate only — crown / brand mark on the positioning screen. */
     logoSrc: "/offer/media/gtmologo.png",

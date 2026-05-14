@@ -10,7 +10,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FunnelProgress } from "@/components/funnel/FunnelProgress";
 import { normalizeEntryVariant, type AdVariant } from "@/lib/funnel/normalize";
 import { getFunnelConfig, getPreQuestionnaireSteps } from "@/lib/funnel/resolve";
-import { getThemeClasses } from "@/lib/funnel/theme";
+import { getAccentPalette } from "@/lib/funnel/palette";
 import { trackFunnelEvent } from "@/lib/funnel/track";
 import { loadWebApp } from "@/lib/twa";
 import type { ProductKey, ProductMatch } from "@/lib/productMatch";
@@ -67,7 +67,8 @@ function ProductMatchInner() {
   const params = useSearchParams();
   const variant = normalizeEntryVariant(params.get("variant")) as AdVariant;
   const cfg = getFunnelConfig(variant);
-  const t = getThemeClasses(cfg.theme);
+  const palette = getAccentPalette(cfg);
+  const t = palette;
   const preSteps = getPreQuestionnaireSteps();
   const totalFunnelSteps = preSteps + 8;
   const progressStep = preSteps + 7;
@@ -141,7 +142,7 @@ function ProductMatchInner() {
         <button
           type="button"
           onClick={() => router.replace(`/result?segment=LOW`)}
-          className={`rounded-xl px-6 py-3 text-sm font-semibold ${t.accentBg} text-black`}
+          className={`rounded-xl px-6 py-3 text-sm font-semibold ${t.accentBg} ${t.accentButtonText}`}
         >
           Continue
         </button>
@@ -169,7 +170,7 @@ function ProductMatchInner() {
   return (
     <div className="relative flex min-h-screen flex-col bg-gradient-to-b from-zinc-950 via-black to-zinc-950 text-white">
       <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(245,158,11,0.12),transparent)]"
+        className={`pointer-events-none absolute inset-0 ${palette.pageRadialGlow}`}
         aria-hidden
       />
       <div className="relative border-b border-zinc-800/80 bg-black/40 backdrop-blur-sm">
@@ -177,7 +178,7 @@ function ProductMatchInner() {
           current={progressStep}
           total={totalFunnelSteps}
           label={`Step ${progressStep} of ${totalFunnelSteps}`}
-          theme={cfg.theme}
+          palette={palette}
         />
       </div>
 
@@ -189,11 +190,11 @@ function ProductMatchInner() {
           <h1 className="mb-1 text-2xl font-bold leading-tight tracking-tight text-zinc-50 md:text-3xl">
             {primary.displayName}
           </h1>
-          <p className="text-sm font-medium text-emerald-400/95">
+          <p className={`text-sm font-medium ${palette.bridgeHeadline}`}>
             {primary.tagline}
           </p>
           {capital === "300_1000" ? (
-            <p className="mt-2 text-xs leading-snug text-amber-400/90">
+            <p className={`mt-2 text-xs leading-snug ${palette.bridgeSubline}`}>
               FX Basics or Education — your specialist confirms which fits your
               level.
             </p>
@@ -219,7 +220,7 @@ function ProductMatchInner() {
           <div className="space-y-2">
             {keyInclusions.map((item, i) => (
               <div key={i} className="flex items-start gap-2">
-                <span className="mt-0.5 shrink-0 text-xs text-emerald-500">
+                <span className={`mt-0.5 shrink-0 text-xs ${palette.bridgeCheckmark}`}>
                   ✓
                 </span>
                 <p className="text-sm text-zinc-300">{item}</p>
@@ -229,13 +230,17 @@ function ProductMatchInner() {
         </div>
 
         {bundleRule ? (
-          <div className="mb-6 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+          <div
+            className={`mb-6 rounded-xl border ${palette.bonusPanelBorder} ${palette.bonusPanelBg} px-4 py-3`}
+          >
             <div className="flex items-start gap-2">
-              <span className="text-sm text-amber-400" aria-hidden>
+              <span className={`text-sm ${palette.bonusPanelAccent}`} aria-hidden>
                 🎁
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
+                <p
+                  className={`text-xs font-semibold uppercase tracking-widest ${palette.bonusPanelAccent}`}
+                >
                   Mini app activation bonus
                 </p>
                 <p className="mt-0.5 text-sm text-zinc-300">
@@ -256,7 +261,7 @@ function ProductMatchInner() {
               `/confirm-intent?variant=${encodeURIComponent(variant)}`,
             )
           }
-          className={`mt-auto w-full rounded-xl py-4 text-sm font-semibold ${t.accentBg} text-black ${t.accentBgHover} transition-colors`}
+          className={`mt-auto w-full rounded-xl py-4 text-sm font-semibold ${t.accentBg} ${t.accentButtonText} ${t.accentBgHover} transition-colors`}
         >
           Continue to activation →
         </button>

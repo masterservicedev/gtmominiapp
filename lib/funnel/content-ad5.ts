@@ -1,4 +1,5 @@
 import type { FunnelVariantConfig } from "./types";
+import { funnelPaletteVioletSky } from "./palette";
 
 const VIDEO_SRC =
   typeof process !== "undefined"
@@ -9,113 +10,116 @@ const VIDEO_SRC =
     : "";
 
 export const ad5VariantConfig: FunnelVariantConfig = {
-  theme: "emerald",
+  accentPalette: funnelPaletteVioletSky,
   positioningGate: {
     logoSrc: "/offer/media/gtmologo.png",
-    headline: "If you're serious, move while the window is open.",
+    headline: "Attention — if you want gold context with structure, read this before you tap through.",
     subcopy: [
-      "We keep daily onboarding measured so the team can review applications properly — not as a gimmick, as a real constraint.",
-      "The next step is a short questionnaire so we can route you to the right conversation.",
-      "No automation promising outcomes — just education, live context, and honest risk language.",
+      "This path is for people who prefer a clear process over noise: a short on-page brief, then a questionnaire inside the app.",
+      "We review applications in rounds. When a round is full, the next window may be later — that is a real operational limit, not a theatrical timer.",
+      "Nothing here is a promise of profit, accuracy, or passive income. It is education, live framing, and honest risk language only.",
     ].join("\n\n"),
-    ctaLabel: "Continue",
+    ctaLabel: "Continue to the brief",
   },
   socialProofTicker: [
-    "Live context in channel — process and risk framing, not price predictions",
-    "Questionnaire typically under two minutes — then orderly next steps",
-    "Education-first — not financial advice; no guaranteed-return language",
+    "Applications are reviewed in order — the questionnaire is short and routes you cleanly",
+    "Gold-focused context: how setups are discussed, how risk is named, what “live” actually means here",
+    "Not financial advice — no robot claims, no celebrity endorsements, no fake market tickers",
   ],
   offer: {
     mode: "code_landing",
     projectName: "GTMO Signals",
     headerLogoSrc: "/logo-gtmo-crown.png",
-    primaryCtaLabel: "Open application",
+    primaryCtaLabel: "Continue to questionnaire",
     video: {
       src: VIDEO_SRC,
       minWatchSeconds: 0,
     },
     intro: {
-      h1: "Markets move fast — your plan shouldn't be improvised in the dark.",
-      h2: "Watch a short brief: how we think about structure, timing, and risk in live conditions.",
-      h2b: "Then decide if you want to continue to a short application — nothing hidden behind a fake countdown.",
-      h3: 'This is a live trading environment led by someone who executes in real time and explains the "why" — not a bot, not a miracle script.',
+      h1: "Gold rewards patience — but patience without a plan is just waiting.",
+      h2: "Start with a calm brief: how we organize ideas before price does anything dramatic.",
+      h2b: "Then you choose whether to continue — no countdown theatre, no third-party widgets pretending to be “live markets.”",
+      h3: "You are not buying a script. You are seeing whether an education-first community and live context match how you want to learn.",
     },
     urgencyAside: {
-      eyebrow: "Private intake",
+      eyebrow: "While this intake window is open",
       headline:
-        "Complete the brief, then open your application while this intake round is active.",
+        "If this is the right moment for you, complete the brief and move to the in-app questionnaire in one straight line.",
       bullets: [
-        "One path: watch → short questionnaire → specialist routing when it makes sense.",
-        "We decline noisy or misaligned applicants on purpose — it protects the community.",
-        "Nothing here promises profit — only clarity on process and what happens next.",
-      ],
-    },
-    midPageUrgency: {
-      title: "How it works",
-      subtitle: "Three steps — aligned with what actually happens in the app.",
-      bullets: [
-        "Watch the brief above so you understand tone, risk, and how live context is shared.",
-        "Answer a short questionnaire so we can match you to the right next step.",
-        "If it's a fit, you'll hear from our side with orderly follow-up — not pressure spam.",
+        "Watch the brief so tone, risk, and cadence make sense before you answer anything.",
+        "The questionnaire is there to route you properly — not to pressure you into a deposit story.",
+        "We decline applicants who need hype or guarantees; that keeps the room focused on process.",
       ],
     },
     joinSection: {
-      headline: "Join The {projectName}",
+      headline: "Why traders open the door to {projectName}",
       paragraphs: [
-        "**The {projectName}** is for traders who want live gold context, disciplined framing, and a community that prefers process over hype.",
-        "**Members** who align get a clearer lane: structured updates, risk-aware discussion, and support through onboarding — not a fantasy of passive income.",
+        "**{projectName}** is built around gold, live discussion, and a shared vocabulary for risk — not around get-rich shortcuts or hidden “levels.”",
+        "**People who stay** tend to want the same things: clearer prep before sessions, less improvisation under stress, and a place where outcomes are not marketed as inevitable.",
       ],
     },
-    testimonialsSectionTitle: "What members say",
+    midPageUrgency: {
+      title: "How it works (in plain steps)",
+      subtitle:
+        "Same flow every time — so you always know what you are agreeing to before anything formal.",
+      bullets: [
+        "Step one: use the brief above to understand how context is shared and how limits are talked about.",
+        "Step two: answer the short questionnaire in the app so we can match you to the right next conversation.",
+        "Step three: if there is a fit, you hear from us in an orderly way. If not, you still leave with a clear boundary — no spam ladder.",
+      ],
+    },
+    testimonialsSectionTitle: "Voices from the community",
     testimonials: [
       {
         name: "Laura Abenstein",
         imageFile: "/offer/media/laura.jpg",
         quote:
-          "The shift for me was structure — knowing what to ignore and what to focus on. The group helped me stay accountable.",
+          "I was tired of feeds that yell. Here the tone is slower and the risk talk matches how I actually think about size.",
       },
       {
         name: "Chris Hadid",
         imageFile: "/offer/media/chris.jpg",
         quote:
-          "Morning routine is calmer now — I finally have language for risk that matches how I actually trade.",
+          "Mornings feel less chaotic — I have a checklist for what I ignore and what I actually prepare for.",
       },
       {
         name: "Michael Zusman",
         imageFile: "/offer/media/michael.jpg",
         quote:
-          "I came for the live context and stayed for the discipline — it's consistent in a way I didn't have on my own.",
+          "I stayed because the framing is consistent. I am not promised outcomes — I am shown process.",
       },
       {
         name: "Magda Boltyanski",
         imageFile: "/offer/media/magda.jpg",
         quote:
-          "Feels like I have a framework I can revisit when markets get loud — less guessing, more intention.",
+          "When volatility spikes I have language for it now instead of reacting in a panic loop.",
       },
       {
         name: "Carl Edwards",
         imageFile: "/offer/media/carl.jpg",
         quote:
-          "Before joining I was scattered. Having a clear path and people who take risk seriously made a real difference for me.",
+          "I came scattered. Having a single lane for how information is delivered helped more than any single “tip.”",
       },
     ],
     moSection: {
       title: "Meet Gold Trader Mo",
-      subtitleLines: ["The Genius Behind The", "GTMO Signals"],
+      subtitleLines: ["Behind the daily", "GTMO Signals"],
       bodyParagraphs: [
-        "Hi — I'm Mo. I'm a **full-time trader** with years of live execution in gold — not a vendor selling a black box.",
-        "I built **GTMO Signals** around what I wished I had early on: live context, explicit risk talk, and a community that doesn't confuse entertainment with a trading plan.",
-        "Watch the brief, then continue only if you want an education-first path and a fair review of your application.",
-        "If you're looking for guaranteed outcomes or hands-off automation, this won't be a match — and that's intentional.",
+        "Hi — I am Mo. I trade gold in live conditions and prefer showing reasoning over selling mystery.",
+        "**GTMO Signals** exists because I wanted a room that treats leverage seriously: where stops and context are normal topics, not afterthoughts.",
+        "If you want a polished story about effortless wins, you will not find it here. If you want structure and a fair review of fit, watch the brief and continue only when that still sounds right.",
+        "Applications are filtered on purpose. The goal is a serious table — not the widest possible audience.",
       ],
       imageFile: "/offer/media/mo.jpg",
-      signOffLines: ["Your Friend,", "Mo"],
+      signOffLines: ["With respect,", "Mo"],
     },
     disclaimerParagraphs: [
-      "**Not financial advice.** Everything here is for general education. Trading and leveraged products carry substantial risk of loss; you can lose more than you deposit.",
-      "**No guaranteed results.** Past or hypothetical examples are not reliable indicators of future performance. Only use capital you can afford to lose.",
-      "**Eligibility and fit.** Applications are reviewed manually; meeting the questionnaire does not guarantee access, timing, or any particular product.",
-      "**Your responsibility.** You are responsible for your decisions, taxes, and compliance with laws in your jurisdiction.",
+      "**Is this financial advice?** No. Nothing on this page tells you what to buy or sell. It is general education and orientation only.",
+      "**Will I make money?** Markets can move against you quickly. You can lose some or all of your capital, including more than you deposit when leverage is involved. Past examples are not reliable guides to your future.",
+      "**Who is this for?** Adults who can read risk disclosures and who want an education-first path. It is not for anyone seeking guaranteed returns, “AI accuracy,” or hands-off automation.",
+      "**What happens after the questionnaire?** If there is a match, next steps are explained clearly. If not, you should expect a clean stop — not an endless upsell chain.",
+      "**Regulatory note.** You are responsible for your decisions and for rules that apply where you live. We do not claim celebrity partnerships or third-party endorsements that do not exist.",
+      "**Still unsure?** Do not continue. Close the page, sleep on it, and come back only if slow process still sounds better than another loud funnel.",
     ],
   },
 };
