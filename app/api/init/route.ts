@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
       .from(offers)
       .where(eq(offers.active, true));
 
-    /** Explicit `entryVariant` from client wins; then `start_param` `var`; then offer rotation / sticky user. */
+    /** Explicit `entryVariant` from client wins; then `start_param` `var`; else random active offer or env fallback. */
     let variant: string | null | undefined = fromClient;
     const fromStartVariant = parsed.variant?.trim();
     if (!variant && fromStartVariant) {
@@ -93,8 +93,6 @@ export async function POST(req: NextRequest) {
         /** No active offers: do NOT use sticky user row (ops cleared rotation). */
         const fb = process.env.FUNNEL_FALLBACK_VARIANT?.trim();
         variant = fb || "ad5";
-      } else if (existing.length > 0 && existing[0]!.entryVariant) {
-        variant = existing[0]!.entryVariant;
       } else {
         variant =
           activeOffers[Math.floor(Math.random() * activeOffers.length)]!.name;
@@ -161,13 +159,9 @@ export async function POST(req: NextRequest) {
           country,
           countryCode,
           lastSeenIp: storedClientIp,
+          entryVariant: normalizedVariant,
           ...utmPatch,
           ...(effectiveCid ? { voluumCid: effectiveCid } : {}),
-          ...(fromClient
-            ? { entryVariant: normalizedVariant }
-            : activeOffers.length === 0
-              ? { entryVariant: normalizedVariant }
-              : {}),
         })
         .where(eq(users.telegramId, tgUser.id));
     }

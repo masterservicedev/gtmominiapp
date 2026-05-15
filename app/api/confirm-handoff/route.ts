@@ -178,6 +178,7 @@ export async function POST(req: NextRequest) {
           segment: user.segment,
           source: "mini_app_intent",
           productKey: productMatch.productKey,
+          variant: user.entryVariant,
         },
         country: user.country,
       });

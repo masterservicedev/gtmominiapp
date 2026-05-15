@@ -99,6 +99,7 @@ export async function POST(req: NextRequest) {
         segment: result.segment,
         capital: answers.capital,
         readiness: answers.readiness,
+        variant: user.entryVariant,
       },
       country: user.country,
     });
