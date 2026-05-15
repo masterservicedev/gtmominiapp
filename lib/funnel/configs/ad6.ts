@@ -1,72 +1,80 @@
+// lib/funnel/configs/ad6.ts
+// Source: Fortiora Advisory lander
+// Uses marketing section types (hero, stats, why, how_it_works, testimonials_slider,
+// authority_card, faq, cta) — NOT corp_* types.
+// Theme: light corporate — white bg, yellow accent, Inter font.
+
 import type { FunnelConfig } from "@/lib/funnel/framework";
 
-const VIDEO_SRC =
-  typeof process !== "undefined"
-    ? process.env.NEXT_PUBLIC_GTMO_AD6_VIDEO_URL ||
-      process.env.NEXT_PUBLIC_GTMO_CODE_VIDEO_URL ||
-      process.env.NEXT_PUBLIC_FUNNEL_VIDEO_URL ||
-      ""
-    : "";
-
-/** Fortiora-inspired light layout: white surfaces, yellow CTAs (#f5c518), Inter. */
-const ad6Theme = {
-  pageBg: "#ffffff",
-  pageText: "#0f172a",
-  surfaceBg: "#f9fafb",
-  surfaceBorder: "#e5e7eb",
-  cardBg: "#ffffff",
-  cardBorder: "#e5e7eb",
-  mutedText: "#9ca3af",
-  headingColor: "#0f172a",
-  headingFont: '"Inter", "Helvetica Neue", system-ui, sans-serif',
-  bodyFont: '"Inter", "Helvetica Neue", system-ui, sans-serif',
-  accentBg: "#f5c518",
-  accentBgHover: "#e5b008",
-  accentFg: "#0f172a",
-  accentOnLight: "#a16207",
-  bandFrom: "#f9fafb",
-  bandVia: "#f3f4f6",
-  bandTo: "#f9fafb",
-  bandText: "#0f172a",
-  bandMuted: "#6b7280",
-  bandBulletBorder: "rgba(245, 197, 24, 0.35)",
-  stickyBg: "rgba(255, 255, 255, 0.97)",
-  stickyBorder: "#e5e7eb",
-  maxWidth: "640px",
-  heroPaddingY: "24px",
-  sectionPaddingY: "44px",
-  bodyColor: "#374151",
-  overlayBg: "rgba(17, 24, 39, 0.92)",
-  accentContrast: "#0f172a",
-  headingWeight: 700,
-  headingTransform: "none",
-  headingLetterSpacing: "-0.02em",
-  btnRadius: "8px",
-  btnPadding: "16px 32px",
-  btnFontSize: "15px",
-  btnFontWeight: 600,
-  btnTextTransform: "none",
-  cardRadius: "12px",
-  cardPadding: "24px",
-  cardShadow: "0 1px 4px rgba(0, 0, 0, 0.08)",
-} as const;
-
-export const ad6FunnelConfig: FunnelConfig = {
+export const ad6Config: FunnelConfig = {
   id: "ad6",
   name: "Fortiora Corporate",
-  sourceRef: "Fortiora Advisory — marketing template",
+  sourceRef: "Fortiora Advisory — fortiora.html",
   projectName: "GTMO Signals",
-  primaryCtaLabel: "Continue to questionnaire",
-  headerLogoSrc: "/logo-gtmo-crown.png",
-  theme: ad6Theme,
+  primaryCtaLabel: "Apply for access",
+  headerLogoSrc: "/offer/media/gtmologo.png",
+
+  theme: {
+    // ── Required base tokens ───────────────────────────────────────────────
+    pageBg: "#ffffff",
+    pageText: "#0f172a",
+    surfaceBg: "#f9fafb",
+    surfaceBorder: "#e5e7eb",
+    cardBg: "#ffffff",
+    cardBorder: "#e5e7eb",
+    mutedText: "#6b7280",
+    headingColor: "#0f172a",
+    headingFont: '"Inter", "Helvetica Neue", sans-serif',
+    bodyFont: '"Inter", "Helvetica Neue", sans-serif',
+
+    // ── Accent — Fortiora yellow ───────────────────────────────────────────
+    accentBg: "#f5c518",
+    accentBgHover: "#e6b800",
+    accentFg: "#0f172a", // dark text on yellow button
+    accentOnLight: "#b45309", // amber-700 — accent text on white surfaces
+
+    // ── Band (urgency_band section) — not used in ad6 but required by type
+    bandFrom: "#f9fafb",
+    bandVia: "#f3f4f6",
+    bandTo: "#e5e7eb",
+    bandText: "#0f172a",
+    bandMuted: "#6b7280",
+    bandBulletBorder: "#d1d5db",
+
+    // ── Sticky bottom CTA bar ─────────────────────────────────────────────
+    stickyBg: "#ffffff",
+    stickyBorder: "#e5e7eb",
+
+    // ── Layout ────────────────────────────────────────────────────────────
+    maxWidth: "640px",
+    heroPaddingY: "28px",
+    sectionPaddingY: "44px",
+
+    // ── Optional: marketing section CSS vars ──────────────────────────────
+    bodyColor: "#374151",
+    overlayBg: "rgba(17,24,39,0.92)",
+    accentContrast: "#0f172a",
+    headingWeight: 700,
+    headingTransform: "none",
+    headingLetterSpacing: "-0.02em",
+    btnRadius: "8px",
+    btnPadding: "14px 28px",
+    btnFontSize: "15px",
+    btnFontWeight: 600,
+    btnTextTransform: "none",
+    cardRadius: "12px",
+    cardPadding: "20px",
+    cardShadow: "0 1px 3px rgba(0,0,0,0.08)",
+  },
+
   sections: [
     {
       type: "hero",
-      headline: "A reliable partner for your trading journey.",
+      headline: "A structured way to trade gold.",
       subheadline:
-        "Structure, discipline, and live guidance — starting from your first funded account.",
+        "Follow a live trader who calls every entry, manages risk in real time, and shows every move.",
       video: {
-        src: VIDEO_SRC,
+        src: process.env.NEXT_PUBLIC_FUNNEL_VIDEO_URL ?? "",
         minWatchSeconds: 0,
       },
       ctaLabel: "Apply for access",
@@ -74,40 +82,40 @@ export const ad6FunnelConfig: FunnelConfig = {
     {
       type: "stats",
       items: [
-        { value: "Live", label: "Structured sessions with clear risk language" },
-        { value: "Education", label: "Questionnaire-first onboarding — no hype ladders" },
-        { value: "Community", label: "Members following the same lane in gold context" },
+        { value: "1,150+", label: "pips called live in a single week" },
+        { value: "$35,000+", label: "secured in a single NFP session" },
+        { value: "10,000+", label: "traders following live sessions daily" },
       ],
     },
     {
       type: "why",
-      headline: "{projectName} — a clear path, not a promise",
-      subheadline: "No guaranteed returns. No bots. No shortcuts.",
+      headline: "GTMO Signals — a clear path, not a promise.",
+      subheadline: "No bots. No automated signals. No shortcuts.",
       body: [
-        "We do not make vague promises or offer quick-rich programmes. What we provide is a **structured trading environment** built around live context and honest limits.",
-        "Each access level is matched to your capital and experience. Your specialist confirms your path and activates access after your account is funded and verified.",
-        "This is **education-first**. Your funding goes into your own trading account with Vantage — not to us.",
+        "What we provide is a structured trading environment built around a live trader who shows every move in real time. Every entry is called before execution. Every stop is explained. Every exit is shared with the community.",
+        "Your access level is matched to your capital and experience. Your specialist confirms your path and activates your access after your account is funded and verified with Vantage.",
+        "Your funding goes into your own trading account — not to us. GTMO access activates as a partnership benefit.",
       ],
       ctaLabel: "Apply for access",
     },
     {
       type: "how_it_works",
-      headline: "How to apply — 3 steps",
+      headline: "How it works — 3 steps",
       steps: [
         {
           number: 1,
-          title: "Complete the application",
-          body: "Answer a short questionnaire. We match you to the right access level for your capital and experience.",
+          title: "Complete your application",
+          body: "Answer a short questionnaire. We match you to the right access level for your capital and experience. Takes under two minutes.",
         },
         {
           number: 2,
           title: "Fund your trading account",
-          body: "Your specialist sends a Vantage registration link. Fund your own account. GTMO access activates after verification.",
+          body: "Your specialist sends a Vantage registration link. Fund your own account at the level you selected. GTMO access activates after verification.",
         },
         {
           number: 3,
           title: "Trade with live guidance",
-          body: "Follow live sessions, access your matched products, and trade alongside members with real-time signal guidance when sessions run.",
+          body: "Follow live sessions, access your matched products, and trade alongside 10,000+ members with real-time signal and risk guidance every day.",
         },
       ],
       ctaLabel: "Apply for access",
@@ -125,12 +133,12 @@ export const ad6FunnelConfig: FunnelConfig = {
         {
           name: "Henrik, 29",
           quote:
-            "I had never traded before. The questionnaire matched me to the right level and the guidance made the difference.",
+            "I had never traded before. The questionnaire matched me to the right level and the live guidance made the difference.",
         },
         {
           name: "Karla, 45",
           quote:
-            "I invested in the access and within months my approach to trading completely changed. The structure is what I was missing.",
+            "I invested in access and within months my approach to trading completely changed. The structure is what I was missing.",
         },
         {
           name: "Josefa, 34",
@@ -142,7 +150,7 @@ export const ad6FunnelConfig: FunnelConfig = {
     {
       type: "authority_card",
       headline: "Meet Gold Trader Mo",
-      name: "The trader behind {projectName}",
+      name: "The trader behind GTMO Signals",
       imageSrc: "/offer/media/mo.jpg",
       body: [
         "I'm Mo — a full-time gold trader with 4+ years of live track record. Every session is live. Every entry is called before execution. Every exit is shared with the community in real time.",
@@ -160,11 +168,6 @@ export const ad6FunnelConfig: FunnelConfig = {
             "A personal access path matched to your capital and experience, live trading sessions, signals, and a specialist who walks you through the next steps after your account is funded.",
         },
         {
-          question: "When does my access start?",
-          answer:
-            "After your account deposit is verified by your specialist. The questionnaire takes under two minutes and your specialist follows up promptly.",
-        },
-        {
           question: "What results can I expect?",
           answer:
             "We do not promise results. We provide structure, live guidance, and education. Outcomes depend on market conditions and how you manage your account.",
@@ -173,6 +176,11 @@ export const ad6FunnelConfig: FunnelConfig = {
           question: "Do I need trading experience?",
           answer:
             "No. The questionnaire matches you to the right access level. Beginners start with structured education. Experienced traders get live signals and VIP access.",
+        },
+        {
+          question: "What does my funding go toward?",
+          answer:
+            "Your funding goes into your own Vantage trading account — not to GTMO. GTMO access activates as a partnership benefit after your account is funded and verified.",
         },
         {
           question: "Can I get further guidance later?",
@@ -189,20 +197,6 @@ export const ad6FunnelConfig: FunnelConfig = {
       ctaLabel: "Apply for access",
       disclaimer:
         "Trading involves risk. Past results do not guarantee future returns. Your funding goes into your own Vantage trading account.",
-    },
-    {
-      type: "footer",
-      footerLinks: [
-        { label: "Privacy", href: "#" },
-        { label: "Risk", href: "#" },
-        { label: "Terms", href: "#" },
-        { label: "Report a concern", href: "#" },
-      ],
-      disclaimerParagraphs: [
-        "**Advertising notice:** This page is marketing and education material for {projectName}. It is not personalized advice.",
-        "**Risk:** Trading and leveraged products can result in rapid losses. Only proceed with money you can afford to lose.",
-        "**Testimonials:** Quotes are illustrative and not verified performance claims.",
-      ],
     },
   ],
 };
