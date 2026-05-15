@@ -116,7 +116,7 @@ export function MarketingHeroSectionView({
             overflow: "hidden",
             marginBottom: 20,
             background: "#000",
-            aspectRatio: "16/9",
+            aspectRatio: section.videoAspectRatio ?? "16/9",
           }}
         >
           {/* eslint-disable-next-line jsx-a11y/media-has-caption */}

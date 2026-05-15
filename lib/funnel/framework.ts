@@ -212,6 +212,7 @@ export type MarketingHeroSection = {
   subheadline?: string;
   video: { src: string; poster?: string; minWatchSeconds: number };
   ctaLabel: string;
+  videoAspectRatio?: string; // e.g. "4/5" for portrait, defaults to "16/9"
 };
 
 export type MarketingStatsSection = {
