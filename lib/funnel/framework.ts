@@ -266,6 +266,12 @@ export type MarketingCtaSection = {
   disclaimer?: string;
 };
 
+export type MarketingUrgencySection = {
+  type: "urgency";
+  headline: string;
+  bullets: string[];
+};
+
 export type FunnelSection =
   | HeroSplitSection
   | JoinSection
@@ -293,7 +299,8 @@ export type FunnelSection =
   | MarketingTestimonialsSliderSection
   | MarketingAuthorityCardSection
   | MarketingFaqSection
-  | MarketingCtaSection;
+  | MarketingCtaSection
+  | MarketingUrgencySection;
 
 export type FunnelConfig = {
   id: string;

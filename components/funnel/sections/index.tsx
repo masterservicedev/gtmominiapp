@@ -15,6 +15,7 @@ import type {
   MarketingHowItWorksSection,
   MarketingStatsSection,
   MarketingTestimonialsSliderSection,
+  MarketingUrgencySection,
   MarketingWhySection,
 } from "@/lib/funnel/framework";
 
@@ -789,6 +790,83 @@ export function MarketingCtaSectionView({
           {fillProject(section.disclaimer, projectName)}
         </p>
       ) : null}
+    </section>
+  );
+}
+
+export function MarketingUrgencySectionView({
+  section,
+}: {
+  section: MarketingUrgencySection;
+}) {
+  return (
+    <section
+      style={{
+        padding: "var(--funnel-section-py) 20px",
+        borderBottom: "1px solid var(--funnel-surface-border)",
+        background: `linear-gradient(to bottom, var(--funnel-band-from), var(--funnel-band-via), var(--funnel-band-to))`,
+      }}
+    >
+      <div
+        style={{
+          maxWidth: "var(--funnel-max-width)",
+          margin: "0 auto",
+        }}
+      >
+        <h2
+          style={{
+            fontFamily: "var(--funnel-heading-font)",
+            fontWeight: "var(--funnel-heading-weight)" as CSSProperties["fontWeight"],
+            color: "var(--funnel-band-text)",
+            fontSize: 22,
+            textAlign: "center",
+            lineHeight: 1.3,
+            marginBottom: 24,
+          }}
+        >
+          {section.headline}
+        </h2>
+        <ul
+          style={{
+            listStyle: "none",
+            margin: 0,
+            padding: 0,
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+          }}
+        >
+          {section.bullets.map((b) => (
+            <li
+              key={b}
+              style={{
+                display: "flex",
+                gap: 12,
+                padding: "14px 16px",
+                borderRadius: "var(--funnel-card-radius)",
+                border: "1px solid var(--funnel-band-bullet-border)",
+                backgroundColor: "rgba(0,0,0,0.3)",
+                color: "var(--funnel-band-text)",
+                fontSize: 14,
+                lineHeight: 1.5,
+              }}
+            >
+              <span
+                style={{
+                  marginTop: 6,
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  backgroundColor: "var(--funnel-accent)",
+                  flexShrink: 0,
+                }}
+                aria-hidden
+              />
+              <span>{b}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
     </section>
   );
 }

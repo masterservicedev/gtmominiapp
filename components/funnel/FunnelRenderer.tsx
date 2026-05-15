@@ -18,6 +18,7 @@ import {
   MarketingHowItWorksSectionView,
   MarketingStatsSectionView,
   MarketingTestimonialsSliderSectionView,
+  MarketingUrgencySectionView,
   MarketingWhySectionView,
 } from "@/components/funnel/sections";
 import {
@@ -407,6 +408,8 @@ function FunnelSectionView({
           onCta={onFunnelCta}
         />
       );
+    case "urgency":
+      return <MarketingUrgencySectionView section={section} />;
     case "testimonials_slider":
       return (
         <MarketingTestimonialsSliderSectionView section={section} projectName={projectName} />
