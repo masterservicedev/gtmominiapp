@@ -5,13 +5,13 @@ export const ad7VariantConfig: FunnelVariantConfig = {
   accentPalette: funnelPaletteAmber,
   positioningGate: {
     logoSrc: "/offer/media/gtmologo.png",
-    headline: "Our traders secured over $2,000,000 — documented live.",
+    headline: "$2,000,000 cashed out — watch the live proof.",
     subcopy: [
-      "This is not a highlight reel. The session was recorded in real time, unedited, with full transparency on entries, exits, and risk management.",
-      "What you are about to see is what disciplined execution looks like when the structure is correct. Then you will decide if this environment is right for you.",
-      "Trading involves real risk. This result is documented and not a guarantee of what you will achieve.",
+      "What you are about to see is a live, unedited withdrawal from a real trading account. No screenshots. No claims. The full amount, withdrawn on camera.",
+      "After you watch it, you will understand why access to this environment is limited — and why we only accept serious applicants.",
+      "Trading involves real risk. This result is documented evidence, not a promise of what you will achieve.",
     ].join("\n\n"),
-    ctaLabel: "Watch the session",
+    ctaLabel: "Watch the withdrawal",
   },
   socialProofTicker: [
     "Documented live session — unedited, real positions, real exits",
