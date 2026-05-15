@@ -11,6 +11,16 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import {
+  MarketingAuthorityCardSectionView,
+  MarketingCtaSectionView,
+  MarketingFaqSectionView,
+  MarketingHeroSectionView,
+  MarketingHowItWorksSectionView,
+  MarketingStatsSectionView,
+  MarketingTestimonialsSliderSectionView,
+  MarketingWhySectionView,
+} from "@/components/funnel/sections";
+import {
   CorpFaqSectionView,
   CorpFinalCtaSectionView,
   CorpHeaderSectionView,
@@ -273,6 +283,7 @@ export function FunnelRenderer({
           testimonialsPausedRef={testimonialsPausedRef}
           testimonialsTouchResumeRef={testimonialsTouchResumeRef}
           progressBarColor={theme.accentBg}
+          onFunnelCta={continueToQualify}
         />
       ))}
 
@@ -363,6 +374,7 @@ function FunnelSectionView({
   testimonialsPausedRef,
   testimonialsTouchResumeRef,
   progressBarColor,
+  onFunnelCta,
 }: {
   section: FunnelSection;
   variant: AdVariant;
@@ -374,8 +386,39 @@ function FunnelSectionView({
     typeof setTimeout
   > | null>;
   progressBarColor: string;
+  onFunnelCta: () => void;
 }) {
   switch (section.type) {
+    case "hero":
+      return (
+        <MarketingHeroSectionView section={section} projectName={projectName} onCta={onFunnelCta} />
+      );
+    case "stats":
+      return <MarketingStatsSectionView section={section} />;
+    case "why":
+      return (
+        <MarketingWhySectionView section={section} projectName={projectName} onCta={onFunnelCta} />
+      );
+    case "how_it_works":
+      return (
+        <MarketingHowItWorksSectionView
+          section={section}
+          projectName={projectName}
+          onCta={onFunnelCta}
+        />
+      );
+    case "testimonials_slider":
+      return (
+        <MarketingTestimonialsSliderSectionView section={section} projectName={projectName} />
+      );
+    case "authority_card":
+      return <MarketingAuthorityCardSectionView section={section} projectName={projectName} />;
+    case "faq":
+      return <MarketingFaqSectionView section={section} projectName={projectName} />;
+    case "cta":
+      return (
+        <MarketingCtaSectionView section={section} projectName={projectName} onCta={onFunnelCta} />
+      );
     case "hero_split":
       return (
         <HeroSplitView

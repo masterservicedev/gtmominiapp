@@ -34,6 +34,21 @@ export type FunnelTheme = {
   corpYellowBg?: string;
   corpYellowText?: string;
   corpNavLink?: string;
+  /** Optional: Fortiora / marketing-template CSS vars (all optional — mapper supplies fallbacks). */
+  bodyColor?: string;
+  overlayBg?: string;
+  accentContrast?: string;
+  headingWeight?: number;
+  headingTransform?: string;
+  headingLetterSpacing?: string;
+  btnRadius?: string;
+  btnPadding?: string;
+  btnFontSize?: string;
+  btnFontWeight?: number;
+  btnTextTransform?: string;
+  cardRadius?: string;
+  cardPadding?: string;
+  cardShadow?: string;
 };
 
 export type FunnelTestimonial = {
@@ -190,6 +205,66 @@ export type CorpFinalCtaSection = {
   paragraphs: string[];
 };
 
+/** Marketing template sections (CSS-var driven) — used by ad6; do not merge with legacy `testimonials`. */
+export type MarketingHeroSection = {
+  type: "hero";
+  headline: string;
+  subheadline?: string;
+  video: { src: string; poster?: string; minWatchSeconds: number };
+  ctaLabel: string;
+};
+
+export type MarketingStatsSection = {
+  type: "stats";
+  items: { value: string; label: string }[];
+};
+
+export type MarketingWhySection = {
+  type: "why";
+  headline: string;
+  subheadline?: string;
+  body: string[];
+  image?: { src: string; alt: string };
+  ctaLabel?: string;
+};
+
+export type MarketingHowItWorksSection = {
+  type: "how_it_works";
+  headline: string;
+  steps: { number: number; title: string; body: string }[];
+  ctaLabel?: string;
+};
+
+export type MarketingTestimonialsSliderSection = {
+  type: "testimonials_slider";
+  headline?: string;
+  layout: "slider";
+  items: { name: string; quote: string; imageSrc?: string }[];
+};
+
+export type MarketingAuthorityCardSection = {
+  type: "authority_card";
+  headline: string;
+  name: string;
+  imageSrc: string;
+  body: string[];
+  signOff: string[];
+};
+
+export type MarketingFaqSection = {
+  type: "faq";
+  headline?: string;
+  items: { question: string; answer: string }[];
+};
+
+export type MarketingCtaSection = {
+  type: "cta";
+  headline: string;
+  subheadline?: string;
+  ctaLabel: string;
+  disclaimer?: string;
+};
+
 export type FunnelSection =
   | HeroSplitSection
   | JoinSection
@@ -209,11 +284,21 @@ export type FunnelSection =
   | CorpSplitWorkSection
   | CorpThreeCardsSection
   | CorpFaqSection
-  | CorpFinalCtaSection;
+  | CorpFinalCtaSection
+  | MarketingHeroSection
+  | MarketingStatsSection
+  | MarketingWhySection
+  | MarketingHowItWorksSection
+  | MarketingTestimonialsSliderSection
+  | MarketingAuthorityCardSection
+  | MarketingFaqSection
+  | MarketingCtaSection;
 
 export type FunnelConfig = {
   id: string;
   name?: string;
+  /** Optional provenance label (e.g. source lander name). */
+  sourceRef?: string;
   projectName: string;
   primaryCtaLabel: string;
   headerLogoSrc?: string;
@@ -222,6 +307,21 @@ export type FunnelConfig = {
 };
 
 export function funnelThemeToCssVars(theme: FunnelTheme): CSSProperties {
+  const body = theme.bodyColor ?? theme.pageText;
+  const accentContrast = theme.accentContrast ?? theme.accentFg;
+  const hw = theme.headingWeight ?? 600;
+  const htf = theme.headingTransform ?? "none";
+  const hls = theme.headingLetterSpacing ?? "0";
+  const br = theme.btnRadius ?? "8px";
+  const bp = theme.btnPadding ?? "16px 32px";
+  const bfs = theme.btnFontSize ?? "15px";
+  const bfw = theme.btnFontWeight ?? 600;
+  const btt = theme.btnTextTransform ?? "none";
+  const cr = theme.cardRadius ?? "12px";
+  const cp = theme.cardPadding ?? "24px";
+  const cs = theme.cardShadow ?? "0 1px 4px rgba(0,0,0,0.08)";
+  const overlay = theme.overlayBg ?? "rgba(17,24,39,0.92)";
+
   const base: CSSProperties = {
     "--funnel-page-bg": theme.pageBg,
     "--funnel-page-text": theme.pageText,
@@ -248,6 +348,21 @@ export function funnelThemeToCssVars(theme: FunnelTheme): CSSProperties {
     "--funnel-max-width": theme.maxWidth,
     "--funnel-hero-pad-y": theme.heroPaddingY,
     "--funnel-section-pad-y": theme.sectionPaddingY,
+    "--funnel-body": body,
+    "--funnel-accent-contrast": accentContrast,
+    "--funnel-section-py": theme.sectionPaddingY,
+    "--funnel-heading-weight": String(hw),
+    "--funnel-heading-transform": htf,
+    "--funnel-heading-ls": hls,
+    "--funnel-btn-radius": br,
+    "--funnel-btn-padding": bp,
+    "--funnel-btn-font-size": bfs,
+    "--funnel-btn-font-weight": String(bfw),
+    "--funnel-btn-transform": btt,
+    "--funnel-card-radius": cr,
+    "--funnel-card-padding": cp,
+    "--funnel-card-shadow": cs,
+    "--funnel-overlay-bg": overlay,
   } as CSSProperties;
   return {
     ...base,
