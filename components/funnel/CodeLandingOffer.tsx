@@ -474,11 +474,11 @@ export function CodeLandingOffer({
       >
         {showActivity ? (
           <div
-            className={`flex w-full max-w-sm items-start justify-center gap-1.5 rounded-md border border-zinc-700/90 bg-zinc-950/95 px-2.5 py-1 text-[10px] leading-snug text-zinc-100 shadow-md backdrop-blur-sm md:max-w-[17rem] md:justify-start ${
+            className={`flex w-full max-w-sm items-center justify-center gap-1.5 rounded-md border border-zinc-700/90 bg-zinc-950/95 px-2.5 py-1 text-center text-[10px] leading-snug text-zinc-100 shadow-md backdrop-blur-sm md:max-w-[17rem] ${
               activityPulse ? `ring-1 ${palette.fomoActivityRing}` : ""
             }`}
           >
-            <span className="relative mt-0.5 flex h-2 w-2 shrink-0" aria-hidden>
+            <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
               <span
                 className={`absolute inline-flex h-full w-full animate-ping rounded-full ${palette.livePingOuter} opacity-60 motion-reduce:animate-none`}
               />
@@ -486,7 +486,7 @@ export function CodeLandingOffer({
                 className={`relative inline-flex h-2 w-2 rounded-full ${palette.liveDot} ${palette.liveDotShadow}`}
               />
             </span>
-            <span className="min-w-0 flex-1 text-left text-zinc-200">
+            <span className="min-w-0 text-center text-zinc-200">
               <span className={`font-semibold ${palette.liveLabel}`}>Live</span>
               {" - User from "}
               <span className="text-zinc-100">{fomoCountry}</span>
