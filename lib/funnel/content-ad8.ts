@@ -5,11 +5,11 @@ export const ad8VariantConfig: FunnelVariantConfig = {
   accentPalette: funnelPaletteAmber,
   positioningGate: {
     logoSrc: "/offer/media/gtmologo.png",
-    headline: "He just made $18,000 live. The next trade goes to VIP only.",
+    headline: "$18,000 made live. You were not in position for it. Here is how to change that.",
     subcopy: [
-      "What you are about to watch is a live session recording. $18,000 secured, positions shown on screen, charts visible throughout. Then Mo turns to camera and says the next setup is already prepared — and it goes to VIP members first.",
-      "You are watching this because the application is still open. Once the intake round closes, it closes.",
-      "Trading involves real risk. This is a documented result, not a guarantee of what you will achieve.",
+      "What you are about to watch is a real live session — $18,000 secured, positions and charts visible throughout. This is what being inside the environment looks like. Every person who follows GTMO had a first session they watched from the outside.",
+      "After the video, a short questionnaire matches you to the right access level for your capital and experience. Some will qualify for VIP signal access. Others will be matched to a structured education path that gets them there. Both get you inside.",
+      "Trading involves real risk. The session you are about to watch is documented and real — it is not a guarantee of what you will achieve.",
     ].join("\n\n"),
     ctaLabel: "Watch the session",
   },
