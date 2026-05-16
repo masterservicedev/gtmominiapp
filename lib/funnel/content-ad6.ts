@@ -5,13 +5,13 @@ export const ad6VariantConfig: FunnelVariantConfig = {
   accentPalette: funnelPaletteEmeraldSlate,
   positioningGate: {
     logoSrc: "/offer/media/gtmologo.png",
-    headline: "Structured gold context — without the “get rich quick” noise.",
+    headline: "You already know the market works. The question is whether your approach to it does.",
     subcopy: [
-      "This variant uses a corporate-style brief: a short video, then scrollable sections that explain how we talk about risk, process, and live framing.",
-      "If you continue, you will answer the same in-app questionnaire as other variants. Nothing on this page replaces your own judgment or due diligence.",
-      "Trading and leveraged products can lead to partial or total loss of capital. Past examples are not a guarantee of future results.",
+      "Most traders who lose in gold do not lose because the market is unpredictable. They lose because their process is. No clear entry framework. No discipline on exits. No structure around risk when a position moves against them.",
+      "What follows is a brief explanation of how a small number of traders approach this differently — and why the difference in results is not about capital or experience.",
+      "Trading involves real risk. Past results are not a guarantee of future returns.",
     ].join("\n\n"),
-    ctaLabel: "Continue to the brief",
+    ctaLabel: "Show me the difference",
   },
   socialProofTicker: [
     "Education-first layout — video + sections, then the standard questionnaire",
