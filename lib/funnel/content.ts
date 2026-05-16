@@ -5,6 +5,7 @@ import { ad5VariantConfig } from "./content-ad5";
 import { ad6VariantConfig } from "./content-ad6";
 import { ad7VariantConfig } from "./content-ad7";
 import { ad8VariantConfig } from "./content-ad8";
+import { ad9VariantConfig } from "./content-ad9";
 
 export const funnelContent: Record<AdVariant, FunnelVariantConfig> = {
   ad4: ad4VariantConfig,
@@ -12,4 +13,5 @@ export const funnelContent: Record<AdVariant, FunnelVariantConfig> = {
   ad6: ad6VariantConfig,
   ad7: ad7VariantConfig,
   ad8: ad8VariantConfig,
+  ad9: ad9VariantConfig,
 };

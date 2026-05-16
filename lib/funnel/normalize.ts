@@ -1,4 +1,4 @@
-export const AD_VARIANTS = ["ad4", "ad5", "ad6", "ad7", "ad8"] as const;
+export const AD_VARIANTS = ["ad4", "ad5", "ad6", "ad7", "ad8", "ad9"] as const;
 export type AdVariant = (typeof AD_VARIANTS)[number];
 
 export function isAdVariant(v: string): v is AdVariant {
@@ -14,7 +14,7 @@ export function normalizeEntryVariant(
 ): AdVariant {
   if (!raw) return "ad4";
   const v = raw.trim().toLowerCase();
-  if (v === "ad4" || v === "ad5" || v === "ad6" || v === "ad7" || v === "ad8") return v;
+  if (v === "ad4" || v === "ad5" || v === "ad6" || v === "ad7" || v === "ad8" || v === "ad9") return v;
   if (v === "gtmocode" || v === "code") return "ad4";
   if (v === "ad1" || v === "ad2" || v === "ad3") return "ad4";
   if (v.startsWith("vid")) return "ad4";
