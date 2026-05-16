@@ -42,110 +42,174 @@ export const ad5FunnelConfig: FunnelConfig = {
   id: "ad5",
   name: "GTMO brief — editorial / violet",
   projectName: "GTMO Signals",
-  primaryCtaLabel: "Continue to questionnaire",
+  primaryCtaLabel: "Apply for access",
   headerLogoSrc: "/logo-gtmo-crown.png",
   theme: ad5Theme,
   sections: [
     {
-      type: "hero_split",
-      video: { src: VIDEO_SRC, minWatchSeconds: 0 },
-      intro: {
-        h1: "Gold rewards patience — but patience without a plan is just waiting.",
-        h2: "Start with a calm brief: how we organize ideas before price does anything dramatic.",
-        h2b:
-          "Then you choose whether to continue — no countdown theatre, no third-party widgets pretending to be “live markets.”",
-        h3:
-          "You are not buying a script. You are seeing whether an education-first community and live context match how you want to learn.",
+      type: "hero",
+      headline:
+        "Gold moved $35,000 in a single session. The people inside knew before it opened.",
+      subheadline:
+        "This is a live gold trading environment — every setup called before execution, every exit shared in real time. What follows shows you exactly what that looks like.",
+      video: {
+        src: VIDEO_SRC,
+        minWatchSeconds: 0,
       },
-      urgencyAside: {
-        eyebrow: "While this intake window is open",
-        headline:
-          "If this is the right moment for you, complete the brief and move to the in-app questionnaire in one straight line.",
-        bullets: [
-          "Watch the brief so tone, risk, and cadence make sense before you answer anything.",
-          "The questionnaire is there to route you properly — not to pressure you into a deposit story.",
-          "We decline applicants who need hype or guarantees; that keeps the room focused on process.",
-        ],
-      },
+      ctaLabel: "Apply for access",
     },
     {
-      type: "join",
-      headline: "Why traders open the door to {projectName}",
-      paragraphs: [
-        "**{projectName}** is built around gold, live discussion, and a shared vocabulary for risk — not around get-rich shortcuts or hidden “levels.”",
-        "**People who stay** tend to want the same things: clearer prep before sessions, less improvisation under stress, and a place where outcomes are not marketed as inevitable.",
-      ],
-    },
-    {
-      type: "urgency_band",
-      title: "How it works (in plain steps)",
-      subtitle:
-        "Same flow every time — so you always know what you are agreeing to before anything formal.",
-      bullets: [
-        "Step one: use the brief above to understand how context is shared and how limits are talked about.",
-        "Step two: answer the short questionnaire in the app so we can match you to the right next conversation.",
-        "Step three: if there is a fit, you hear from us in an orderly way. If not, you still leave with a clear boundary — no spam ladder.",
-      ],
-    },
-    {
-      type: "testimonials",
-      sectionTitle: "Voices from the community",
+      type: "stats",
       items: [
         {
-          name: "Laura Abenstein",
-          imageFile: "/offer/media/laura.jpg",
-          quote:
-            "I was tired of feeds that yell. Here the tone is slower and the risk talk matches how I actually think about size.",
+          value: "$35K+",
+          label:
+            "secured in a single live NFP session — positions called before execution",
         },
+        { value: "1,150+", label: "pips called live in a single trading week" },
         {
-          name: "Chris Hadid",
-          imageFile: "/offer/media/chris.jpg",
-          quote:
-            "Mornings feel less chaotic — I have a checklist for what I ignore and what I actually prepare for.",
-        },
-        {
-          name: "Michael Zusman",
-          imageFile: "/offer/media/michael.jpg",
-          quote:
-            "I stayed because the framing is consistent. I am not promised outcomes — I am shown process.",
-        },
-        {
-          name: "Magda Boltyanski",
-          imageFile: "/offer/media/magda.jpg",
-          quote:
-            "When volatility spikes I have language for it now instead of reacting in a panic loop.",
-        },
-        {
-          name: "Carl Edwards",
-          imageFile: "/offer/media/carl.jpg",
-          quote:
-            "I came scattered. Having a single lane for how information is delivered helped more than any single “tip.”",
+          value: "10,000+",
+          label: "members inside the live environment right now",
         },
       ],
     },
     {
-      type: "authority",
-      title: "Meet Gold Trader Mo",
-      subtitleLines: ["Behind the daily", "GTMO Signals"],
-      bodyParagraphs: [
-        "Hi — I am Mo. I trade gold in live conditions and prefer showing reasoning over selling mystery.",
-        "**GTMO Signals** exists because I wanted a room that treats leverage seriously: where stops and context are normal topics, not afterthoughts.",
-        "If you want a polished story about effortless wins, you will not find it here. If you want structure and a fair review of fit, watch the brief and continue only when that still sounds right.",
-        "Applications are filtered on purpose. The goal is a serious table — not the widest possible audience.",
+      type: "why",
+      headline: "Most traders see gold move. The people inside GTMO see it before it moves.",
+      subheadline:
+        "That is not a marketing line. It is the structural difference between a live environment and everything else.",
+      body: [
+        "Every setup Mo takes is called before the position opens. Entry level, stop, target, reasoning — in real time, before execution. Not posted after the move closed. Not shared in a newsletter the following day.",
+        "The $35,000 NFP session was called live. Members inside saw the setup, understood the entry, and were positioned before it opened. Everyone outside saw the result after the candle closed.",
+        "That gap — between being positioned before and reacting after — is not about capital, experience, or skill. It is about access. And this intake round is currently open.",
       ],
-      imageFile: "/offer/media/mo.jpg",
-      signOffLines: ["With respect,", "Mo"],
+      ctaLabel: "Apply now",
     },
     {
-      type: "footer",
-      disclaimerParagraphs: [
-        "**Is this financial advice?** No. Nothing on this page tells you what to buy or sell. It is general education and orientation only.",
-        "**Will I make money?** Markets can move against you quickly. You can lose some or all of your capital, including more than you deposit when leverage is involved. Past examples are not reliable guides to your future.",
-        "**Who is this for?** Adults who can read risk disclosures and who want an education-first path. It is not for anyone seeking guaranteed returns, “AI accuracy,” or hands-off automation.",
-        "**What happens after the questionnaire?** If there is a match, next steps are explained clearly. If not, you should expect a clean stop — not an endless upsell chain.",
-        "**Regulatory note.** You are responsible for your decisions and for rules that apply where you live. We do not claim celebrity partnerships or third-party endorsements that do not exist.",
-        "**Still unsure?** Do not continue. Close the page, sleep on it, and come back only if slow process still sounds better than another loud funnel.",
+      type: "urgency",
+      headline: "⚠️ This intake round is open. It will not stay open.",
+      bullets: [
+        "Each round is capped. When it fills, the next opens at a later date — not the next day.",
+        "Live sessions are running right now. Every week outside is a week of setups you see after they close.",
+        "Application takes under two minutes. Specialists follow up directly.",
       ],
+    },
+    {
+      type: "why",
+      headline: "Here is what separates consistent traders from everyone else.",
+      subheadline: "It is not the signal. It is the moment the signal arrives.",
+      body: [
+        "A signals group sends an alert. By the time it arrives, the position is already moving. You are not trading the setup — you are chasing the result.",
+        "A live environment calls the setup before the position opens. You see the entry level before it is relevant. You understand the stop before the trade is live. You know the target before price reaches it.",
+        "The difference in outcome between these two approaches — over weeks, over months — is not marginal. It is the entire result.",
+        "Inside GTMO, every session runs the same way. Entry before execution. Exit shared in real time. Reasoning explained throughout. This is what 10,000+ members are inside right now.",
+      ],
+    },
+    {
+      type: "how_it_works",
+      headline: "How to get inside — three steps.",
+      steps: [
+        {
+          number: 1,
+          title: "Apply — questionnaire takes under two minutes",
+          body: "Your capital level, experience, and readiness. Your answers determine your matched access path. Applications are reviewed in rounds — not every application is accepted.",
+        },
+        {
+          number: 2,
+          title: "A specialist confirms your access level",
+          body: "Direct contact. They confirm your path, send your registration link, and handle every step. One message away through the entire process.",
+        },
+        {
+          number: 3,
+          title: "Fund your account — access activates",
+          body: "Your funding goes into your own trading account — not to GTMO. Access activates as a partnership benefit after verification. You are inside, not watching from outside.",
+        },
+      ],
+      ctaLabel: "Apply for access",
+    },
+    {
+      type: "testimonials_slider",
+      headline: "From inside the environment.",
+      layout: "slider",
+      items: [
+        {
+          name: "Laura A.",
+          imageSrc: "/offer/media/laura.jpg",
+          quote:
+            "I watched setups close from outside for months. The day my access activated I understood what I had been missing — positioned before the move, not chasing it after.",
+        },
+        {
+          name: "Chris H.",
+          imageSrc: "/offer/media/chris.jpg",
+          quote:
+            "The $35K NFP session was what made me apply. Two months later I understand every decision in that session. Being inside is the only way to build that framework.",
+        },
+        {
+          name: "Michael Z.",
+          imageSrc: "/offer/media/michael.jpg",
+          quote:
+            "Every entry called before the position opens. That is not what signals groups do. That is what a live environment does. The difference is the entire result.",
+        },
+        {
+          name: "Magda B.",
+          imageSrc: "/offer/media/magda.jpg",
+          quote:
+            "Fast reversals used to catch me every time. Having the setup before the position opens changed that completely. Structure before execution is everything.",
+        },
+        {
+          name: "Carl E.",
+          imageSrc: "/offer/media/carl.jpg",
+          quote:
+            "I applied because of a session result I had missed from outside. I stayed because every session runs the same way — no exceptions, no retrospective calls.",
+        },
+      ],
+    },
+    {
+      type: "authority_card",
+      headline: "Mo — the trader behind the sessions.",
+      name: "Full-time gold trader. 4+ years live track record.",
+      imageSrc: "/offer/media/mo.jpg",
+      body: [
+        "The $35,000 NFP session is not the exception. It is what consistent, structured execution produces when the framework is applied correctly. Entry before execution. Exit shared in real time. Reasoning explained throughout — every session, every day.",
+        "I built GTMO because there was no live environment available to retail traders where the reasoning was shown before execution — not after. Either theory courses or signals groups posting alerts after the move had already started.",
+        "This intake round is open. The questionnaire takes under two minutes. A specialist confirms your access and handles everything from there. The sessions are running right now.",
+      ],
+      signOff: ["Mo"],
+    },
+    {
+      type: "faq",
+      headline: "Before you apply.",
+      items: [
+        {
+          question: "Is the $35,000 session real?",
+          answer:
+            "Yes. It is a documented live session with positions visible throughout. It is evidence of what structured execution inside a live environment produces — not a guarantee of your results.",
+        },
+        {
+          question: "What access level will I be matched to?",
+          answer:
+            "The questionnaire matches you based on capital and experience. Higher capital levels unlock VIP signal access — live setups called directly before Mo opens positions. All levels include live session access and specialist support.",
+        },
+        {
+          question: "Does my money go to GTMO?",
+          answer:
+            "No. Your funding goes into your own trading account. GTMO access activates as a partnership benefit after your account is funded and verified.",
+        },
+        {
+          question: "What happens after I apply?",
+          answer:
+            "A specialist contacts you directly. They confirm your access level, send your registration link, and walk you through every step. You are not left to figure it out alone.",
+        },
+      ],
+    },
+    {
+      type: "cta",
+      headline: "This round is open. The sessions are running.",
+      subheadline:
+        "Every week outside is a week of setups you see after they close. Application takes under two minutes.",
+      ctaLabel: "Apply for access",
+      disclaimer:
+        "Trading involves risk. Results referenced are documented and not a guarantee of future performance. Your funding goes into your own trading account.",
     },
   ],
 };

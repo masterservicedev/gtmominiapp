@@ -5,18 +5,19 @@ export const ad5VariantConfig: FunnelVariantConfig = {
   accentPalette: funnelPaletteVioletSky,
   positioningGate: {
     logoSrc: "/offer/media/gtmologo.png",
-    headline: "Attention — if you want gold context with structure, read this before you tap through.",
+    headline:
+      "The gold market moved $35,000 in a single session. The people inside knew before it opened.",
     subcopy: [
-      "This path is for people who prefer a clear process over noise: a short on-page brief, then a questionnaire inside the app.",
-      "We review applications in rounds. When a round is full, the next window may be later — that is a real operational limit, not a theatrical timer.",
-      "Nothing here is a promise of profit, accuracy, or passive income. It is education, live framing, and honest risk language only.",
+      "What you are about to see is a live gold trading session — every setup called before execution, every position explained in real time. This is the environment a small number of traders have access to.",
+      "This intake round is currently open. Applications are reviewed in order. When this round fills, the next one opens at a later date — not the next day.",
+      "Trading involves real risk. The results referenced are documented and real. They are not a guarantee of what you will achieve.",
     ].join("\n\n"),
-    ctaLabel: "Continue to the brief",
+    ctaLabel: "Show me the session",
   },
   socialProofTicker: [
-    "Applications are reviewed in order — the questionnaire is short and routes you cleanly",
-    "Gold-focused context: how setups are discussed, how risk is named, what “live” actually means here",
-    "Not financial advice — no robot claims, no celebrity endorsements, no fake market tickers",
+    "$35,000 secured in a single live NFP session — positions called before execution",
+    "10,000+ members inside the environment — intake is limited and reviewed in rounds",
+    "Application takes under two minutes — specialists follow up directly",
   ],
   offer: {
     mode: "funnel_template",
