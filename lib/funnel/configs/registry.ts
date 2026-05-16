@@ -6,6 +6,7 @@ import { ad6Config } from "./ad6";
 import { ad7Config } from "./ad7";
 import { ad8Config } from "./ad8";
 import { ad9Config } from "./ad9";
+import { ad10Config } from "./ad10";
 
 const FUNNEL_TEMPLATES: Record<AdVariant, FunnelConfig> = {
   ad4: ad4FunnelConfig,
@@ -14,6 +15,7 @@ const FUNNEL_TEMPLATES: Record<AdVariant, FunnelConfig> = {
   ad7: ad7Config,
   ad8: ad8Config,
   ad9: ad9Config,
+  ad10: ad10Config,
 };
 
 export function getFunnelTemplateConfig(variant: AdVariant): FunnelConfig {
