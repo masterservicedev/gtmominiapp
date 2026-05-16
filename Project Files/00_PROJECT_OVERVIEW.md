@@ -89,7 +89,7 @@ Voluum postback fired on deposit confirmation
 
 The signals channel is FREE for all users. It is the trust-building mechanism.
 
-Products are unlocked by deposit with Vantage (affiliated broker):
+Products are unlocked by deposit via your broker registration link (options provided by your specialist):
 
 | Deposit | Standard | Mini App Exclusive |
 |---------|----------|-------------------|

@@ -89,7 +89,7 @@ Always set maxWidth to "640px" — this is a mini app, not a desktop page.
 
 - All copy must be GTMO-specific. Do not carry any copy from source funnels.
 - No guaranteed returns, no specific accuracy percentages, no income claims.
-- No Vantage mentions in offer copy (only in post-questionnaire screens).
+- No single named broker in offer copy; use neutral “registration link” / “your trading account” (specialist may offer multiple brokers).
 - No deposit amounts in offer copy.
 - Testimonials: qualitative only — no dollar amounts, no account balance claims.
 - Always include a risk disclaimer in the cta section disclaimer field.

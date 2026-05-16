@@ -75,7 +75,7 @@ export const ad6Config: FunnelConfig = {
       subheadline: "No bots. No automated signals. No shortcuts.",
       body: [
         "What we provide is a structured trading environment built around a live trader who shows every move in real time. Every entry is called before execution. Every stop is explained. Every exit is shared with the community.",
-        "Your access level is matched to your capital and experience. Your specialist confirms your path and activates your access after your account is funded and verified with Vantage.",
+        "Your access level is matched to your capital and experience. Your specialist confirms your path and activates your access after your account is funded and verified.",
         "Your funding goes into your own trading account — not to us. GTMO access activates as a partnership benefit.",
       ],
       ctaLabel: "Apply for access",
@@ -92,7 +92,7 @@ export const ad6Config: FunnelConfig = {
         {
           number: 2,
           title: "Fund your trading account",
-          body: "Your specialist sends a Vantage registration link. Fund your own account at the level you selected. GTMO access activates after verification.",
+          body: "Your specialist sends a registration link. Fund your own account at the level you selected. GTMO access activates after verification.",
         },
         {
           number: 3,
@@ -131,7 +131,7 @@ export const ad6Config: FunnelConfig = {
         { question: "What do I get from this?", answer: "A personal access path matched to your capital and experience, live trading sessions, signals, and a specialist who walks you through the next steps." },
         { question: "What results can I expect?", answer: "We do not promise results. We provide structure, live guidance, and education. Outcomes depend on market conditions and how you manage your account." },
         { question: "Do I need trading experience?", answer: "No. The questionnaire matches you to the right access level. Beginners start with structured education. Experienced traders get live signals and VIP access." },
-        { question: "What does my funding go toward?", answer: "Your funding goes into your own Vantage trading account — not to GTMO. GTMO access activates as a partnership benefit after your account is funded and verified." },
+        { question: "What does my funding go toward?", answer: "Your funding goes into your own trading account — not to GTMO. GTMO access activates as a partnership benefit after your account is funded and verified." },
       ],
     },
     {
@@ -139,7 +139,7 @@ export const ad6Config: FunnelConfig = {
       headline: "Ready to take your trading seriously?",
       subheadline: "Complete the short application and your specialist will be in touch.",
       ctaLabel: "Apply for access",
-      disclaimer: "Trading involves risk. Past results do not guarantee future returns. Your funding goes into your own Vantage trading account.",
+      disclaimer: "Trading involves risk. Past results do not guarantee future returns. Your funding goes into your own trading account.",
     },
   ],
 };

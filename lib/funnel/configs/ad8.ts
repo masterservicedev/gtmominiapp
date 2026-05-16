@@ -99,7 +99,7 @@ export const ad8Config: FunnelConfig = {
         {
           number: 2,
           title: "Fund your trading account",
-          body: "Your specialist sends a Vantage registration link. You fund your own account. Your GTMO VIP access activates after verification — your money stays in your account.",
+          body: "Your specialist sends a registration link. You fund your own account. Your GTMO VIP access activates after verification — your money stays in your account.",
         },
         {
           number: 3,
@@ -147,8 +147,8 @@ export const ad8Config: FunnelConfig = {
       items: [
         { question: "Is the $18,000 session real?", answer: "Yes. The video is an unedited recording of a live trading session with positions and charts visible throughout. It is documented evidence of what structured execution produces — not a guarantee of your results." },
         { question: "What is the 'next trade' Mo mentions?", answer: "Mo prepares setups based on his live market analysis. When a setup meets his criteria, he shares it with VIP members before opening the position. You see the entry, the stop, the target, and the reasoning — in real time." },
-        { question: "Does my money go to Mo or GTMO?", answer: "No. Your funding goes into your own Vantage trading account. GTMO VIP access activates as a partnership benefit after your account is funded and verified. You trade your own capital." },
-        { question: "What happens after I apply?", answer: "You complete a short questionnaire — under two minutes. A specialist confirms your access level and walks you through every step including your Vantage account setup." },
+        { question: "Does my money go to Mo or GTMO?", answer: "No. Your funding goes into your own trading account. GTMO VIP access activates as a partnership benefit after your account is funded and verified. You trade your own capital." },
+        { question: "What happens after I apply?", answer: "You complete a short questionnaire — under two minutes. A specialist confirms your access level and walks you through every step, including your account setup and registration link." },
       ],
     },
     {
@@ -156,7 +156,7 @@ export const ad8Config: FunnelConfig = {
       headline: "The next setup goes to VIP members. Apply now.",
       subheadline: "Intake is limited. Application takes under two minutes. Your specialist follows up directly.",
       ctaLabel: "Apply for VIP access now",
-      disclaimer: "Trading involves risk. The documented session is a real result and not a guarantee of what you will achieve. Past performance does not guarantee future returns. Your funding goes into your own Vantage trading account.",
+      disclaimer: "Trading involves risk. The documented session is a real result and not a guarantee of what you will achieve. Past performance does not guarantee future returns. Your funding goes into your own trading account.",
     },
   ],
 };

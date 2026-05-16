@@ -165,7 +165,7 @@ export const ad10Config: FunnelConfig = {
         {
           number: 3,
           title: "A specialist who activates your access one to one",
-          body: "When your application is accepted, a specialist contacts you directly. They confirm your access level, send your Vantage registration link, and are one message away through every step. You are not left to figure it out alone.",
+          body: "When your application is accepted, a specialist contacts you directly. They confirm your access level, send your registration link, and are one message away through every step. You are not left to figure it out alone.",
         },
       ],
     },

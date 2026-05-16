@@ -112,7 +112,7 @@ export function buildCustomerHandoffMessage(
 
   if (extras) {
     const lines: string[] = [
-      `✅ We saved your selection: *${productName}* — *$${pm.depositRequiredUsd}* minimum via Vantage when you're ready to fund.`,
+      `✅ We saved your selection: *${productName}* — *$${pm.depositRequiredUsd}* minimum when you fund via your registration link.`,
       ...bundleLines,
       ...closing,
       ``,
@@ -124,7 +124,7 @@ export function buildCustomerHandoffMessage(
   const lines: string[] = [
     `✅ You've been pre-approved for GTMO Trading access.`,
     ``,
-    `Your offer: *${productName}* — *$${pm.depositRequiredUsd}* minimum via Vantage when you're ready to fund.`,
+    `Your offer: *${productName}* — *$${pm.depositRequiredUsd}* minimum when you fund via your registration link.`,
     ...bundleLines,
     ...closing,
   ];
@@ -146,7 +146,7 @@ export function buildQualifiedLeadCardText(
     extras != null
       ? [
           `Product confirmed: ${productDisplayName(extras.productMatch.productKey)}`,
-          `Deposit required: $${extras.productMatch.depositRequiredUsd} via Vantage`,
+          `Deposit required: $${extras.productMatch.depositRequiredUsd} (fund via registration link)`,
           `Bundle offer shown: ${extras.bundleOfferShown ? "YES" : "NO"}`,
           `Bundle accepted: ${
             extras.bundleAccepted === null
@@ -189,7 +189,7 @@ export function buildQualifiedLeadCardText(
     ``,
     `→ Offer to lead with: ${offerLine}`,
     ``,
-    `Agent action: send Vantage affiliate link, confirm deposit receipt`,
+    `Agent action: send registration link (broker per specialist), confirm deposit receipt`,
   ].join("\n");
 }
 

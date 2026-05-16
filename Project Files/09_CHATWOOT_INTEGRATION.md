@@ -168,7 +168,7 @@ Great news! Your Ebook access has been activated. 📚
 
 Here's your download link: [EBOOK_LINK]
 
-This was unlocked through your deposit with Vantage. If you have any questions about the content, I'm here to help.
+This was unlocked through your qualifying deposit via your registration link. If you have any questions about the content, I'm here to help.
 
 [MINI APP USER BONUS]: When you're ready for your next step, you'll have 10% off your next product.
 ```
@@ -222,7 +222,7 @@ Content:
 Thanks for getting in touch. To confirm your access, could you let me know:
 
 1. The amount you deposited
-2. That it was made through the Vantage link we provided
+2. That it was made through the broker registration link we provided
 
 Once confirmed, I'll activate your products straight away. 
 ```

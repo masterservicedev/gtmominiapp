@@ -214,7 +214,7 @@ function ConfirmIntentInner() {
     : null;
 
   const specialistSteps: string[] = [
-    "Send your Vantage registration link",
+    "Send you a registration link",
     "Confirm your account funding level",
     "Activate your GTMO access after your deposit is verified",
   ];
@@ -305,7 +305,7 @@ function ConfirmIntentInner() {
           <div className="flex items-center justify-between gap-3 py-2.5">
             <p className="text-sm text-zinc-400">Minimum account funding</p>
             <p className="text-right text-sm font-bold text-zinc-50">
-              ${pm.depositRequiredUsd}+ via Vantage
+              ${pm.depositRequiredUsd}+ via your registration link
             </p>
           </div>
         </div>

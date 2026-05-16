@@ -104,7 +104,7 @@ export const ad7Config: FunnelConfig = {
         {
           number: 3,
           title: "A specialist who activates your access",
-          body: "Once your questionnaire is complete, a specialist contacts you, confirms your path, and walks you through every step — including your account setup with Vantage.",
+          body: "Once your questionnaire is complete, a specialist contacts you, confirms your path, and walks you through every step — including opening and funding your account via the registration link we provide.",
         },
         {
           number: 4,
@@ -152,7 +152,7 @@ export const ad7Config: FunnelConfig = {
       headline: "Questions before you apply",
       items: [
         { question: "Is the withdrawal video real?", answer: "Yes. It is an unedited recording of a live account withdrawal. No staging, no editing, no retrospective claims. The amount, the account, and the process are all visible in the video." },
-        { question: "Does my money go to Mo or GTMO?", answer: "No. Your funding goes into your own Vantage trading account — not to us. GTMO access activates as a partnership benefit after your account is funded and verified. You trade your own capital." },
+        { question: "Does my money go to Mo or GTMO?", answer: "No. Your funding goes into your own trading account — not to us. GTMO access activates as a partnership benefit after your account is funded and verified. You trade your own capital." },
         { question: "Can I achieve the same result?", answer: "We do not promise any specific outcome. What we provide is the same system, the same live sessions, and the same structure. What you produce with it depends on your capital, your discipline, and market conditions." },
         { question: "What happens after I apply?", answer: "You complete a short questionnaire — under two minutes. A specialist reviews your profile and contacts you to confirm whether you are a fit for the current intake round and what your access path looks like." },
       ],
@@ -162,7 +162,7 @@ export const ad7Config: FunnelConfig = {
       headline: "Spots in this intake round are limited.",
       subheadline: "You have seen the proof. The application takes under two minutes. Your specialist follows up directly.",
       ctaLabel: "Apply for access now",
-      disclaimer: "Trading involves risk. The documented withdrawal is a real result and not a guarantee of what you will achieve. Past performance does not guarantee future returns. Your funding goes into your own Vantage trading account.",
+      disclaimer: "Trading involves risk. The documented withdrawal is a real result and not a guarantee of what you will achieve. Past performance does not guarantee future returns. Your funding goes into your own trading account.",
     },
   ],
 };
