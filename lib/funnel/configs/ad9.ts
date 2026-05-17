@@ -68,7 +68,6 @@ export const ad9Config: FunnelConfig = {
         src: "https://vz-f212c83f-59e.b-cdn.net/5fefcd3a-dee9-494f-b2ac-4edeb093fb63/playlist.m3u8",
         minWatchSeconds: 0,
       },
-      ctaLabel: "Apply for access",
     },
 
     // ── Opening question ───────────────────────────────────────────────────

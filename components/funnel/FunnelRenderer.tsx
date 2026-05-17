@@ -392,21 +392,17 @@ function FunnelSectionView({
   switch (section.type) {
     case "hero":
       return (
-        <MarketingHeroSectionView section={section} projectName={projectName} onCta={onFunnelCta} />
+        <MarketingHeroSectionView section={section} projectName={projectName} />
       );
     case "stats":
       return <MarketingStatsSectionView section={section} />;
     case "why":
       return (
-        <MarketingWhySectionView section={section} projectName={projectName} onCta={onFunnelCta} />
+        <MarketingWhySectionView section={section} projectName={projectName} />
       );
     case "how_it_works":
       return (
-        <MarketingHowItWorksSectionView
-          section={section}
-          projectName={projectName}
-          onCta={onFunnelCta}
-        />
+        <MarketingHowItWorksSectionView section={section} projectName={projectName} />
       );
     case "urgency":
       return <MarketingUrgencySectionView section={section} />;
@@ -420,7 +416,7 @@ function FunnelSectionView({
       return <MarketingFaqSectionView section={section} projectName={projectName} />;
     case "cta":
       return (
-        <MarketingCtaSectionView section={section} projectName={projectName} onCta={onFunnelCta} />
+        <MarketingCtaSectionView section={section} projectName={projectName} />
       );
     case "hero_split":
       return (

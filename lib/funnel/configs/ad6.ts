@@ -62,7 +62,6 @@ export const ad6Config: FunnelConfig = {
         src: process.env.NEXT_PUBLIC_FUNNEL_VIDEO_URL ?? "",
         minWatchSeconds: 0,
       },
-      ctaLabel: "Apply for access",
     },
 
     // ── Opening problem expansion ──────────────────────────────────────────
@@ -195,7 +194,6 @@ export const ad6Config: FunnelConfig = {
       type: "cta",
       headline: "The process is running live right now.",
       subheadline: "Apply in under two minutes. Your specialist confirms your access level and handles every step from there.",
-      ctaLabel: "Apply for access",
       disclaimer: "Trading involves risk. Past results do not guarantee future returns. Your funding goes into your own trading account.",
     },
   ],

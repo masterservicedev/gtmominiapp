@@ -92,11 +92,9 @@ function SectionWrap({
 export function MarketingHeroSectionView({
   section,
   projectName,
-  onCta,
 }: {
   section: MarketingHeroSection;
   projectName: string;
-  onCta: () => void;
 }) {
   const min = section.video.minWatchSeconds ?? 0;
   const [unlocked, setUnlocked] = useState(min <= 0);
@@ -166,10 +164,9 @@ export function MarketingHeroSectionView({
         </p>
       ) : null}
 
-      <CtaButton
-        label={unlocked ? section.ctaLabel : `Watch ${min}s to continue`}
-        onClick={unlocked ? onCta : () => {}}
-      />
+      {min > 0 && !unlocked ? (
+        <CtaButton label={`Watch ${min}s to continue`} onClick={() => {}} />
+      ) : null}
     </section>
   );
 }
@@ -231,11 +228,9 @@ export function MarketingStatsSectionView({ section }: { section: MarketingStats
 export function MarketingWhySectionView({
   section,
   projectName,
-  onCta,
 }: {
   section: MarketingWhySection;
   projectName: string;
-  onCta: () => void;
 }) {
   return (
     <SectionWrap>
@@ -304,12 +299,6 @@ export function MarketingWhySectionView({
             <RichBold text={fillProject(para, projectName)} />
           </p>
         ))}
-
-        {section.ctaLabel ? (
-          <div style={{ marginTop: 20 }}>
-            <CtaButton label={section.ctaLabel} onClick={onCta} />
-          </div>
-        ) : null}
       </div>
     </SectionWrap>
   );
@@ -318,11 +307,9 @@ export function MarketingWhySectionView({
 export function MarketingHowItWorksSectionView({
   section,
   projectName,
-  onCta,
 }: {
   section: MarketingHowItWorksSection;
   projectName: string;
-  onCta: () => void;
 }) {
   return (
     <SectionWrap surface="surface">
@@ -400,11 +387,6 @@ export function MarketingHowItWorksSectionView({
           ))}
         </div>
 
-        {section.ctaLabel ? (
-          <div style={{ marginTop: 20 }}>
-            <CtaButton label={section.ctaLabel} onClick={onCta} />
-          </div>
-        ) : null}
       </div>
     </SectionWrap>
   );
@@ -730,11 +712,9 @@ export function MarketingFaqSectionView({
 export function MarketingCtaSectionView({
   section,
   projectName,
-  onCta,
 }: {
   section: MarketingCtaSection;
   projectName: string;
-  onCta: () => void;
 }) {
   return (
     <section
@@ -774,8 +754,6 @@ export function MarketingCtaSectionView({
           {fillProject(section.subheadline, projectName)}
         </p>
       ) : null}
-
-      <CtaButton label={section.ctaLabel} onClick={onCta} />
 
       {section.disclaimer ? (
         <p

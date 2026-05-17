@@ -56,7 +56,6 @@ export const ad4FunnelConfig: FunnelConfig = {
         src: VIDEO_SRC,
         minWatchSeconds: 0,
       },
-      ctaLabel: "Continue to application",
     },
 
     // ── Stats ──────────────────────────────────────────────────────────────
@@ -89,7 +88,6 @@ export const ad4FunnelConfig: FunnelConfig = {
         "That is not a claim. It is a structure that runs every trading day. Members inside see the setup. Everyone outside sees the result.",
         "We do not post recaps. We do not explain entries after they close. The live session is the product — and the transparency of it is what members verify for themselves.",
       ],
-      ctaLabel: "Continue to application",
     },
 
     // ── Capital preservation framing ───────────────────────────────────────
@@ -151,7 +149,6 @@ export const ad4FunnelConfig: FunnelConfig = {
         "We are looking for people who want to understand what they are doing — not just follow alerts. The live sessions are built around explanation, not just execution. Members who engage with the reasoning build frameworks. Members who want signals without context are better served elsewhere.",
         "If you are serious about gold, about process, and about operating with clarity — the application is short and the specialist follow-up is direct.",
       ],
-      ctaLabel: "Continue to application",
     },
 
     // ── Testimonials ───────────────────────────────────────────────────────
@@ -254,7 +251,6 @@ export const ad4FunnelConfig: FunnelConfig = {
         "Every week without a system is a week of setups you see after they close.",
       subheadline:
         "Application takes under two minutes. Specialists follow up directly. Intake is reviewed in rounds.",
-      ctaLabel: "Continue to application",
       disclaimer:
         "Trading involves risk. Results referenced are documented and not a guarantee of future performance. Your funding goes into your own trading account.",
     },

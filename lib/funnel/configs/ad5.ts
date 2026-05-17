@@ -56,7 +56,6 @@ export const ad5FunnelConfig: FunnelConfig = {
         src: VIDEO_SRC,
         minWatchSeconds: 0,
       },
-      ctaLabel: "Apply for access",
     },
     {
       type: "stats",
@@ -83,7 +82,6 @@ export const ad5FunnelConfig: FunnelConfig = {
         "The $35,000 NFP session was called live. Members inside saw the setup, understood the entry, and were positioned before it opened. Everyone outside saw the result after the candle closed.",
         "That gap — between being positioned before and reacting after — is not about capital, experience, or skill. It is about access. And this intake round is currently open.",
       ],
-      ctaLabel: "Apply now",
     },
     {
       type: "urgency",
@@ -125,7 +123,6 @@ export const ad5FunnelConfig: FunnelConfig = {
           body: "Your funding goes into your own trading account — not to GTMO. Access activates as a partnership benefit after verification. You are inside, not watching from outside.",
         },
       ],
-      ctaLabel: "Apply for access",
     },
     {
       type: "testimonials_slider",
@@ -207,7 +204,6 @@ export const ad5FunnelConfig: FunnelConfig = {
       headline: "This round is open. The sessions are running.",
       subheadline:
         "Every week outside is a week of setups you see after they close. Application takes under two minutes.",
-      ctaLabel: "Apply for access",
       disclaimer:
         "Trading involves risk. Results referenced are documented and not a guarantee of future performance. Your funding goes into your own trading account.",
     },

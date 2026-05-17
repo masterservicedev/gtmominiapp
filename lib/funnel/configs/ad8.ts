@@ -67,7 +67,6 @@ export const ad8Config: FunnelConfig = {
         src: "https://vz-f212c83f-59e.b-cdn.net/1aee49a2-3622-46b3-bffd-cb966bdaece3/playlist.m3u8",
         minWatchSeconds: 0,
       },
-      ctaLabel: "I want to be inside",
     },
 
     // ── Opening FOMO ──────────────────────────────────────────────────────
@@ -81,7 +80,6 @@ export const ad8Config: FunnelConfig = {
         "After you complete the short questionnaire, you will be matched to the access level that fits your capital and experience. Some will qualify for VIP signal access — live setups called directly before Mo opens the position. Others will be matched to a structured education path that builds toward that.",
         "Either way, you stop watching from the outside.",
       ],
-      ctaLabel: "Apply now",
     },
 
     // ── Stats ──────────────────────────────────────────────────────────────
@@ -197,7 +195,6 @@ export const ad8Config: FunnelConfig = {
       type: "cta",
       headline: "Stop watching from the outside.",
       subheadline: "The questionnaire takes under two minutes. Your specialist confirms your access level and handles everything from there.",
-      ctaLabel: "Apply for access",
       disclaimer: "Trading involves risk. The documented session is a real result and not a guarantee of what you will achieve. Past performance does not guarantee future returns. Your funding goes into your own trading account.",
     },
   ],

@@ -65,7 +65,6 @@ export const ad7Config: FunnelConfig = {
         src: "https://vz-f212c83f-59e.b-cdn.net/06c8df91-48fc-4ffd-b4b7-29796abe6da8/playlist.m3u8",
         minWatchSeconds: 0,
       },
-      ctaLabel: "I want access to this",
       videoAspectRatio: "4/5",
     },
     {
@@ -85,7 +84,6 @@ export const ad7Config: FunnelConfig = {
         "The people already inside this environment stopped making that argument. They followed the process. They understood the structure. And they watched what consistent, disciplined execution actually produces.",
         "You have seen the proof. The only question now is whether you are serious enough to apply.",
       ],
-      ctaLabel: "Apply for access now",
     },
     {
       type: "how_it_works",
@@ -122,7 +120,6 @@ export const ad7Config: FunnelConfig = {
         "The video you watched does not get shown publicly. It is inside this application flow because we want the right people seeing it — not everyone.",
         "If you have watched it and you are still reading, you already know whether this is for you.",
       ],
-      ctaLabel: "Apply before this round closes",
     },
     {
       type: "testimonials_slider",
@@ -161,7 +158,6 @@ export const ad7Config: FunnelConfig = {
       type: "cta",
       headline: "Spots in this intake round are limited.",
       subheadline: "You have seen the proof. The application takes under two minutes. Your specialist follows up directly.",
-      ctaLabel: "Apply for access now",
       disclaimer: "Trading involves risk. The documented withdrawal is a real result and not a guarantee of what you will achieve. Past performance does not guarantee future returns. Your funding goes into your own trading account.",
     },
   ],

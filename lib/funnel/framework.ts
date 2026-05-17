@@ -211,7 +211,8 @@ export type MarketingHeroSection = {
   headline: string;
   subheadline?: string;
   video: { src: string; poster?: string; minWatchSeconds: number };
-  ctaLabel: string;
+  /** Shown only while video watch gate is active; sticky bar handles the main CTA. */
+  ctaLabel?: string;
   videoAspectRatio?: string; // e.g. "4/5" for portrait, defaults to "16/9"
 };
 
@@ -262,7 +263,8 @@ export type MarketingCtaSection = {
   type: "cta";
   headline: string;
   subheadline?: string;
-  ctaLabel: string;
+  /** Optional; action is handled by the sticky footer CTA. */
+  ctaLabel?: string;
   disclaimer?: string;
 };
 

@@ -67,7 +67,6 @@ export const ad10Config: FunnelConfig = {
         src: "https://vz-f212c83f-59e.b-cdn.net/06c8df91-48fc-4ffd-b4b7-29796abe6da8/playlist.m3u8",
         minWatchSeconds: 0,
       },
-      ctaLabel: "Apply for access",
       videoAspectRatio: "4/5",
     },
 
