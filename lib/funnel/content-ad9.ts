@@ -9,7 +9,6 @@ export const ad9VariantConfig: FunnelVariantConfig = {
     subcopy: [
       "It is not capital. It is not experience. It is not timing. It is access — to the right setups, called live, before the position opens.",
       "Most people will never get that access. A small number will. Read what follows carefully.",
-      "Trading involves real risk. Past results are not a guarantee of future returns.",
     ].join("\n\n"),
     ctaLabel: "Continue reading",
   },

@@ -10,7 +10,6 @@ export const ad5VariantConfig: FunnelVariantConfig = {
     subcopy: [
       "What you are about to see is a live gold trading session — every setup called before execution, every position explained in real time. This is the environment a small number of traders have access to.",
       "This intake round is currently open. Applications are reviewed in order. When this round fills, the next one opens at a later date — not the next day.",
-      "Trading involves real risk. The results referenced are documented and real. They are not a guarantee of what you will achieve.",
     ].join("\n\n"),
     ctaLabel: "Show me the session",
   },

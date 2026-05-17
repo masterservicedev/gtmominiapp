@@ -98,7 +98,7 @@ export const ad6Config: FunnelConfig = {
       type: "stats",
       items: [
         { value: "1,150+", label: "pips called live before execution in a single trading week" },
-        { value: "$35,000+", label: "secured in a single NFP session — positions shown in real time" },
+        { value: "$2M+", label: "withdrawn live on camera — full proof, no edits" },
         { value: "10,000+", label: "members inside the environment following live setups every day" },
       ],
     },

@@ -9,7 +9,6 @@ export const ad8VariantConfig: FunnelVariantConfig = {
     subcopy: [
       "What you are about to watch is a real live session — $18,000 secured, positions and charts visible throughout. This is what being inside the environment looks like. Every person who follows GTMO had a first session they watched from the outside.",
       "After the video, a short questionnaire matches you to the right access level for your capital and experience. Some will qualify for VIP signal access. Others will be matched to a structured education path that gets them there. Both get you inside.",
-      "Trading involves real risk. The session you are about to watch is documented and real — it is not a guarantee of what you will achieve.",
     ].join("\n\n"),
     ctaLabel: "Watch the session",
   },

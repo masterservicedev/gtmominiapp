@@ -9,7 +9,6 @@ export const ad10VariantConfig: FunnelVariantConfig = {
     subcopy: [
       "The difference is not capital. It is not experience. It is not the market. It is whether you see the setup before the position opens — or after it has already moved.",
       "What follows is an explanation of exactly why that gap exists, and how a small number of people have access to the other side of it.",
-      "Trading involves real risk. Results shown are documented and not a guarantee of future performance.",
     ].join("\n\n"),
     ctaLabel: "Watch and read",
   },

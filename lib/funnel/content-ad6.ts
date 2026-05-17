@@ -9,7 +9,6 @@ export const ad6VariantConfig: FunnelVariantConfig = {
     subcopy: [
       "Most traders who lose in gold do not lose because the market is unpredictable. They lose because their process is. No clear entry framework. No discipline on exits. No structure around risk when a position moves against them.",
       "What follows is a brief explanation of how a small number of traders approach this differently — and why the difference in results is not about capital or experience.",
-      "Trading involves real risk. Past results are not a guarantee of future returns.",
     ].join("\n\n"),
     ctaLabel: "Show me the difference",
   },

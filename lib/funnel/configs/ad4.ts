@@ -67,9 +67,8 @@ export const ad4FunnelConfig: FunnelConfig = {
           label: "pips called live in a single week — every setup before execution",
         },
         {
-          value: "$35K+",
-          label:
-            "secured in a single NFP session — positions documented in real time",
+          value: "$2M+",
+          label: "withdrawn live on camera — full proof, no edits",
         },
         {
           value: "10,000+",
