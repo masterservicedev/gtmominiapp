@@ -284,7 +284,6 @@ export function FunnelRenderer({
           testimonialsPausedRef={testimonialsPausedRef}
           testimonialsTouchResumeRef={testimonialsTouchResumeRef}
           progressBarColor={theme.accentBg}
-          onFunnelCta={continueToQualify}
         />
       ))}
 
@@ -375,7 +374,6 @@ function FunnelSectionView({
   testimonialsPausedRef,
   testimonialsTouchResumeRef,
   progressBarColor,
-  onFunnelCta,
 }: {
   section: FunnelSection;
   variant: AdVariant;
@@ -387,7 +385,6 @@ function FunnelSectionView({
     typeof setTimeout
   > | null>;
   progressBarColor: string;
-  onFunnelCta: () => void;
 }) {
   switch (section.type) {
     case "hero":
