@@ -47,7 +47,6 @@ function ConfirmIntentInner() {
   const [payload, setPayload] = useState<Payload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [declineBusy, setDeclineBusy] = useState(false);
   const [acceptBundle, setAcceptBundle] = useState(false);
 
   const load = useCallback(async () => {
@@ -107,7 +106,7 @@ function ConfirmIntentInner() {
   }, [payload]);
 
   const onYes = async () => {
-    if (!payload || busy || declineBusy) return;
+    if (!payload || busy) return;
     const pm = payload.productMatch;
     const bundleShown = Boolean(pm.bundleOfferLine);
     setBusy(true);
@@ -147,38 +146,6 @@ function ConfirmIntentInner() {
     } catch {
       setError("Network error");
       setBusy(false);
-    }
-  };
-
-  const onNotNow = async () => {
-    if (!payload || busy || declineBusy) return;
-    setDeclineBusy(true);
-    setError(null);
-    try {
-      const WebApp = await loadWebApp();
-      const res = await fetch("/api/decline-intent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ initData: WebApp.initData }),
-      });
-      let data: { error?: string } = {};
-      try {
-        data = await res.json();
-      } catch {
-        /* empty */
-      }
-      if (!res.ok) {
-        setError(data.error || "Could not update preference");
-        setDeclineBusy(false);
-        return;
-      }
-      const pk = encodeURIComponent(payload.productMatch.productKey);
-      router.replace(
-        `/result?segment=${encodeURIComponent(payload.segment)}&declined=1&productKey=${pk}`,
-      );
-    } catch {
-      setError("Network error");
-      setDeclineBusy(false);
     }
   };
 
@@ -224,8 +191,6 @@ function ConfirmIntentInner() {
     );
   }
 
-  const locked = busy || declineBusy;
-
   return (
     <div className="relative flex min-h-screen flex-col bg-gradient-to-b from-zinc-950 via-black to-zinc-950 text-white">
       <div
@@ -260,7 +225,7 @@ function ConfirmIntentInner() {
           <div className="mb-5 grid grid-cols-2 gap-2">
             <button
               type="button"
-              disabled={locked}
+              disabled={busy}
               onClick={() => setAcceptBundle(true)}
               className={`rounded-xl border py-2.5 text-xs font-semibold transition-colors sm:text-sm ${
                 acceptBundle
@@ -272,7 +237,7 @@ function ConfirmIntentInner() {
             </button>
             <button
               type="button"
-              disabled={locked}
+              disabled={busy}
               onClick={() => setAcceptBundle(false)}
               className={`rounded-xl border py-2.5 text-xs font-semibold transition-colors sm:text-sm ${
                 !acceptBundle
@@ -337,22 +302,14 @@ function ConfirmIntentInner() {
           </p>
         ) : null}
 
-        <div className="mt-auto flex flex-col gap-3">
+        <div className="mt-auto">
           <button
             type="button"
-            disabled={locked}
+            disabled={busy}
             onClick={() => void onYes()}
             className={`w-full rounded-xl py-4 text-sm font-semibold ${t.accentBg} ${t.accentButtonText} ${t.accentBgHover} transition-colors disabled:opacity-50`}
           >
             {busy ? "…" : "Activate my access"}
-          </button>
-          <button
-            type="button"
-            disabled={locked}
-            onClick={() => void onNotNow()}
-            className="w-full rounded-xl border border-zinc-800 py-3 text-sm font-medium text-zinc-500 transition-colors hover:border-zinc-600 hover:text-zinc-400 disabled:opacity-50"
-          >
-            {declineBusy ? "…" : "Not right now"}
           </button>
         </div>
       </div>
