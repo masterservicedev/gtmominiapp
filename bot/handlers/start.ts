@@ -28,7 +28,7 @@ export async function handleStart(ctx: Context) {
     startPayload && !startPayload.startsWith("ref_") ? startPayload : null,
   );
   const text =
-    "👋 Welcome to GTMO Trading.\n\nTap below to apply for access to our live trading signals.";
+    "Every setup is called before the positions are opened.\n10,000+ members inside.\nIntake is limited. Applications are reviewed in rounds.";
 
   if (!miniAppUrl) {
     await ctx.reply(
@@ -40,7 +40,7 @@ export async function handleStart(ctx: Context) {
   await ctx.reply(text, {
     reply_markup: {
       inline_keyboard: [
-        [{ text: "🚀 Apply Now", web_app: { url: miniAppUrl } }],
+        [{ text: "Apply for Access", web_app: { url: miniAppUrl } }],
       ],
     },
   });
