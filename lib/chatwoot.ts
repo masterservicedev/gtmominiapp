@@ -196,3 +196,102 @@ export async function applyQualifiedLeadLabels(
     }
   }
 }
+
+export async function findOrCreateChatwootConversation(
+  telegramId: number,
+  userName: string | null,
+  firstName: string | null,
+  lastName: string | null,
+): Promise<string | null> {
+  const existing = await findLatestConversationIdForTelegramUser(telegramId);
+  if (existing) return existing;
+
+  const baseUrl = process.env.CHATWOOT_BASE_URL?.replace(/\/$/, "");
+  const token = process.env.CHATWOOT_API_TOKEN;
+  const accountId = process.env.CHATWOOT_ACCOUNT_ID;
+  const inboxId = process.env.CHATWOOT_MINIAPP_INBOX_ID;
+
+  if (!baseUrl || !token || !accountId || !inboxId) {
+    console.warn("[chatwoot] Missing env vars — cannot create conversation");
+    return null;
+  }
+
+  const headers = {
+    "Content-Type": "application/json",
+    api_access_token: token,
+  };
+  const apiBase = `${baseUrl}/api/v1/accounts/${accountId}`;
+
+  // Find or create contact
+  let contactId: number | null = null;
+
+  try {
+    const res = await fetch(
+      `${apiBase}/contacts/search?q=${telegramId}&include_contacts=true`,
+      { headers },
+    );
+    const data = await res.json();
+    const match = (data?.payload ?? []).find(
+      (c: { identifier?: string }) => c.identifier === String(telegramId),
+    );
+    if (match?.id) {
+      contactId = match.id;
+      console.log(`[chatwoot] Found contact ${contactId} for tg ${telegramId}`);
+    }
+  } catch (err) {
+    console.error("[chatwoot] Contact search error", err);
+  }
+
+  if (!contactId) {
+    try {
+      const displayName =
+        [firstName, lastName].filter(Boolean).join(" ").trim() ||
+        userName ||
+        `TG_${telegramId}`;
+
+      const res = await fetch(`${apiBase}/contacts`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          name: displayName,
+          identifier: String(telegramId),
+          additional_attributes: {
+            telegram_id: telegramId,
+            username: userName ?? "",
+          },
+        }),
+      });
+      const data = await res.json();
+      contactId = data?.id ?? null;
+      console.log(`[chatwoot] Created contact ${contactId} for tg ${telegramId}`);
+    } catch (err) {
+      console.error("[chatwoot] Contact create error", err);
+      return null;
+    }
+  }
+
+  if (!contactId) {
+    console.error("[chatwoot] Could not find or create contact");
+    return null;
+  }
+
+  // Create conversation
+  try {
+    const res = await fetch(`${apiBase}/conversations`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        contact_id: contactId,
+        inbox_id: Number(inboxId),
+        additional_attributes: { telegram_id: telegramId },
+      }),
+    });
+    const data = await res.json();
+    const convId = data?.id ? String(data.id) : null;
+    console.log(`[chatwoot] Created conversation ${convId} for tg ${telegramId}`);
+    return convId;
+  } catch (err) {
+    console.error("[chatwoot] Conversation create error", err);
+    return null;
+  }
+}

@@ -82,10 +82,12 @@ export async function POST(req: NextRequest) {
       .where(eq(offers.active, true));
 
     /** Explicit `entryVariant` from client wins; then `start_param` `var`; else random active offer or env fallback. */
+    const startParamVariant = parsed.variant?.trim() || null;
+    const hasIncomingAttribution = Boolean(startParamVariant);
+
     let variant: string | null | undefined = fromClient;
-    const fromStartVariant = parsed.variant?.trim();
-    if (!variant && fromStartVariant) {
-      variant = fromStartVariant;
+    if (!variant && startParamVariant) {
+      variant = startParamVariant;
     }
 
     if (!variant) {
@@ -159,9 +161,13 @@ export async function POST(req: NextRequest) {
           country,
           countryCode,
           lastSeenIp: storedClientIp,
-          entryVariant: normalizedVariant,
-          ...utmPatch,
-          ...(effectiveCid ? { voluumCid: effectiveCid } : {}),
+          ...(hasIncomingAttribution
+            ? {
+                entryVariant: normalizedVariant,
+                ...utmPatch,
+                ...(effectiveCid ? { voluumCid: effectiveCid } : {}),
+              }
+            : {}),
         })
         .where(eq(users.telegramId, tgUser.id));
     }

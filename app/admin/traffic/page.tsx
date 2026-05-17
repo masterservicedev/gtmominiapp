@@ -26,9 +26,13 @@ const COUNTRY_ROW_LIMIT = 400;
 const COUNTRY_CARD_LIMIT = 8;
 
 const VARIANT_NAMES: Record<string, string> = {
-  ad4: "Ad creative — version 4",
-  ad5: "Ad creative — version 5 (code landing)",
-  ad6: "Ad creative — version 6 (corporate trust layout)",
+  ad4: "GTMO Code VSL",
+  ad5: "Editorial Violet",
+  ad6: "Fortiora Corporate",
+  ad7: "Moon Group Dark Premium",
+  ad8: "Bitcoin UP Purple",
+  ad9: "Gems Uncovered Editorial",
+  ad10: "Decentralized Masters Institutional",
 };
 
 const SOURCE_NAMES: Record<string, string> = {

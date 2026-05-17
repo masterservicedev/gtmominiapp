@@ -13,7 +13,7 @@ import {
 } from "@/lib/leadCardContent";
 import { telegramSendMessage } from "@/lib/telegramBotApi";
 import {
-  findLatestConversationIdForTelegramUser,
+  findOrCreateChatwootConversation,
   applyQualifiedLeadLabels,
   addChatwootNote,
 } from "@/lib/chatwoot";
@@ -38,7 +38,7 @@ export async function sendHighIntentTelegramLead(
 
 /**
  * Post full lead card as Chatwoot private note, then labels + team.
- * If no conversation exists yet, logs and skips (does not DM internal card to user).
+ * Creates a Chatwoot contact/conversation when none exists yet.
  */
 export async function attachInternalLeadToChatwoot(
   telegramId: number,
@@ -47,16 +47,21 @@ export async function attachInternalLeadToChatwoot(
   answers: AnswerRow,
   extras?: LeadCardExtras,
 ): Promise<string | null> {
-  const conversationId =
-    await findLatestConversationIdForTelegramUser(telegramId);
+  const conversationId = await findOrCreateChatwootConversation(
+    telegramId,
+    user.username ?? null,
+    user.firstName ?? null,
+    null,
+  );
+
   if (!conversationId) {
-    console.warn(
-      "[handoff] No Chatwoot conversation for telegram_id",
+    console.error(
+      "[handoff] Could not find or create Chatwoot conversation for",
       telegramId,
-      "- private note and labels skipped until thread exists",
     );
     return null;
   }
+
   await addChatwootNote(
     conversationId,
     buildQualifiedLeadCardText(user, answers, extras),
