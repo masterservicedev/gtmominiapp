@@ -167,7 +167,7 @@ const tierContent: Record<Capital, TierContent> = {
       "Full GTMO School — all video courses, beginner to advanced",
       "Exclusive chart views and technical analysis not published publicly",
       "Live trading sessions — positions opened and managed in real time",
-      "Exclusive strategies developed and tested by the channel trader",
+      "Exclusive strategies from the GTMO himself!",
       "Member pricing on all future GTMO products and events",
     ],
     miniAppBonus:

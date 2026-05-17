@@ -52,7 +52,7 @@ export const productCatalog: Record<ProductKey, ProductDetail> = {
       "Direct access to the affiliated trading broker",
       "Deposit bonuses and exclusive broker promotions",
       "Community of traders following the same setups",
-      "Daily market analysis from the channel trader",
+      "Daily market analysis from GTMO",
       "Exclusive content not published in the free channel",
     ],
     emphasis: {
@@ -120,7 +120,7 @@ export const productCatalog: Record<ProductKey, ProductDetail> = {
       "Full access to all GTMO video courses — structured curriculum from beginner to advanced",
       "Exclusive chart views and technical analysis not shared publicly",
       "Live trading sessions — watch positions being opened and managed in real time",
-      "Exclusive trading strategies developed and tested by the channel trader",
+      "Exclusive strategies from the GTMO himself!",
       "Instant access to all course content on enrolment",
       "Exclusive member pricing on future GTMO products and events",
     ],

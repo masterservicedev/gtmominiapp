@@ -44,7 +44,7 @@ const KEY_INCLUSIONS: Record<ProductKey, string[]> = {
   school: [
     "Full video course library — beginner to advanced",
     "Live trading sessions with real positions",
-    "Exclusive strategies from the channel trader",
+    "Exclusive strategies from the GTMO himself!",
   ],
 };
 
