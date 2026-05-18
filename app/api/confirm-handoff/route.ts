@@ -144,10 +144,15 @@ export async function POST(req: NextRequest) {
       extras,
     );
 
+    const handoffMode: "chatwoot_handoff" | "telegram_fallback" = conversationId
+      ? "chatwoot_handoff"
+      : "telegram_fallback";
+
     if (!conversationId) {
       console.log("[handoff] fallback direct Telegram used");
       await sendHighIntentTelegramLead(user, answers, extras);
     }
+    console.log(`[confirm-handoff] result mode: ${handoffMode}`);
 
     await db
       .update(users)
@@ -172,6 +177,7 @@ export async function POST(req: NextRequest) {
         productKey: productMatch.productKey,
         bundleAccepted,
         conversationId,
+        mode: handoffMode,
         afterTelegramReady: crmAlreadyFired,
       },
       country: user.country,
@@ -199,7 +205,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      handled: "high_handoff",
+      handled:
+        handoffMode === "chatwoot_handoff"
+          ? "high_handoff"
+          : "high_handoff_telegram_fallback",
+      mode: handoffMode,
+      handoffFallback: handoffMode === "telegram_fallback",
       segment: "HIGH",
     });
   } catch {
