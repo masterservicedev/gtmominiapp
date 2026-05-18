@@ -151,6 +151,45 @@ async function handleDepositConfirmed(
   }
 }
 
+/**
+ * Persist Chatwoot conversation/contact ids on the user row so the handoff
+ * flow can resolve the conversation by primary key instead of walking
+ * /contacts/search. Called on message_created, conversation_created, and
+ * conversation_updated events arriving on the mini-app inbox.
+ */
+async function linkConversationToUser(
+  telegramId: number,
+  conversationId: string,
+  contactId: number | null,
+): Promise<void> {
+  try {
+    const [match] = await db
+      .select()
+      .from(users)
+      .where(eq(users.telegramId, telegramId))
+      .limit(1);
+    if (!match) return;
+
+    const updates: Partial<typeof users.$inferInsert> = {
+      chatwootConversationId: conversationId,
+    };
+    if (contactId != null) {
+      updates.chatwootContactId = String(contactId);
+    }
+
+    await db.update(users).set(updates).where(eq(users.id, match.id));
+
+    console.log("[chatwoot-webhook] linked user to chatwoot conversation", {
+      telegramId,
+      conversationId,
+      contactId,
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Chatwoot webhook link error:", msg);
+  }
+}
+
 function conversationHasContextFlag(
   conversation: Record<string, unknown> | undefined,
 ): boolean {
@@ -304,6 +343,22 @@ export async function POST(req: NextRequest) {
     if (Number.isFinite(miniappInboxId) && eventInboxId !== miniappInboxId) {
       console.log("[chatwoot-webhook] skip non-miniapp inbox", eventInboxId);
       return NextResponse.json({ ok: true });
+    }
+
+    // Persist the chatwoot conversation/contact ids on the mini-app user row
+    // so the handoff can use them directly without doing /contacts/search.
+    if (
+      telegramId != null &&
+      conversationId != null &&
+      (event === "message_created" ||
+        event === "conversation_created" ||
+        event === "conversation_updated")
+    ) {
+      await linkConversationToUser(
+        telegramId,
+        conversationId,
+        typeof contactId === "number" ? contactId : null,
+      );
     }
 
     if (

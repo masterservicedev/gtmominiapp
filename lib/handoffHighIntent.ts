@@ -79,8 +79,20 @@ export async function attachInternalLeadToChatwoot(
     segment: user.segment,
   });
 
-  const conversationId =
-    await findLatestConversationIdForTelegramUser(telegramId);
+  // Prefer the conversation id persisted by the Chatwoot webhook
+  // (users.chatwootConversationId), fall back to live /contacts/search.
+  let conversationId: string | null = user.chatwootConversationId ?? null;
+  if (conversationId) {
+    console.log(
+      "[handoff] using stored chatwootConversationId:",
+      conversationId,
+    );
+  } else {
+    console.log(
+      "[handoff] no stored conversation id, falling back to live search",
+    );
+    conversationId = await findLatestConversationIdForTelegramUser(telegramId);
+  }
 
   if (!conversationId) {
     console.log(
