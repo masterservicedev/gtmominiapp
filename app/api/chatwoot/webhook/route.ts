@@ -14,57 +14,32 @@ import {
   extractDepositAmountUsd,
 } from "@/lib/chatwootDeposit";
 
-function getPath(obj: unknown, path: (string | number)[]): unknown {
-  let cur: unknown = obj;
-  for (const key of path) {
-    if (cur == null || typeof cur !== "object") return undefined;
-    cur = (cur as Record<string | number, unknown>)[key];
-  }
-  return cur;
-}
+// Single shared helper used by:
+//   - summary log
+//   - db match fallback
+//   - handleDepositConfirmed
+//   - handleReturningUserNote
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractTelegramId(payload: any): number | null {
+  const raw =
+    payload?.conversation?.contact_inbox?.source_id ??
+    payload?.contact_inbox?.source_id ??
+    payload?.conversation?.messages?.[0]?.conversation?.contact_inbox
+      ?.source_id ??
+    payload?.conversation?.meta?.sender?.additional_attributes
+      ?.social_telegram_user_id ??
+    payload?.sender?.additional_attributes?.social_telegram_user_id ??
+    payload?.conversation?.messages?.[0]?.sender?.additional_attributes
+      ?.social_telegram_user_id ??
+    payload?.additional_attributes?.chat_id ??
+    payload?.conversation?.additional_attributes?.chat_id ??
+    // Legacy fallbacks kept for safety.
+    payload?.contact?.additional_attributes?.social_telegram_user_id ??
+    payload?.meta?.sender?.identifier ??
+    payload?.sender?.identifier;
 
-function extractTelegramId(payload: Record<string, unknown>): number | null {
-  const candidates: unknown[] = [
-    // Canonical paths from Chatwoot Telegram webhooks.
-    getPath(payload, ["conversation", "contact_inbox", "source_id"]),
-    getPath(payload, [
-      "conversation",
-      "messages",
-      0,
-      "conversation",
-      "contact_inbox",
-      "source_id",
-    ]),
-    getPath(payload, [
-      "conversation",
-      "meta",
-      "sender",
-      "additional_attributes",
-      "social_telegram_user_id",
-    ]),
-    getPath(payload, [
-      "contact",
-      "additional_attributes",
-      "social_telegram_user_id",
-    ]),
-    getPath(payload, [
-      "sender",
-      "additional_attributes",
-      "social_telegram_user_id",
-    ]),
-
-    // Legacy / less-specific paths kept as final fallback.
-    getPath(payload, ["meta", "sender", "identifier"]),
-    getPath(payload, ["sender", "identifier"]),
-  ];
-
-  for (const raw of candidates) {
-    if (raw == null) continue;
-    if (typeof raw !== "string" && typeof raw !== "number") continue;
-    const n = Number(raw);
-    if (Number.isFinite(n) && n > 0) return n;
-  }
-  return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
 }
 
 function extractConversationId(
@@ -279,6 +254,27 @@ export async function POST(req: NextRequest) {
       depositConfirmed,
     });
 
+    // TEMPORARY DEBUG — remove once telegramId is consistently non-null.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const p = payload as any;
+    console.log("[chatwoot-webhook] telegram raw candidates", {
+      conversationContactInboxSourceId:
+        p?.conversation?.contact_inbox?.source_id,
+      rootContactInboxSourceId: p?.contact_inbox?.source_id,
+      nestedMessageSourceId:
+        p?.conversation?.messages?.[0]?.conversation?.contact_inbox?.source_id,
+      metaSocialTelegramUserId:
+        p?.conversation?.meta?.sender?.additional_attributes
+          ?.social_telegram_user_id,
+      senderSocialTelegramUserId:
+        p?.sender?.additional_attributes?.social_telegram_user_id,
+      messageSenderSocialTelegramUserId:
+        p?.conversation?.messages?.[0]?.sender?.additional_attributes
+          ?.social_telegram_user_id,
+      rootChatId: p?.additional_attributes?.chat_id,
+      conversationChatId: p?.conversation?.additional_attributes?.chat_id,
+    });
+
     // Rule 1 — ignore private notes (incl. the ones we post ourselves).
     const message = payload.message as Record<string, unknown> | undefined;
     const isPrivate =
@@ -294,6 +290,19 @@ export async function POST(req: NextRequest) {
     const isOutgoing = messageType === "outgoing" || messageType === 1;
     if (isOutgoing && event !== "conversation_updated") {
       console.log("[chatwoot-webhook] skip outgoing message");
+      return NextResponse.json({ ok: true });
+    }
+
+    // Mini-app inbox filter — webhook itself is global, but only the mini-app
+    // inbox should drive mini-app business logic. If the env var is missing or
+    // not numeric, fall through so we don't accidentally drop everything.
+    const miniappInboxRaw = process.env.CHATWOOT_MINIAPP_INBOX_ID;
+    const miniappInboxId = miniappInboxRaw ? Number(miniappInboxRaw) : NaN;
+    const eventInboxId = Number(
+      p?.conversation?.inbox_id ?? p?.inbox?.id,
+    );
+    if (Number.isFinite(miniappInboxId) && eventInboxId !== miniappInboxId) {
+      console.log("[chatwoot-webhook] skip non-miniapp inbox", eventInboxId);
       return NextResponse.json({ ok: true });
     }
 
