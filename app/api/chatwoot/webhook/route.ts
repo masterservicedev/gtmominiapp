@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users, events } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { addChatwootNote } from "@/lib/chatwoot";
+import {
+  addChatwootNote,
+  setConversationCustomAttribute,
+} from "@/lib/chatwoot";
 import { getLatestQuestionnaireAnswers } from "@/lib/db/questionnaire";
 import { voluumPostbackUrl } from "@/lib/voluum";
 import {
@@ -173,6 +176,22 @@ async function handleDepositConfirmed(
   }
 }
 
+function conversationHasContextFlag(
+  conversation: Record<string, unknown> | undefined,
+): boolean {
+  if (!conversation) return false;
+  const custom = conversation.custom_attributes as
+    | Record<string, unknown>
+    | undefined;
+  const additional = conversation.additional_attributes as
+    | Record<string, unknown>
+    | undefined;
+  return (
+    custom?.mini_app_context_attached === true ||
+    additional?.mini_app_context_attached === true
+  );
+}
+
 async function handleReturningUserNote(
   payload: Record<string, unknown>,
 ): Promise<void> {
@@ -189,6 +208,12 @@ async function handleReturningUserNote(
 
   const conversationId = extractConversationId(payload);
   if (!conversationId) return;
+
+  const conversation = getConversation(payload);
+  if (conversationHasContextFlag(conversation)) {
+    console.log("[chatwoot-webhook] context already attached");
+    return;
+  }
 
   const latest = await getLatestQuestionnaireAnswers(user.id);
   const daysSince = Math.floor(
@@ -208,6 +233,12 @@ async function handleReturningUserNote(
   ].join("\n");
 
   await addChatwootNote(conversationId, note);
+  await setConversationCustomAttribute(
+    conversationId,
+    "mini_app_context_attached",
+    true,
+  );
+  console.log("[chatwoot-webhook] context note attached");
 }
 
 export async function POST(req: NextRequest) {
@@ -247,6 +278,24 @@ export async function POST(req: NextRequest) {
       telegramId,
       depositConfirmed,
     });
+
+    // Rule 1 — ignore private notes (incl. the ones we post ourselves).
+    const message = payload.message as Record<string, unknown> | undefined;
+    const isPrivate =
+      payload.private === true || message?.private === true;
+    if (isPrivate) {
+      console.log("[chatwoot-webhook] skip private note");
+      return NextResponse.json({ ok: true });
+    }
+
+    // Rule 2 — ignore outgoing messages, except when we still need the
+    // conversation_updated event for label syncing (handled below).
+    const messageType = payload.message_type ?? message?.message_type;
+    const isOutgoing = messageType === "outgoing" || messageType === 1;
+    if (isOutgoing && event !== "conversation_updated") {
+      console.log("[chatwoot-webhook] skip outgoing message");
+      return NextResponse.json({ ok: true });
+    }
 
     if (
       event === "conversation_updated" ||

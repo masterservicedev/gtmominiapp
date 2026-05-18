@@ -203,6 +203,34 @@ export async function applyQualifiedLeadLabels(
 }
 
 /**
+ * Merge a single key into the conversation's custom_attributes.
+ * Reads current attrs first so other keys are preserved (Chatwoot's POST
+ * to /custom_attributes replaces the object as a whole).
+ */
+export async function setConversationCustomAttribute(
+  conversationId: string,
+  key: string,
+  value: unknown,
+): Promise<boolean> {
+  try {
+    const { data } = await chatwoot.get(
+      `/accounts/${ACCOUNT_ID}/conversations/${conversationId}`,
+    );
+    const current = (data?.custom_attributes ?? {}) as Record<string, unknown>;
+    const next = { ...current, [key]: value };
+    await chatwoot.post(
+      `/accounts/${ACCOUNT_ID}/conversations/${conversationId}/custom_attributes`,
+      { custom_attributes: next },
+    );
+    return true;
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Chatwoot set custom attribute error:", msg);
+    return false;
+  }
+}
+
+/**
  * Public outbound message in an existing Chatwoot conversation.
  * Chatwoot delivers it to the customer via the Telegram inbox channel.
  */
