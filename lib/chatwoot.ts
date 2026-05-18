@@ -29,7 +29,10 @@ export async function addChatwootNote(
   }
 }
 
-export async function addLabel(conversationId: string, label: string) {
+export async function addLabel(
+  conversationId: string,
+  label: string,
+): Promise<boolean> {
   try {
     const { data } = await chatwoot.get(
       `/accounts/${ACCOUNT_ID}/conversations/${conversationId}`,
@@ -42,9 +45,11 @@ export async function addLabel(conversationId: string, label: string) {
         { labels: [...currentLabels, label] },
       );
     }
+    return true;
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("Chatwoot label error:", msg);
+    return false;
   }
 }
 

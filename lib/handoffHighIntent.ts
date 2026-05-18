@@ -14,10 +14,10 @@ import {
 import { telegramSendMessage } from "@/lib/telegramBotApi";
 import {
   findLatestConversationIdForTelegramUser,
-  applyQualifiedLeadLabels,
   addChatwootNote,
   sendChatwootOutboundMessage,
   addLabel,
+  assignToTeam,
 } from "@/lib/chatwoot";
 import { voluumPostbackUrl } from "@/lib/voluum";
 import axios from "axios";
@@ -58,6 +58,14 @@ const CAPITAL_LABELS: Record<string, string> = {
  * conversation. This function NEVER creates one. If none exists yet,
  * returns null so the caller can fall back to direct Telegram.
  */
+async function logLabel(
+  conversationId: string,
+  label: string,
+): Promise<void> {
+  const ok = await addLabel(conversationId, label);
+  console.log(`[label] ${label}`, ok ? "success" : "fail");
+}
+
 export async function attachInternalLeadToChatwoot(
   telegramId: number,
   productKey: ProductKey,
@@ -65,6 +73,12 @@ export async function attachInternalLeadToChatwoot(
   answers: AnswerRow,
   extras?: LeadCardExtras,
 ): Promise<string | null> {
+  console.log("[handoff] attachInternalLeadToChatwoot started", {
+    telegramId,
+    productKey,
+    segment: user.segment,
+  });
+
   const conversationId =
     await findLatestConversationIdForTelegramUser(telegramId);
 
@@ -76,33 +90,54 @@ export async function attachInternalLeadToChatwoot(
     return null;
   }
 
+  console.log("[handoff] existing conversation found:", conversationId);
+
   await sendChatwootOutboundMessage(
     conversationId,
     buildCustomerHandoffMessage(user, answers, extras),
   );
+  console.log("[handoff] outbound Chatwoot message sent");
 
   await addChatwootNote(
     conversationId,
     buildQualifiedLeadCardText(user, answers, extras),
   );
+  console.log("[handoff] private lead note sent");
 
-  await applyQualifiedLeadLabels(
-    conversationId,
-    productKeyToChatwootLabelSuffix(productKey),
-  );
+  console.log("[handoff] applying labels...");
+
+  const productLabel = `product-${productKeyToChatwootLabelSuffix(productKey)}`;
+  await logLabel(conversationId, "qualified-lead");
+  await logLabel(conversationId, productLabel);
+  await logLabel(conversationId, "deposit-pending");
 
   const segmentLabel = user.segment ? SEGMENT_LABELS[user.segment] : undefined;
   if (segmentLabel) {
-    await addLabel(conversationId, segmentLabel);
+    await logLabel(conversationId, segmentLabel);
+  } else {
+    console.log(
+      "[label] segment-* skipped (no segment or UNSCORED):",
+      user.segment,
+    );
   }
 
   const capital = capitalFromAnswers(answers?.capital);
   const capitalLabel = CAPITAL_LABELS[capital];
   if (capitalLabel) {
-    await addLabel(conversationId, capitalLabel);
+    await logLabel(conversationId, capitalLabel);
+  } else {
+    console.log("[label] capital-* skipped (unknown capital):", capital);
   }
 
-  await addLabel(conversationId, "handoff-requested");
+  await logLabel(conversationId, "handoff-requested");
+
+  const teamRaw = process.env.CHATWOOT_CLOSERS_TEAM_ID;
+  if (teamRaw) {
+    const teamId = parseInt(teamRaw, 10);
+    if (Number.isFinite(teamId)) {
+      await assignToTeam(conversationId, teamId);
+    }
+  }
 
   return conversationId;
 }

@@ -25,12 +25,14 @@ async function cancelPendingNurture(userId: string) {
 
 export async function POST(req: NextRequest) {
   try {
+    console.log("[confirm-handoff] started");
     const body = await req.json();
     const { initData, bundleAccepted: bundleAcceptedRaw } = body as {
       initData: string;
       bundleAccepted?: boolean | null;
     };
     const { user: tgUser } = validateInitData(initData);
+    console.log("[confirm-handoff] telegramId:", tgUser.id);
 
     const [user] = await db
       .select()
@@ -39,6 +41,7 @@ export async function POST(req: NextRequest) {
       .limit(1);
 
     if (!user) {
+      console.log("[confirm-handoff] user not found in DB");
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
@@ -52,6 +55,7 @@ export async function POST(req: NextRequest) {
     }
 
     const segment = user.segment;
+    console.log("[confirm-handoff] segment:", segment);
     if (segment !== "HIGH" && segment !== "MID") {
       return NextResponse.json({ error: "Invalid segment" }, { status: 400 });
     }
@@ -72,9 +76,11 @@ export async function POST(req: NextRequest) {
 
     const answers = await getLatestQuestionnaireAnswers(user.id);
     const capital = capitalFromAnswers(answers?.capital);
+    console.log("[confirm-handoff] capital:", capital);
     const bundleEligible = user.bundleEligible ?? false;
     const bundleUsed = user.bundleUsed ?? false;
     const productMatch = getProductMatch(capital, bundleEligible, bundleUsed);
+    console.log("[confirm-handoff] productKey:", productMatch.productKey);
     const bundleShown = productMatch.bundleOfferLine != null;
 
     let bundleAccepted: boolean | null = null;
@@ -139,7 +145,7 @@ export async function POST(req: NextRequest) {
     );
 
     if (!conversationId) {
-      console.log("[handoff] Chatwoot fallback — sending direct Telegram DM");
+      console.log("[handoff] fallback direct Telegram used");
       await sendHighIntentTelegramLead(user, answers, extras);
     }
 

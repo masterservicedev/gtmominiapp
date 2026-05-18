@@ -49,7 +49,10 @@ async function handleDepositConfirmed(
 ): Promise<void> {
   const conversation = getConversation(payload);
   const conversationId = extractConversationId(payload);
-  if (!conversationId) return;
+  if (!conversationId) {
+    console.log("[chatwoot-webhook] deposit handler: no conversationId");
+    return;
+  }
 
   const telegramId = extractTelegramId(payload);
 
@@ -60,6 +63,9 @@ async function handleDepositConfirmed(
     .limit(1);
 
   let user = byConv;
+  let matchedBy: "conversationId" | "telegramId" | null = byConv
+    ? "conversationId"
+    : null;
   if (!user && telegramId != null) {
     const [byTg] = await db
       .select()
@@ -67,14 +73,29 @@ async function handleDepositConfirmed(
       .where(eq(users.telegramId, telegramId))
       .limit(1);
     user = byTg;
+    if (user) matchedBy = "telegramId";
   }
 
-  if (!user || !user.miniAppUser) return;
+  console.log("[chatwoot-webhook] db match:", {
+    matched: !!user,
+    matchedBy,
+    userId: user?.id ?? null,
+  });
+
+  if (!user || !user.miniAppUser) {
+    console.log("[chatwoot-webhook] skip: not a mini app user or not matched");
+    return;
+  }
 
   const titles = collectLabelTitles(conversation);
-  if (!conversationHasDepositConfirmedLabel(titles)) return;
+  const depositConfirmed = conversationHasDepositConfirmedLabel(titles);
+  console.log("[chatwoot-webhook] deposit-confirmed detected:", depositConfirmed);
+  if (!depositConfirmed) return;
 
-  if (user.bundleUsed) return;
+  if (user.bundleUsed) {
+    console.log("[chatwoot-webhook] skip: bundleUsed already true");
+    return;
+  }
 
   const amount = extractDepositAmountUsd(conversation, payload);
   const depositTotal =
@@ -87,6 +108,13 @@ async function handleDepositConfirmed(
       depositTotal: depositTotal > 0 ? depositTotal : user.depositTotal,
     })
     .where(eq(users.id, user.id));
+
+  console.log("[chatwoot-webhook] db update:", {
+    userId: user.id,
+    bundleUsed: true,
+    depositTotal: depositTotal > 0 ? depositTotal : user.depositTotal,
+    depositAmountUsd: amount,
+  });
 
   await db.insert(events).values({
     userId: user.id,
@@ -151,6 +179,39 @@ export async function POST(req: NextRequest) {
   try {
     const payload = (await req.json()) as Record<string, unknown>;
     const event = String(payload.event || "");
+
+    const conversation = getConversation(payload);
+    const conversationId = extractConversationId(payload);
+    const inboxId =
+      (conversation?.inbox_id as number | undefined) ??
+      ((payload.inbox as Record<string, unknown> | undefined)?.id as
+        | number
+        | undefined) ??
+      null;
+    const labels = collectLabelTitles(conversation);
+    const meta = payload.meta as Record<string, unknown> | undefined;
+    const sender = (meta?.sender ??
+      (payload.sender as Record<string, unknown>)) as
+      | Record<string, unknown>
+      | undefined;
+    const contactId =
+      (sender?.id as number | undefined) ??
+      ((conversation?.meta as Record<string, unknown> | undefined)?.[
+        "sender"
+      ] as Record<string, unknown> | undefined)?.id ??
+      null;
+    const telegramId = extractTelegramId(payload);
+    const depositConfirmed = conversationHasDepositConfirmedLabel(labels);
+
+    console.log("[chatwoot-webhook]", {
+      event,
+      conversationId,
+      labels,
+      inboxId,
+      contactId,
+      telegramId,
+      depositConfirmed,
+    });
 
     if (
       event === "conversation_updated" ||
