@@ -130,8 +130,6 @@ export async function POST(req: NextRequest) {
       bundleOfferShown: bundleShown,
     });
 
-    await sendHighIntentTelegramLead(user, answers, extras);
-
     const conversationId = await attachInternalLeadToChatwoot(
       user.telegramId,
       productMatch.productKey,
@@ -139,6 +137,11 @@ export async function POST(req: NextRequest) {
       answers,
       extras,
     );
+
+    if (!conversationId) {
+      console.log("[handoff] Chatwoot fallback — sending direct Telegram DM");
+      await sendHighIntentTelegramLead(user, answers, extras);
+    }
 
     await db
       .update(users)

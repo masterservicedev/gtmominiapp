@@ -197,144 +197,25 @@ export async function applyQualifiedLeadLabels(
   }
 }
 
-export async function findOrCreateChatwootConversation(
-  telegramId: number,
-  userName: string | null,
-  firstName: string | null,
-  lastName: string | null,
-): Promise<string | null> {
-  // #region agent log
-  console.log(
-    "[chatwoot:debug] findOrCreateChatwootConversation called for tg",
-    telegramId,
-  );
-  fetch('http://127.0.0.1:7586/ingest/a06de864-e48c-47c4-804c-fea5dbfaf96a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'124202'},body:JSON.stringify({sessionId:'124202',hypothesisId:'H1H2H3',location:'lib/chatwoot.ts:findOrCreateChatwootConversation',message:'function entry',data:{telegramId},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
-
-  const existing = await findLatestConversationIdForTelegramUser(telegramId);
-  if (existing) {
-    // #region agent log
-    console.log("[chatwoot:debug] Found existing conversation", existing);
-    // #endregion
-    return existing;
-  }
-
-  // #region agent log
-  console.log("[chatwoot:debug] No existing conversation — will create");
-  // #endregion
-
-  const baseUrl = process.env.CHATWOOT_BASE_URL?.replace(/\/$/, "");
-  const token = process.env.CHATWOOT_API_TOKEN;
-  const accountId = process.env.CHATWOOT_ACCOUNT_ID;
-  const inboxId = process.env.CHATWOOT_MINIAPP_INBOX_ID;
-
-  // #region agent log
-  console.log(
-    "[chatwoot:debug] env check — baseUrl:",
-    !!baseUrl,
-    "token:",
-    !!token,
-    "accountId:",
-    accountId,
-    "inboxId:",
-    inboxId,
-  );
-  // #endregion
-
-  if (!baseUrl || !token || !accountId || !inboxId) {
-    console.warn("[chatwoot:debug] MISSING ENV VARS — aborting");
-    return null;
-  }
-
-  // Find contact via existing helper (same axios instance + auth as the rest of this file).
-  const existingContact = await findContactByTelegramId(telegramId);
-  let contactId: number | null = existingContact?.id ?? null;
-
-  if (contactId) {
-    // #region agent log
-    console.log("[chatwoot:debug] Found contact via search:", contactId);
-    // #endregion
-  } else {
-    try {
-      const displayName =
-        [firstName, lastName].filter(Boolean).join(" ").trim() ||
-        userName ||
-        `TG_${telegramId}`;
-
-      const { data } = await chatwoot.post(`/accounts/${accountId}/contacts`, {
-        name: displayName,
-        identifier: String(telegramId),
-        additional_attributes: {
-          telegram_id: telegramId,
-          username: userName ?? "",
-        },
-      });
-      // #region agent log
-      console.log(
-        "[chatwoot:debug] Create contact response:",
-        JSON.stringify(data),
-      );
-      // #endregion
-      contactId = data?.id ?? data?.payload?.id ?? null;
-      // #region agent log
-      console.log("[chatwoot:debug] New contactId:", contactId);
-      // #endregion
-    } catch (err) {
-      console.error("[chatwoot] Contact create error", err);
-      return null;
-    }
-  }
-
-  if (!contactId) {
-    console.error("[chatwoot] Could not find or create contact");
-    return null;
-  }
-
-  // #region agent log
-  console.log(
-    "[chatwoot:debug] Proceeding to create conversation with contactId:",
-    contactId,
-    "inboxId:",
-    inboxId,
-  );
-  // #endregion
-
-  const conversationBody = {
-    source_id: String(telegramId),
-    contact_id: contactId,
-    inbox_id: Number(inboxId),
-    additional_attributes: { telegram_id: telegramId },
-  };
-
-  // #region agent log
-  console.log(
-    "[chatwoot:debug] POST /conversations body:",
-    JSON.stringify(conversationBody),
-  );
-  // #endregion
-
+/**
+ * Public outbound message in an existing Chatwoot conversation.
+ * Chatwoot delivers it to the customer via the Telegram inbox channel.
+ */
+export async function sendChatwootOutboundMessage(
+  conversationId: string,
+  content: string,
+): Promise<void> {
   try {
-    const { data } = await chatwoot.post(
-      `/accounts/${accountId}/conversations`,
-      conversationBody,
+    await chatwoot.post(
+      `/accounts/${ACCOUNT_ID}/conversations/${conversationId}/messages`,
+      {
+        content,
+        message_type: "outgoing",
+        private: false,
+      },
     );
-    // #region agent log
-    console.log(
-      "[chatwoot:debug] Create conversation response:",
-      JSON.stringify(data),
-    );
-    // #endregion
-    const convId = data?.id
-      ? String(data.id)
-      : data?.payload?.id
-        ? String(data.payload.id)
-        : null;
-    // #region agent log
-    console.log("[chatwoot:debug] convId:", convId);
-    // #endregion
-    return convId;
-  } catch (err) {
-    console.error("[chatwoot] Conversation create error", err);
-    return null;
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[chatwoot] Outbound message error:", msg);
   }
 }

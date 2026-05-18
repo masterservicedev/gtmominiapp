@@ -13,9 +13,11 @@ import {
 } from "@/lib/leadCardContent";
 import { telegramSendMessage } from "@/lib/telegramBotApi";
 import {
-  findOrCreateChatwootConversation,
+  findLatestConversationIdForTelegramUser,
   applyQualifiedLeadLabels,
   addChatwootNote,
+  sendChatwootOutboundMessage,
+  addLabel,
 } from "@/lib/chatwoot";
 import { voluumPostbackUrl } from "@/lib/voluum";
 import axios from "axios";
@@ -36,9 +38,25 @@ export async function sendHighIntentTelegramLead(
   );
 }
 
+const SEGMENT_LABELS: Record<string, string> = {
+  HIGH: "segment-high",
+  MID: "segment-mid",
+  LOW: "segment-low",
+};
+
+const CAPITAL_LABELS: Record<string, string> = {
+  under_100: "capital-under-100",
+  "100_300": "capital-100-300",
+  "300_1000": "capital-300-1000",
+  "1000_plus": "capital-1000-plus",
+};
+
 /**
- * Post full lead card as Chatwoot private note, then labels + team.
- * Creates a Chatwoot contact/conversation when none exists yet.
+ * Attach a HIGH lead to its existing Chatwoot conversation.
+ *
+ * Chatwoot owns the Telegram inbox: customer DMs and `/start` create the
+ * conversation. This function NEVER creates one. If none exists yet,
+ * returns null so the caller can fall back to direct Telegram.
  */
 export async function attachInternalLeadToChatwoot(
   telegramId: number,
@@ -47,29 +65,45 @@ export async function attachInternalLeadToChatwoot(
   answers: AnswerRow,
   extras?: LeadCardExtras,
 ): Promise<string | null> {
-  const conversationId = await findOrCreateChatwootConversation(
-    telegramId,
-    user.username ?? null,
-    user.firstName ?? null,
-    null,
-  );
+  const conversationId =
+    await findLatestConversationIdForTelegramUser(telegramId);
 
   if (!conversationId) {
-    console.error(
-      "[handoff] Could not find or create Chatwoot conversation for",
+    console.log(
+      "[handoff] No existing Chatwoot conversation for tg",
       telegramId,
     );
     return null;
   }
 
+  await sendChatwootOutboundMessage(
+    conversationId,
+    buildCustomerHandoffMessage(user, answers, extras),
+  );
+
   await addChatwootNote(
     conversationId,
     buildQualifiedLeadCardText(user, answers, extras),
   );
+
   await applyQualifiedLeadLabels(
     conversationId,
     productKeyToChatwootLabelSuffix(productKey),
   );
+
+  const segmentLabel = user.segment ? SEGMENT_LABELS[user.segment] : undefined;
+  if (segmentLabel) {
+    await addLabel(conversationId, segmentLabel);
+  }
+
+  const capital = capitalFromAnswers(answers?.capital);
+  const capitalLabel = CAPITAL_LABELS[capital];
+  if (capitalLabel) {
+    await addLabel(conversationId, capitalLabel);
+  }
+
+  await addLabel(conversationId, "handoff-requested");
+
   return conversationId;
 }
 

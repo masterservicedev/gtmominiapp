@@ -121,7 +121,6 @@ export async function confirmReactivationHandoff(
       { parse_mode: "Markdown" },
     );
   } else {
-    await sendHighIntentTelegramLead(user, answers, extras);
     const conversationId = await attachInternalLeadToChatwoot(
       user.telegramId,
       pm.productKey as ProductKey,
@@ -129,6 +128,12 @@ export async function confirmReactivationHandoff(
       answers,
       extras,
     );
+    if (!conversationId) {
+      console.log(
+        "[handoff] Chatwoot fallback (reactivation) — sending direct Telegram DM",
+      );
+      await sendHighIntentTelegramLead(user, answers, extras);
+    }
     const now = new Date();
     await db
       .update(users)
