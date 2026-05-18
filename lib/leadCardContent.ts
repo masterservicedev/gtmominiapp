@@ -4,29 +4,32 @@ import { getProductMatch } from "@/lib/productMatch";
 import type { Capital } from "@/lib/scoring";
 import type { InferSelectModel } from "drizzle-orm";
 import type { questionnaireAnswers, users } from "@/lib/db/schema";
+import { getBundleCopy, getNonBundleAgentClose } from "@/lib/bundleCopy";
 
 type UserRow = InferSelectModel<typeof users>;
 type AnswerRow = InferSelectModel<typeof questionnaireAnswers> | null;
 
-/** Same tier lines as legacy bot `getOfferLine` (agent “offer to lead” line). */
-export function getOfferLine(capital: string, bundleEligible: boolean): string {
+/**
+ * Same tier lines as legacy bot `getOfferLine` — now sourced from lib/bundleCopy.ts.
+ *
+ * `bundleDeclined` indicates the user actively opted out of the bundle in the
+ * mini app (`bundleOfferShown && bundleAccepted === false`). In that case we
+ * surface the primary-only close so the specialist does not lead with a bonus
+ * the lead has already turned down.
+ */
+export function getOfferLine(
+  capital: string,
+  bundleEligible: boolean,
+  bundleDeclined = false,
+): string {
+  const cap = capitalFromAnswers(capital);
   if (!bundleEligible) {
-    const standard: Record<string, string> = {
-      under_100: "No current offer — channel access only",
-      "100_300": "$100 deposit → VIP access",
-      "300_1000": "$200 deposit → FX Basics or Education",
-      "1000_plus": "$500 deposit → School access",
-    };
-    return standard[capital] || "See agent for options";
+    return getNonBundleAgentClose(cap);
   }
-
-  const bundle: Record<string, string> = {
-    under_100: "No current offer — channel access only",
-    "100_300": "$100 deposit → VIP + Ebook bundle 🎁",
-    "300_1000": "$200 deposit → Pick 1 product + 50% off second 🎁",
-    "1000_plus": "$500 deposit → School + 1 product of choice FREE 🎁",
-  };
-  return bundle[capital] || "See agent for options";
+  const bundle = getBundleCopy(cap);
+  if (!bundle) return getNonBundleAgentClose(cap);
+  if (bundleDeclined) return bundle.agentPrimaryOnlyClose;
+  return bundle.agentSuggestedClose;
 }
 
 export function getScoreEmoji(score: number): string {
@@ -84,25 +87,23 @@ export function buildCustomerHandoffMessage(
     getProductMatch(cap, user.bundleEligible ?? false, user.bundleUsed ?? false);
   const productName = productDisplayName(pm.productKey);
 
+  const bundleCopy = getBundleCopy(cap);
   const bundleLines: string[] = [];
   if (extras) {
-    if (extras.bundleOfferShown && extras.bundleAccepted === true && pm.bonusLine) {
-      bundleLines.push(``, `Mini app add-on included: ${pm.bundleOfferLine}.`);
+    if (extras.bundleOfferShown && extras.bundleAccepted === true && bundleCopy) {
+      bundleLines.push(``, bundleCopy.customerDmLine);
     } else if (extras.bundleOfferShown && extras.bundleAccepted === false) {
       bundleLines.push(
         ``,
-        `You're proceeding with the primary offer only (no bundle add-on).`,
+        `You're proceeding with the primary offer only — no mini app activation bonus attached.`,
       );
     }
   } else if (
-    pm.bundleOfferLine &&
+    bundleCopy &&
     (user.bundleEligible ?? false) &&
     !(user.bundleUsed ?? false)
   ) {
-    bundleLines.push(
-      ``,
-      `You may also be eligible for: *${pm.bundleOfferLine}* — tell your specialist if you'd like it included.`,
-    );
+    bundleLines.push(``, bundleCopy.customerDmLine);
   }
 
   const closing = [
@@ -183,10 +184,9 @@ function buildBonusLine(
 ): string {
   if (!bundleEligible || bundleUsed) return "No bonus attached";
   if (bundleOfferShown && bundleAccepted === false) return "No bonus attached";
-  if (capital === "1000_plus") return "+ 1 free product after deposit 🎁";
-  if (capital === "300_1000")
-    return "+ 50% off second product after deposit 🎁";
-  return "No bonus attached";
+  const bundle = getBundleCopy(capital);
+  if (!bundle) return "No bonus attached";
+  return bundle.agentEligibleBonus;
 }
 
 /** Full internal lead block for Chatwoot private note only — not for customer Telegram. */
@@ -205,7 +205,13 @@ export function buildQualifiedLeadCardText(
       user.bundleUsed ?? false,
     );
   const productName = productDisplayName(productMatch.productKey);
-  const closeLine = getOfferLine(capital, user.bundleEligible ?? false);
+  const bundleDeclined =
+    (extras?.bundleOfferShown ?? false) && extras?.bundleAccepted === false;
+  const closeLine = getOfferLine(
+    capital,
+    user.bundleEligible ?? false,
+    bundleDeclined,
+  );
   const bonusLine = buildBonusLine(
     capital,
     user.bundleEligible ?? false,
@@ -218,7 +224,7 @@ export function buildQualifiedLeadCardText(
     ? `[GTMO REACTIVATION LEAD]`
     : `[GTMO QUALIFIED LEAD]`;
 
-  return [
+  const lines: string[] = [
     header,
     ``,
     `Score: ${user.score ?? 0} ${scoreEmoji}`,
@@ -241,6 +247,14 @@ export function buildQualifiedLeadCardText(
     `Mini App User: ${user.miniAppUser ? "YES" : "NO"}`,
     `Eligible Bonus:`,
     `${bonusLine}`,
+  ];
+
+  if (bundleDeclined) {
+    lines.push(`Bundle declined: YES`);
+    lines.push(`Re-offer bonus only if the lead asks.`);
+  }
+
+  lines.push(
     ``,
     `Suggested Close:`,
     `${closeLine}`,
@@ -249,7 +263,9 @@ export function buildQualifiedLeadCardText(
     `1. Send broker registration link`,
     `2. Confirm deposit receipt`,
     `3. Activate ${productName} + selected bonus product when eligible`,
-  ].join("\n");
+  );
+
+  return lines.join("\n");
 }
 
 export function capitalFromAnswers(capital: string | undefined): Capital {
