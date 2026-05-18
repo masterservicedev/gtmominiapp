@@ -299,14 +299,24 @@ export async function findOrCreateChatwootConversation(
   );
   // #endregion
 
+  const conversationBody = {
+    source_id: String(telegramId),
+    contact_id: contactId,
+    inbox_id: Number(inboxId),
+    additional_attributes: { telegram_id: telegramId },
+  };
+
+  // #region agent log
+  console.log(
+    "[chatwoot:debug] POST /conversations body:",
+    JSON.stringify(conversationBody),
+  );
+  // #endregion
+
   try {
     const { data } = await chatwoot.post(
       `/accounts/${accountId}/conversations`,
-      {
-        contact_id: contactId,
-        inbox_id: Number(inboxId),
-        additional_attributes: { telegram_id: telegramId },
-      },
+      conversationBody,
     );
     // #region agent log
     console.log(
