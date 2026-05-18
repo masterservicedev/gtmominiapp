@@ -11,20 +11,55 @@ import {
   extractDepositAmountUsd,
 } from "@/lib/chatwootDeposit";
 
+function getPath(obj: unknown, path: (string | number)[]): unknown {
+  let cur: unknown = obj;
+  for (const key of path) {
+    if (cur == null || typeof cur !== "object") return undefined;
+    cur = (cur as Record<string | number, unknown>)[key];
+  }
+  return cur;
+}
+
 function extractTelegramId(payload: Record<string, unknown>): number | null {
-  const meta = payload.meta as Record<string, unknown> | undefined;
-  const sender = (meta?.sender ??
-    (payload.sender as Record<string, unknown>)) as
-    | Record<string, unknown>
-    | undefined;
-  const idRaw =
-    sender?.identifier ??
-    (payload.conversation as Record<string, unknown> | undefined)?.[
-      "contact_inbox"
-    ];
-  if (typeof idRaw === "string" || typeof idRaw === "number") {
-    const n = parseInt(String(idRaw).replace(/\D/g, ""), 10);
-    return Number.isFinite(n) ? n : null;
+  const candidates: unknown[] = [
+    // Canonical paths from Chatwoot Telegram webhooks.
+    getPath(payload, ["conversation", "contact_inbox", "source_id"]),
+    getPath(payload, [
+      "conversation",
+      "messages",
+      0,
+      "conversation",
+      "contact_inbox",
+      "source_id",
+    ]),
+    getPath(payload, [
+      "conversation",
+      "meta",
+      "sender",
+      "additional_attributes",
+      "social_telegram_user_id",
+    ]),
+    getPath(payload, [
+      "contact",
+      "additional_attributes",
+      "social_telegram_user_id",
+    ]),
+    getPath(payload, [
+      "sender",
+      "additional_attributes",
+      "social_telegram_user_id",
+    ]),
+
+    // Legacy / less-specific paths kept as final fallback.
+    getPath(payload, ["meta", "sender", "identifier"]),
+    getPath(payload, ["sender", "identifier"]),
+  ];
+
+  for (const raw of candidates) {
+    if (raw == null) continue;
+    if (typeof raw !== "string" && typeof raw !== "number") continue;
+    const n = Number(raw);
+    if (Number.isFinite(n) && n > 0) return n;
   }
   return null;
 }
@@ -138,26 +173,6 @@ async function handleDepositConfirmed(
   }
 }
 
-// TEMPORARY DEBUG — remove once Telegram-id path in payload is confirmed.
-const REDACTED_KEYS = new Set([
-  "email",
-  "phone_number",
-  "access_token",
-  "token",
-  "avatar_url",
-]);
-function sanitizePayload(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(sanitizePayload);
-  if (value && typeof value === "object") {
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      out[k] = REDACTED_KEYS.has(k) ? "[REDACTED]" : sanitizePayload(v);
-    }
-    return out;
-  }
-  return value;
-}
-
 async function handleReturningUserNote(
   payload: Record<string, unknown>,
 ): Promise<void> {
@@ -232,14 +247,6 @@ export async function POST(req: NextRequest) {
       telegramId,
       depositConfirmed,
     });
-
-    // TEMPORARY DEBUG — remove once Telegram-id path in payload is confirmed.
-    if (event === "message_created" || event === "conversation_updated") {
-      console.log(
-        "[chatwoot-webhook:full-payload]",
-        JSON.stringify(sanitizePayload(payload), null, 2),
-      );
-    }
 
     if (
       event === "conversation_updated" ||
