@@ -138,6 +138,26 @@ async function handleDepositConfirmed(
   }
 }
 
+// TEMPORARY DEBUG — remove once Telegram-id path in payload is confirmed.
+const REDACTED_KEYS = new Set([
+  "email",
+  "phone_number",
+  "access_token",
+  "token",
+  "avatar_url",
+]);
+function sanitizePayload(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sanitizePayload);
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      out[k] = REDACTED_KEYS.has(k) ? "[REDACTED]" : sanitizePayload(v);
+    }
+    return out;
+  }
+  return value;
+}
+
 async function handleReturningUserNote(
   payload: Record<string, unknown>,
 ): Promise<void> {
@@ -212,6 +232,14 @@ export async function POST(req: NextRequest) {
       telegramId,
       depositConfirmed,
     });
+
+    // TEMPORARY DEBUG — remove once Telegram-id path in payload is confirmed.
+    if (event === "message_created" || event === "conversation_updated") {
+      console.log(
+        "[chatwoot-webhook:full-payload]",
+        JSON.stringify(sanitizePayload(payload), null, 2),
+      );
+    }
 
     if (
       event === "conversation_updated" ||
