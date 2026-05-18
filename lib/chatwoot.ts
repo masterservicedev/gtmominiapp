@@ -65,14 +65,23 @@ export async function assignToTeam(conversationId: string, teamId: number) {
   }
 }
 
+type ContactPayload = { id?: number };
+
 export async function findContactByTelegramId(telegramId: number) {
+  const list = await findContactsByTelegramId(telegramId);
+  return list[0] ?? null;
+}
+
+async function findContactsByTelegramId(
+  telegramId: number,
+): Promise<ContactPayload[]> {
   try {
-    const { data } = await chatwoot.get(
+    const { data } = await chatwoot.get<{ payload?: ContactPayload[] }>(
       `/accounts/${ACCOUNT_ID}/contacts/search?q=${telegramId}`,
     );
-    return data.payload?.length > 0 ? data.payload[0] : null;
+    return Array.isArray(data?.payload) ? data.payload : [];
   } catch {
-    return null;
+    return [];
   }
 }
 
@@ -82,6 +91,14 @@ type ConvPayload = {
   status?: string;
   last_activity_at?: number;
   created_at?: number;
+  contact_inbox?: { source_id?: string | number };
+  meta?: {
+    sender?: {
+      additional_attributes?: {
+        social_telegram_user_id?: string | number;
+      };
+    };
+  };
 };
 
 export type ConversationStatus = {
@@ -147,43 +164,109 @@ export async function countOpenUnassignedConversations(): Promise<number | null>
   }
 }
 
-/** After a Telegram DM is mirrored into Chatwoot, resolve conversation id for labels. */
+/**
+ * Find the latest Chatwoot conversation for a Telegram user.
+ *
+ * Walks every contact returned by /contacts/search (Chatwoot can register
+ * multiple contact rows for the same Telegram id) and, for each, fetches
+ * /contacts/{id}/conversations. Matches require both:
+ *   - inbox_id === CHATWOOT_MINIAPP_INBOX_ID (when env is set)
+ *   - contact_inbox.source_id === telegramId
+ *     OR meta.sender.additional_attributes.social_telegram_user_id === telegramId
+ * Sorted by last_activity_at desc, then created_at desc, with status
+ * open/pending preferred.
+ */
 export async function findLatestConversationIdForTelegramUser(
   telegramId: number,
 ): Promise<string | null> {
   if (!ACCOUNT_ID) return null;
-  const contact = await findContactByTelegramId(telegramId);
-  const contactId = contact?.id;
-  if (contactId == null) return null;
 
-  try {
-    const { data } = await chatwoot.get<{ payload?: ConvPayload[] }>(
-      `/accounts/${ACCOUNT_ID}/contacts/${contactId}/conversations`,
-    );
-    const list = Array.isArray(data.payload) ? data.payload : [];
-    const inboxIdRaw = process.env.CHATWOOT_MINIAPP_INBOX_ID;
-    const inboxFilter =
-      inboxIdRaw !== undefined && inboxIdRaw !== ""
-        ? parseInt(inboxIdRaw, 10)
-        : NaN;
-    let convs = list;
-    if (Number.isFinite(inboxFilter)) {
-      convs = convs.filter((c) => c.inbox_id === inboxFilter);
-    }
-    const score = (c: ConvPayload) =>
-      (c.last_activity_at as number) ||
-      (c.created_at as number) ||
-      0;
-    convs.sort((a, b) => score(b) - score(a));
-    const pick =
-      convs.find((c) => c.status === "open" || c.status === "pending") ??
-      convs[0];
-    return pick?.id != null ? String(pick.id) : null;
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("Chatwoot list conversations error:", msg);
+  console.log("[chatwoot-find] searching tg:", telegramId);
+  const contacts = await findContactsByTelegramId(telegramId);
+  console.log("[chatwoot-find] contact candidates count:", contacts.length);
+
+  if (contacts.length === 0) {
+    console.log("[chatwoot-find] no matching conversation found");
     return null;
   }
+
+  const inboxIdRaw = process.env.CHATWOOT_MINIAPP_INBOX_ID;
+  const targetInbox = inboxIdRaw ? Number(inboxIdRaw) : NaN;
+  const inboxFilterActive = Number.isFinite(targetInbox);
+
+  const tgStr = String(telegramId);
+  const tgNum = Number(telegramId);
+
+  const matches: ConvPayload[] = [];
+
+  for (const contact of contacts) {
+    const contactId = contact?.id;
+    if (contactId == null) continue;
+    console.log("[chatwoot-find] checking contact:", contactId);
+
+    let list: ConvPayload[] = [];
+    try {
+      const { data } = await chatwoot.get<{ payload?: ConvPayload[] }>(
+        `/accounts/${ACCOUNT_ID}/contacts/${contactId}/conversations`,
+      );
+      list = Array.isArray(data?.payload) ? data.payload : [];
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("Chatwoot list conversations error:", msg);
+      continue;
+    }
+    console.log(
+      `[chatwoot-find] conversations returned for contact ${contactId}:`,
+      list.length,
+    );
+
+    for (const c of list) {
+      const inboxOk = !inboxFilterActive || c.inbox_id === targetInbox;
+      const srcId = c.contact_inbox?.source_id;
+      const social =
+        c.meta?.sender?.additional_attributes?.social_telegram_user_id;
+      const sourceOk =
+        (srcId != null && String(srcId) === tgStr) ||
+        (social != null && Number(social) === tgNum);
+
+      if (!inboxOk || !sourceOk) continue;
+
+      console.log("[chatwoot-find] match candidate:", {
+        id: c.id,
+        inbox_id: c.inbox_id,
+        source_id: srcId,
+        status: c.status,
+        last_activity_at: c.last_activity_at,
+      });
+      matches.push(c);
+    }
+  }
+
+  if (matches.length === 0) {
+    console.log("[chatwoot-find] no matching conversation found");
+    return null;
+  }
+
+  matches.sort((a, b) => {
+    const la = a.last_activity_at ?? 0;
+    const lb = b.last_activity_at ?? 0;
+    if (lb !== la) return lb - la;
+    const ca = a.created_at ?? 0;
+    const cb = b.created_at ?? 0;
+    return cb - ca;
+  });
+
+  const pick =
+    matches.find((c) => c.status === "open" || c.status === "pending") ??
+    matches[0];
+
+  const pickedId = pick?.id != null ? String(pick.id) : null;
+  if (pickedId) {
+    console.log("[chatwoot-find] picked conversation:", pickedId);
+  } else {
+    console.log("[chatwoot-find] no matching conversation found");
+  }
+  return pickedId;
 }
 
 export async function applyQualifiedLeadLabels(
