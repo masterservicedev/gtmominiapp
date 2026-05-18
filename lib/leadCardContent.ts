@@ -132,32 +132,87 @@ export function buildCustomerHandoffMessage(
   return lines.join("\n");
 }
 
+function humanize(
+  value: string | null | undefined,
+  fallback = "unknown",
+): string {
+  return value ? value.replace(/_/g, " ") : fallback;
+}
+
+function capitalLabel(capital: string | null | undefined): string {
+  switch (capital) {
+    case "under_100":
+      return "$0–$100";
+    case "100_300":
+      return "$100–$300";
+    case "300_1000":
+      return "$300–$1,000";
+    case "1000_plus":
+      return "$1,000+";
+    default:
+      return "unknown";
+  }
+}
+
+function productEmoji(
+  key: ProductKey | typeof LEGACY_PRODUCT_KEY_FX,
+): string {
+  if (key === LEGACY_PRODUCT_KEY_FX) return "📊";
+  switch (key) {
+    case "ebook":
+      return "📘";
+    case "vip":
+      return "🎯";
+    case "fx_basics":
+      return "📊";
+    case "education":
+      return "🎓";
+    case "school":
+      return "🏫";
+    default:
+      return "•";
+  }
+}
+
+function buildBonusLine(
+  capital: Capital,
+  bundleEligible: boolean,
+  bundleUsed: boolean,
+  bundleOfferShown: boolean,
+  bundleAccepted: boolean | null,
+): string {
+  if (!bundleEligible || bundleUsed) return "No bonus attached";
+  if (bundleOfferShown && bundleAccepted === false) return "No bonus attached";
+  if (capital === "1000_plus") return "+ 1 free product after deposit 🎁";
+  if (capital === "300_1000")
+    return "+ 50% off second product after deposit 🎁";
+  return "No bonus attached";
+}
+
 /** Full internal lead block for Chatwoot private note only — not for customer Telegram. */
 export function buildQualifiedLeadCardText(
   user: UserRow,
   answers: AnswerRow,
   extras?: LeadCardExtras,
 ): string {
-  const capital = answers?.capital ?? "under_100";
-  const emoji = getScoreEmoji(user.score || 0);
-  const offerLine = getOfferLine(capital, user.bundleEligible ?? false);
-
-  const productBlock =
-    extras != null
-      ? [
-          `Product confirmed: ${productDisplayName(extras.productMatch.productKey)}`,
-          `Deposit required: $${extras.productMatch.depositRequiredUsd} (fund via registration link)`,
-          `Bundle offer shown: ${extras.bundleOfferShown ? "YES" : "NO"}`,
-          `Bundle accepted: ${
-            extras.bundleAccepted === null
-              ? "N/A"
-              : extras.bundleAccepted
-                ? "YES — first deposit applies"
-                : "NO"
-          }`,
-          ``,
-        ].join("\n")
-      : "";
+  const capital = capitalFromAnswers(answers?.capital);
+  const scoreEmoji = getScoreEmoji(user.score || 0);
+  const productMatch =
+    extras?.productMatch ??
+    getProductMatch(
+      capital,
+      user.bundleEligible ?? false,
+      user.bundleUsed ?? false,
+    );
+  const productName = productDisplayName(productMatch.productKey);
+  const closeLine = getOfferLine(capital, user.bundleEligible ?? false);
+  const bonusLine = buildBonusLine(
+    capital,
+    user.bundleEligible ?? false,
+    user.bundleUsed ?? false,
+    extras?.bundleOfferShown ?? false,
+    extras?.bundleAccepted ?? null,
+  );
 
   const header = extras?.reactivation
     ? `[GTMO REACTIVATION LEAD]`
@@ -166,30 +221,34 @@ export function buildQualifiedLeadCardText(
   return [
     header,
     ``,
-    `Score: ${user.score} ${emoji}`,
-    `Capital declared: ${answers?.capital?.replace(/_/g, " ") || "unknown"}`,
-    ...(productBlock ? [productBlock] : []),
-    `Experience: ${answers?.experience?.replace(/_/g, " ") || "unknown"}`,
-    `Goal: ${answers?.goal?.replace(/_/g, " ") || "unknown"}`,
-    `Readiness: ${answers?.readiness?.replace(/_/g, " ") || "unknown"}`,
+    `Score: ${user.score ?? 0} ${scoreEmoji}`,
+    `Capital: ${capitalLabel(answers?.capital)}`,
+    `Experience: ${humanize(answers?.experience)}`,
+    `Goal: ${humanize(answers?.goal)}`,
+    `Readiness: ${humanize(answers?.readiness)}`,
     ``,
-    `Source: ${user.entryVariant || "direct"}`,
+    `Confirmed Product:`,
+    `${productEmoji(productMatch.productKey)} ${productName}`,
+    ``,
+    `Required Deposit:`,
+    `$${productMatch.depositRequiredUsd} via broker registration link`,
+    ``,
+    `Lead Source:`,
+    `${user.entryVariant || "direct"}`,
     `CID: ${user.voluumCid || "none"}`,
     `Country: ${user.country || "unknown"}`,
     ``,
-    `Mini app user: ${user.miniAppUser ? "YES" : "NO"}`,
-    `Bundle eligible: ${user.bundleEligible ? "YES — first deposit" : "NO"}`,
-    `Products owned: ${user.productsUnlocked?.length ? user.productsUnlocked.join(", ") : "none"}`,
-    ...(extras?.reactivation
-      ? [
-          ``,
-          `Reactivation: YES — pick up with existing context (no cold intro).`,
-        ]
-      : []),
+    `Mini App User: ${user.miniAppUser ? "YES" : "NO"}`,
+    `Eligible Bonus:`,
+    `${bonusLine}`,
     ``,
-    `→ Offer to lead with: ${offerLine}`,
+    `Suggested Close:`,
+    `${closeLine}`,
     ``,
-    `Agent action: send registration link (broker per specialist), confirm deposit receipt`,
+    `Agent Action:`,
+    `1. Send broker registration link`,
+    `2. Confirm deposit receipt`,
+    `3. Activate ${productName} + selected bonus product when eligible`,
   ].join("\n");
 }
 
