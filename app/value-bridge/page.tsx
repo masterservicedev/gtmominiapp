@@ -10,8 +10,6 @@ import { getAccentPalette } from "@/lib/funnel/palette";
 import { trackFunnelEvent } from "@/lib/funnel/track";
 import type { Capital } from "@/lib/scoring";
 
-const channelLink = process.env.NEXT_PUBLIC_CHANNEL_LINK || "#";
-
 const CAPITALS: Capital[] = [
   "under_100",
   "100_300",
@@ -36,29 +34,30 @@ type TierContent = {
 
 const tierContent: Record<Capital, TierContent> = {
   under_100: {
-    qualifyHeadline: "You are at the start of this journey.",
+    qualifyHeadline: "Start with the right setup before risking more capital.",
     qualifySub:
-      "That is not a barrier. It is where every serious trader begins.",
+      "You do not need a large account to begin properly — you need structure first.",
     whatGoesWrong: {
       heading: "What usually goes wrong at this stage",
-      body: "Most people with under $100 try to trade their way to a bigger account before they understand the basics. They lose what they have, get frustrated, and exit the market entirely. The capital is not the problem. The approach is.",
+      body: "Most people with under $100 jump into live markets before they know how to set up MT5, size positions, or follow a signal framework. They lose what they have, get frustrated, and exit — not because the opportunity was wrong, but because the setup was missing.",
     },
     howAccessHelps: {
-      heading: "What the channel gives you instead",
-      body: "The free GTMO signals channel is live every day. You can follow real entries, exits, and risk management in real time — without risking a single dollar — until you understand the structure and are ready to act on it properly.",
+      heading: "How starter access changes that",
+      body: "The MT5 Guide walks you through practical setup and execution — personally written by MO. The GTMO Ebook gives you the signal framework and mindset behind how GTMO trades. Together they help you start with clarity before you scale capital.",
     },
     processProof: [
-      { value: "Daily", label: "live sessions in the free channel" },
-      {
-        value: "Real",
-        label: "entries, exits and stops shown every time",
-      },
-      { value: "Free", label: "channel access while you build readiness" },
+      { value: "MT5", label: "Guide — practical setup and execution by MO" },
+      { value: "56", label: "pages in the GTMO Ebook — signal framework" },
+      { value: "$50", label: "minimum funding activates starter access" },
     ],
-    activatesAfterFunding: [],
-    miniAppBonus: null,
-    transition:
-      "Join the channel. Watch the process. Come back when you are ready to activate.",
+    activatesAfterFunding: [
+      "MT5 Guide — practical MT5 setup and execution, personally written by MO",
+      "GTMO Ebook — strategy, mindset, and signal framework",
+      "Activation after your account is funded and verified via your registration link",
+    ],
+    miniAppBonus:
+      "Because you applied through the mini app, MT5 Guide and the GTMO Ebook are included together when you fund your account with $50+.",
+    transition: "Here is your starter activation path.",
   },
 
   "100_300": {
@@ -95,7 +94,7 @@ const tierContent: Record<Capital, TierContent> = {
       "Community of active traders at your level",
     ],
     miniAppBonus:
-      "Because you applied through the mini app, the GTMO Ebook — 56 pages of signal strategy — is included with your VIP access at no extra cost.",
+      "Because you applied through the mini app, the MT5 Guide is included with your VIP access at no extra cost.",
     transition: "Here is your recommended access path.",
   },
 
@@ -108,7 +107,7 @@ const tierContent: Record<Capital, TierContent> = {
     },
     howAccessHelps: {
       heading: "How your access changes that",
-      body: "The education path we activate at this level is designed specifically for traders who are past beginner stage but need a framework. You follow a live trader who explains every move in real time, and access structured learning that builds the habits serious trading requires.",
+      body: "FX Basics gives you a structured Forex curriculum with ongoing channel-style delivery. You follow live context from the GTMO trader as markets move and build the habits serious trading requires.",
     },
     processProof: [
       {
@@ -126,13 +125,13 @@ const tierContent: Record<Capital, TierContent> = {
       },
     ],
     activatesAfterFunding: [
-      "FX Basics or Education channel — your specialist confirms which fits your level",
-      "Structured curriculum covering market structure, setups, and execution discipline",
+      "FX Basics — complete Forex curriculum with ongoing GTMO support",
+      "Structured coverage of market structure, setups, and execution discipline",
       "Ongoing live context from the GTMO trader as markets move",
       "Community support from traders operating at your capital level",
     ],
     miniAppBonus:
-      "Because you applied through the mini app, you can add a second product at 50% off when you speak with your specialist. Your specialist confirms which primary product fits your level first.",
+      "Because you applied through the mini app, the GTMO Ebook is included with your FX Basics access at no extra cost.",
     transition: "Here is your recommended access path.",
   },
 
@@ -210,7 +209,7 @@ function ValueBridgeInner() {
   }, [capital, content, router, variant]);
 
   function handleContinue() {
-    if (!capital || capital === "under_100") return;
+    if (!capital) return;
     setRevealing(true);
     window.setTimeout(() => {
       router.push(`/product-match?variant=${encodeURIComponent(variant)}`);
@@ -243,75 +242,6 @@ function ValueBridgeInner() {
     </div>
   );
 
-  if (capital === "under_100") {
-    return shell(
-      <div className="relative mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pb-10 pt-8 sm:px-8">
-        <div className="mb-7">
-          <p
-            className={`mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] ${palette.valueBridgeEyebrow}`}
-          >
-            Your path
-          </p>
-          <h1 className="mb-3 font-serif text-2xl font-normal leading-snug tracking-tight text-zinc-50 md:text-[1.75rem]">
-            {content.qualifyHeadline}
-          </h1>
-          <p className={`text-sm font-medium leading-snug ${palette.bridgeHeadline}`}>
-            {content.qualifySub}
-          </p>
-        </div>
-
-        <div className="mb-4 rounded-2xl border border-zinc-800/80 bg-zinc-950/40 p-5">
-          <p className="mb-3 text-[10px] text-zinc-500 uppercase tracking-widest">
-            {content.whatGoesWrong.heading}
-          </p>
-          <p className="text-sm leading-relaxed text-zinc-300">
-            {content.whatGoesWrong.body}
-          </p>
-        </div>
-
-        <div className="mb-6 rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5">
-          <p className="mb-3 text-[10px] text-zinc-500 uppercase tracking-widest">
-            {content.howAccessHelps.heading}
-          </p>
-          <p className="text-sm leading-relaxed text-zinc-300">
-            {content.howAccessHelps.body}
-          </p>
-        </div>
-
-        <div className="mb-8 grid grid-cols-3 gap-2 sm:gap-3">
-          {content.processProof.map((stat, i) => (
-            <div
-              key={i}
-              className="rounded-xl border border-zinc-800 bg-zinc-950/80 p-3 text-center"
-            >
-              <p className="text-base font-bold leading-tight text-zinc-50">
-                {stat.value}
-              </p>
-              <p className="mt-1 text-[10px] leading-tight text-zinc-500 sm:text-xs">
-                {stat.label}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <p className="mb-6 text-center text-sm leading-relaxed text-zinc-500">
-          {content.transition}
-        </p>
-
-        <p className="mb-4 text-center text-[10px] leading-relaxed text-zinc-600">
-          Figures and examples refer to community-reported outcomes and are not
-          guarantees of your results. Trading involves risk.
-        </p>
-
-        <a
-          href={channelLink}
-          className="mt-auto block w-full rounded-xl bg-white py-4 text-center text-sm font-semibold text-black transition-colors hover:bg-zinc-100"
-        >
-          Join the free channel →
-        </a>
-      </div>,
-    );
-  }
 
   return shell(
     <div className="relative mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pb-10 pt-8 sm:px-8">

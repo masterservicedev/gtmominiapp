@@ -1,7 +1,7 @@
 import type { Api } from "grammy";
 import { db } from "./db";
 import { broadcastOffers, users } from "../../lib/db/schema";
-import { getMiniAppWebAppUrl } from "./config";
+import { getMiniAppWebAppUrl, getChannelLinkUrl } from "./config";
 import {
   buildReEngagementTelegramBody,
   type MessageVariant,
@@ -120,21 +120,44 @@ export async function sendLowDay14(
   user: UserRow,
   variant: MessageVariant,
 ) {
+  /** Callback keyboards are unreachable while the Railway worker is outbound-only
+   * (Chatwoot owns inbound). Use WebApp + channel URL buttons instead. */
+  const offerId = await createBundleExtensionOffer(user.id);
+  const readyUrl = getMiniAppWebAppUrl(reactivateStartParam(offerId));
+  const channelUrl = getChannelLinkUrl();
+
+  const inline_keyboard: {
+    text: string;
+    web_app?: { url: string };
+    url?: string;
+  }[][] = [];
+
+  if (readyUrl) {
+    inline_keyboard.push([
+      {
+        text: "I'm ready to explore options now",
+        web_app: { url: readyUrl },
+      },
+    ]);
+  }
+
+  if (channelUrl) {
+    inline_keyboard.push([
+      {
+        text: "Still need more time",
+        url: channelUrl,
+      },
+    ]);
+  }
+
   await api.sendMessage(
     user.telegramId,
     buildReEngagementTelegramBody("low_day14", toPreviewInput(user), variant),
     {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            {
-              text: "I'm ready to explore options now",
-              callback_data: `low_ready_${user.id}`,
-            },
-          ],
-          [{ text: "Still need more time", callback_data: `low_later_${user.id}` }],
-        ],
-      },
+      parse_mode: "Markdown",
+      ...(inline_keyboard.length > 0
+        ? { reply_markup: { inline_keyboard } }
+        : {}),
     },
   );
 }

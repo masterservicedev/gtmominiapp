@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getLatestQuestionnaireAnswers } from "@/lib/db/questionnaire";
-import { getProductMatch } from "@/lib/productMatch";
+import { canAccessPostQualifyFlow, getProductMatch } from "@/lib/productMatch";
 import { capitalFromAnswers } from "@/lib/leadCardContent";
 
 export async function POST(req: NextRequest) {
@@ -30,16 +30,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const answers = await getLatestQuestionnaireAnswers(user.id);
+    const capital = capitalFromAnswers(answers?.capital);
     const segment = user.segment;
-    if (segment !== "HIGH" && segment !== "MID") {
+
+    if (!canAccessPostQualifyFlow(segment, capital)) {
       return NextResponse.json(
         { error: "No post-qualify flow for this segment", segment },
         { status: 400 },
       );
     }
-
-    const answers = await getLatestQuestionnaireAnswers(user.id);
-    const capital = capitalFromAnswers(answers?.capital);
     const bundleEligible = user.bundleEligible ?? false;
     const bundleUsed = user.bundleUsed ?? false;
     const productMatch = getProductMatch(capital, bundleEligible, bundleUsed);

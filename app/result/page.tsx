@@ -87,7 +87,7 @@ function ResultContent() {
     );
   }
 
-  if (segment === "HIGH")
+  if (segment === "HIGH" || (segment === "LOW" && handoff))
     return (
       <HighResult
         inAppHandoff={handoff}

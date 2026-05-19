@@ -4,7 +4,10 @@ import { db } from "@/lib/db";
 import { users, events, nurtureQueue } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
 import { getLatestQuestionnaireAnswers } from "@/lib/db/questionnaire";
-import { getProductMatch } from "@/lib/productMatch";
+import {
+  getProductMatch,
+  isStarterHandoffSegment,
+} from "@/lib/productMatch";
 import { capitalFromAnswers } from "@/lib/leadCardContent";
 import {
   sendHighIntentTelegramLead,
@@ -54,9 +57,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const answers = await getLatestQuestionnaireAnswers(user.id);
+    const capital = capitalFromAnswers(answers?.capital);
     const segment = user.segment;
     console.log("[confirm-handoff] segment:", segment);
-    if (segment !== "HIGH" && segment !== "MID") {
+    console.log("[confirm-handoff] capital:", capital);
+    const starterHandoff = isStarterHandoffSegment(segment, capital);
+    if (segment !== "HIGH" && segment !== "MID" && !starterHandoff) {
       return NextResponse.json({ error: "Invalid segment" }, { status: 400 });
     }
 
@@ -73,10 +80,6 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-
-    const answers = await getLatestQuestionnaireAnswers(user.id);
-    const capital = capitalFromAnswers(answers?.capital);
-    console.log("[confirm-handoff] capital:", capital);
     const bundleEligible = user.bundleEligible ?? false;
     const bundleUsed = user.bundleUsed ?? false;
     const productMatch = getProductMatch(capital, bundleEligible, bundleUsed);
@@ -200,7 +203,9 @@ export async function POST(req: NextRequest) {
 
       await fireCrmVoluumPostback(user.voluumCid);
 
-      await scheduleHighReactivationNurture(user.id, user.telegramId, now);
+      if (segment === "HIGH") {
+        await scheduleHighReactivationNurture(user.id, user.telegramId, now);
+      }
     }
 
     return NextResponse.json({
@@ -211,7 +216,7 @@ export async function POST(req: NextRequest) {
           : "high_handoff_telegram_fallback",
       mode: handoffMode,
       handoffFallback: handoffMode === "telegram_fallback",
-      segment: "HIGH",
+      segment: user.segment,
     });
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

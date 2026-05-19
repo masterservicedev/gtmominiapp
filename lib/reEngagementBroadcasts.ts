@@ -167,7 +167,7 @@ export function buildReEngagementAdminHint(
     case "mid_day21":
       return "After send: set user segment → LOW in DB.";
     case "low_day14":
-      return 'Includes inline buttons: "I\'m ready to explore options now" / "Still need more time"';
+      return `WebApp reopens mini app (/reactivate, startapp=reactivate_<uuid>); optional URL row opens channel (${"CHANNEL_LINK_URL | PUBLIC_CHANNEL_LINK | NEXT_PUBLIC_CHANNEL_LINK"}).`;
     case "low_day30":
       return "Final automated message for this sequence.";
     case "reactivation_48h":

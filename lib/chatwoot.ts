@@ -1,4 +1,5 @@
 import axios from "axios";
+import { collectLabelTitles } from "@/lib/chatwootDeposit";
 
 const chatwoot = axios.create({
   baseURL: `${process.env.CHATWOOT_BASE_URL}/api/v1`,
@@ -26,6 +27,23 @@ export async function addChatwootNote(
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("Chatwoot note error:", msg);
+  }
+}
+
+/** Normalized lowercase label titles on a conversation (live Chatwoot API). */
+export async function getConversationLabelTitles(
+  conversationId: string,
+): Promise<string[]> {
+  if (!ACCOUNT_ID) return [];
+  try {
+    const { data } = await chatwoot.get(
+      `/accounts/${ACCOUNT_ID}/conversations/${conversationId}`,
+    );
+    return collectLabelTitles(data as Record<string, unknown>);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Chatwoot get labels error:", msg);
+    return [];
   }
 }
 

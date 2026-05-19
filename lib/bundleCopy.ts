@@ -11,9 +11,6 @@ import type { Capital } from "@/lib/scoring";
  *  - customerDmLine         → Customer-facing Telegram / Chatwoot outbound DM
  *  - userPanelHeadline      → Headline shown on /value-bridge, /product-match, /confirm-intent
  *  - userPanelBody          → Body copy under the headline on those panels
- *
- * `under_100` has no paid offer in the live funnel (channel access only); it
- * therefore has no bundle copy.
  */
 export type BundleCopy = {
   agentEligibleBonus: string;
@@ -24,29 +21,35 @@ export type BundleCopy = {
   userPanelBody: string;
 };
 
-const BUNDLE_COPY: Record<Capital, BundleCopy | null> = {
-  under_100: null,
+const BUNDLE_COPY: Record<Capital, BundleCopy> = {
+  under_100: {
+    agentEligibleBonus: "+ Ebook included with MT5 Guide after deposit 🎁",
+    agentSuggestedClose: "$50 deposit → MT5 Guide + Ebook included 🎁",
+    agentPrimaryOnlyClose: "$50 deposit → MT5 Guide access only",
+    customerDmLine: "Mini app activation bonus included: MT5 Guide + Ebook.",
+    userPanelHeadline: "Starter access: MT5 Guide + Ebook",
+    userPanelBody:
+      "When you fund your account with $50+, MT5 Guide and the GTMO Ebook are activated to help you start with the right setup and framework.",
+  },
 
   "100_300": {
-    agentEligibleBonus: "+ Ebook included free after deposit 🎁",
-    agentSuggestedClose: "$100 deposit → VIP + Ebook included 🎁",
+    agentEligibleBonus: "+ MT5 Guide included after deposit 🎁",
+    agentSuggestedClose: "$100 deposit → VIP + MT5 Guide included 🎁",
     agentPrimaryOnlyClose: "$100 deposit → VIP access only",
-    customerDmLine: "Mini app activation bonus included: VIP + Ebook.",
-    userPanelHeadline: "Ebook included with VIP access",
+    customerDmLine: "Mini app activation bonus included: VIP + MT5 Guide.",
+    userPanelHeadline: "MT5 Guide included with VIP",
     userPanelBody:
-      "When you fund your account with $100+, VIP access is activated and the GTMO Ebook is included as your mini app activation bonus.",
+      "When you fund your account with $100+, VIP access is activated and the MT5 Guide is included as your mini app activation bonus.",
   },
 
   "300_1000": {
-    agentEligibleBonus: "+ 50% off second product after deposit 🎁",
-    agentSuggestedClose:
-      "$200 deposit → Primary access + 50% off second product 🎁",
-    agentPrimaryOnlyClose: "$200 deposit → Primary access only",
-    customerDmLine:
-      "Mini app activation bonus included: choose a second product at 50% off.",
-    userPanelHeadline: "Second product at 50% off",
+    agentEligibleBonus: "+ Ebook included after deposit 🎁",
+    agentSuggestedClose: "$200 deposit → FX Basics + Ebook included 🎁",
+    agentPrimaryOnlyClose: "$200 deposit → FX Basics access only",
+    customerDmLine: "Mini app activation bonus included: FX Basics + Ebook.",
+    userPanelHeadline: "Ebook included with FX Basics",
     userPanelBody:
-      "When you fund your account with $200+, your primary access is activated and you can add a second product at 50% off.",
+      "When you fund your account with $200+, FX Basics is activated and the GTMO Ebook is included as your mini app activation bonus.",
   },
 
   "1000_plus": {
@@ -63,14 +66,14 @@ const BUNDLE_COPY: Record<Capital, BundleCopy | null> = {
 };
 
 const NON_BUNDLE_AGENT_CLOSE: Record<Capital, string> = {
-  under_100: "No current offer — channel access only",
+  under_100: "$50 deposit → MT5 Guide + Ebook",
   "100_300": "$100 deposit → VIP access",
-  "300_1000": "$200 deposit → FX Basics or Education",
+  "300_1000": "$200 deposit → FX Basics",
   "1000_plus": "$500 deposit → School access",
 };
 
-export function getBundleCopy(capital: Capital): BundleCopy | null {
-  return BUNDLE_COPY[capital] ?? null;
+export function getBundleCopy(capital: Capital): BundleCopy {
+  return BUNDLE_COPY[capital];
 }
 
 export function getNonBundleAgentClose(capital: Capital): string {

@@ -13,7 +13,11 @@ import { getFunnelConfig, getPreQuestionnaireSteps } from "@/lib/funnel/resolve"
 import { getAccentPalette } from "@/lib/funnel/palette";
 import { trackFunnelEvent } from "@/lib/funnel/track";
 import { loadWebApp } from "@/lib/twa";
-import type { ProductKey, ProductMatch } from "@/lib/productMatch";
+import {
+  qualifiesForCrmHandoff,
+  type ProductKey,
+  type ProductMatch,
+} from "@/lib/productMatch";
 import {
   getBundleSecondaryOptions,
   getCatalogProduct,
@@ -21,6 +25,16 @@ import {
 import type { Capital } from "@/lib/scoring";
 
 const KEY_INCLUSIONS: Record<ProductKey, string[]> = {
+  starter: [
+    "MT5 Guide — practical setup and execution, personally written by MO",
+    "GTMO Ebook — strategy, mindset, and signal framework",
+    "Starter access after $50+ account funding",
+  ],
+  mt5_guide: [
+    "Step-by-step MT5 setup and configuration",
+    "Execution workflow for following GTMO signals",
+    "Personally written by MO",
+  ],
   ebook: [
     "56-page strategy and signal guide",
     "Entry, exit, and risk management explained",
@@ -37,9 +51,7 @@ const KEY_INCLUSIONS: Record<ProductKey, string[]> = {
     "GTMO team support throughout",
   ],
   education: [
-    "Ongoing market insights and analysis",
-    "Live context as markets move",
-    "Private channel updated regularly",
+    "Legacy product — specialist confirms access if applicable",
   ],
   school: [
     "Full video course library — beginner to advanced",
@@ -99,7 +111,8 @@ function ProductMatchInner() {
               ? "&bundle=0"
               : "";
         const seg = encodeURIComponent(data.segment);
-        if (data.segment === "HIGH") {
+        const cap = data.capital as Capital;
+        if (qualifiesForCrmHandoff(data.segment, cap)) {
           router.replace(
             `/result?segment=${seg}&handoff=1&productKey=${pk}${bundleQ}`,
           );
@@ -193,12 +206,6 @@ function ProductMatchInner() {
           <p className={`text-sm font-medium ${palette.bridgeHeadline}`}>
             {primary.tagline}
           </p>
-          {capital === "300_1000" ? (
-            <p className={`mt-2 text-xs leading-snug ${palette.bridgeSubline}`}>
-              FX Basics or Education — your specialist confirms which fits your
-              level.
-            </p>
-          ) : null}
         </div>
 
         <div className="mb-5 rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-3">

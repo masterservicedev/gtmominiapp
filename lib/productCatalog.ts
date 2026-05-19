@@ -17,6 +17,48 @@ export interface ProductDetail {
 }
 
 export const productCatalog: Record<ProductKey, ProductDetail> = {
+  starter: {
+    key: "starter",
+    displayName: "MT5 Guide + Ebook",
+    tagline: "Start with the right setup",
+    oneLiner:
+      "MT5 Guide for practical MT5 setup and execution — personally written by MO — plus the GTMO Ebook for the signal framework and mindset.",
+    depositRequiredUsd: 50,
+    benefitBullets: [
+      "MT5 Guide — practical MT5 setup and execution, personally written by MO",
+      "GTMO Ebook — strategy, mindset, and signal framework",
+      "Designed for traders starting with limited capital who need structure first",
+      "Instant digital access after your account is funded and verified",
+    ],
+    emphasis: {
+      structured: 70,
+      live: 10,
+      community: 20,
+      label: "Starter setup + framework before you scale capital",
+    },
+  },
+
+  mt5_guide: {
+    key: "mt5_guide",
+    displayName: "MT5 Guide",
+    tagline: "Practical MT5 setup and execution guide",
+    oneLiner:
+      "Personally written by MO — practical MT5 setup and execution.",
+    depositRequiredUsd: 50,
+    benefitBullets: [
+      "Step-by-step MT5 setup and configuration",
+      "Execution workflow for following GTMO signals correctly",
+      "Risk and position-sizing fundamentals on MT5",
+      "Personally written by MO — not generic third-party content",
+    ],
+    emphasis: {
+      structured: 85,
+      live: 5,
+      community: 10,
+      label: "Hands-on MT5 execution guide",
+    },
+  },
+
   ebook: {
     key: "ebook",
     displayName: "GTMO Ebook",
@@ -144,38 +186,39 @@ export function getBundleSecondaryOptions(capital: Capital): BundleRule | null {
   switch (capital) {
     case "under_100":
       return {
-        description: "10% off your next product purchase",
-        discountLabel: "10% off",
-        eligibleKeys: ["vip", "fx_basics", "education", "school"],
+        description:
+          "MT5 Guide and GTMO Ebook — activated together when you fund your account with $50+.",
+        discountLabel: "included",
+        eligibleKeys: ["mt5_guide", "ebook"],
         disclaimer:
-          "Discount applied on next product at time of purchase. Confirmed with your specialist.",
+          "Starter access activates after deposit confirmation via your registration link.",
       };
 
     case "100_300":
       return {
-        description: "Ebook included free with your VIP access",
-        discountLabel: "free",
-        eligibleKeys: ["ebook"],
+        description: "MT5 Guide included with your VIP access",
+        discountLabel: "included",
+        eligibleKeys: ["mt5_guide"],
         disclaimer:
-          "Ebook access activated alongside VIP on deposit confirmation.",
+          "MT5 Guide access activated alongside VIP on deposit confirmation.",
       };
 
     case "300_1000":
       return {
-        description: "Second product at 50% off — your choice",
-        discountLabel: "50% off",
-        eligibleKeys: ["ebook", "vip", "fx_basics", "education", "school"],
+        description: "GTMO Ebook included with FX Basics",
+        discountLabel: "included",
+        eligibleKeys: ["ebook"],
         disclaimer:
-          "Your primary product is either FX Basics or Education — your specialist confirms which fits your level best. Your second product at 50% off is chosen from the remaining options at that point.",
+          "Ebook access activated alongside FX Basics on deposit confirmation.",
       };
 
     case "1000_plus":
       return {
         description: "One additional product of your choice — completely free",
         discountLabel: "free",
-        eligibleKeys: ["ebook", "vip", "fx_basics", "education"],
+        eligibleKeys: ["ebook", "mt5_guide", "fx_basics", "vip"],
         disclaimer:
-          "Select your free product when speaking with your specialist. Activated on deposit confirmation.",
+          "Choose from Ebook, MT5 Guide, FX Basics, or VIP when speaking with your specialist. Activated on deposit confirmation.",
       };
 
     default:

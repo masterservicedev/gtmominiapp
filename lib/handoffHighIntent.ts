@@ -14,11 +14,13 @@ import {
 import { telegramSendMessage } from "@/lib/telegramBotApi";
 import {
   findLatestConversationIdForTelegramUser,
+  getConversationLabelTitles,
   addChatwootNote,
   sendChatwootOutboundMessage,
   addLabel,
   assignToTeam,
 } from "@/lib/chatwoot";
+import { conversationHasDepositConfirmedLabel } from "@/lib/chatwootDeposit";
 import { voluumPostbackUrl } from "@/lib/voluum";
 import axios from "axios";
 
@@ -103,6 +105,21 @@ export async function attachInternalLeadToChatwoot(
   }
 
   console.log("[handoff] existing conversation found:", conversationId);
+
+  if (extras?.reactivation) {
+    const labelTitles = await getConversationLabelTitles(conversationId);
+    if (conversationHasDepositConfirmedLabel(labelTitles)) {
+      console.log(
+        "[reactivate] skip pending labels because deposit-confirmed exists",
+      );
+      await addChatwootNote(
+        conversationId,
+        buildQualifiedLeadCardText(user, answers, extras),
+      );
+      console.log("[handoff] private reactivation note sent (deposit confirmed)");
+      return conversationId;
+    }
+  }
 
   await sendChatwootOutboundMessage(
     conversationId,

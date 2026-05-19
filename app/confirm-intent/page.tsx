@@ -12,7 +12,10 @@ import { normalizeEntryVariant, type AdVariant } from "@/lib/funnel/normalize";
 import { getFunnelConfig, getPreQuestionnaireSteps } from "@/lib/funnel/resolve";
 import { getAccentPalette } from "@/lib/funnel/palette";
 import { loadWebApp } from "@/lib/twa";
-import type { ProductMatch } from "@/lib/productMatch";
+import {
+  qualifiesForCrmHandoff,
+  type ProductMatch,
+} from "@/lib/productMatch";
 import {
   getBundleSecondaryOptions,
   getCatalogProduct,
@@ -72,7 +75,8 @@ function ConfirmIntentInner() {
               ? "&bundle=0"
               : "";
         const seg = encodeURIComponent(data.segment);
-        if (data.segment === "HIGH") {
+        const cap = data.capital as Capital;
+        if (qualifiesForCrmHandoff(data.segment, cap)) {
           router.replace(
             `/result?segment=${seg}&handoff=1&productKey=${pk}${bundleQ}`,
           );

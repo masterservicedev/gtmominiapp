@@ -42,14 +42,18 @@ export function getScoreEmoji(score: number): string {
 export function productDisplayName(
   key: ProductKey | typeof LEGACY_PRODUCT_KEY_FX,
 ): string {
-  if (key === LEGACY_PRODUCT_KEY_FX) return "FX Basics or Education";
+  if (key === LEGACY_PRODUCT_KEY_FX) return "FX Basics";
   switch (key) {
+    case "starter":
+      return "MT5 Guide + Ebook";
+    case "mt5_guide":
+      return "MT5 Guide";
     case "ebook":
       return "Ebook";
     case "vip":
       return "VIP access";
     case "fx_basics":
-      return "FX Basics or Education";
+      return "FX Basics";
     case "education":
       return "GTMO Education";
     case "school":
@@ -160,6 +164,10 @@ function productEmoji(
 ): string {
   if (key === LEGACY_PRODUCT_KEY_FX) return "📊";
   switch (key) {
+    case "starter":
+      return "📗";
+    case "mt5_guide":
+      return "📗";
     case "ebook":
       return "📘";
     case "vip":

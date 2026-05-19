@@ -51,3 +51,24 @@ export function getMiniAppWebAppUrl(startPayload?: string | null): string | unde
     return base;
   }
 }
+
+/**
+ * Public signals channel URL for outbound Telegram `url:` buttons (e.g.
+ * NEXT_PUBLIC_CHANNEL_LINK). Railway workers often reuse the same env as the Next app.
+ */
+export function getChannelLinkUrl(): string | undefined {
+  const raw = (
+    process.env.CHANNEL_LINK_URL ??
+    process.env.PUBLIC_CHANNEL_LINK ??
+    process.env.NEXT_PUBLIC_CHANNEL_LINK ??
+    ""
+  ).trim();
+  if (!raw || raw === "#") return undefined;
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== "https:" && u.protocol !== "http:") return undefined;
+    return u.href;
+  } catch {
+    return undefined;
+  }
+}

@@ -1,7 +1,10 @@
 import type { Capital } from "@/lib/scoring";
+import { getBundleCopy } from "@/lib/bundleCopy";
 
 /** Stable keys for DB + Chatwoot labels (`product-${key}`). */
 export type ProductKey =
+  | "starter"
+  | "mt5_guide"
   | "ebook"
   | "vip"
   | "fx_basics"
@@ -11,12 +14,24 @@ export type ProductKey =
 /** Legacy `confirmed_product_key` / URL value from before split. */
 export const LEGACY_PRODUCT_KEY_FX = "fx_education" as const;
 
+/** Active matching keys (excludes legacy `education`). */
+export const ACTIVE_PRODUCT_KEYS: ProductKey[] = [
+  "starter",
+  "mt5_guide",
+  "ebook",
+  "vip",
+  "fx_basics",
+  "school",
+];
+
 export function parseProductKey(
   raw: string | null | undefined,
 ): ProductKey | null {
   if (!raw) return null;
   if (raw === LEGACY_PRODUCT_KEY_FX) return "fx_basics";
   const keys: ProductKey[] = [
+    "starter",
+    "mt5_guide",
     "ebook",
     "vip",
     "fx_basics",
@@ -24,6 +39,32 @@ export function parseProductKey(
     "school",
   ];
   return keys.includes(raw as ProductKey) ? (raw as ProductKey) : null;
+}
+
+export function canAccessPostQualifyFlow(
+  segment: string | null | undefined,
+  capital: Capital,
+): boolean {
+  return (
+    segment === "HIGH" ||
+    segment === "MID" ||
+    (segment === "LOW" && capital === "under_100")
+  );
+}
+
+export function isStarterHandoffSegment(
+  segment: string | null | undefined,
+  capital: Capital,
+): boolean {
+  return segment === "LOW" && capital === "under_100";
+}
+
+/** HIGH leads and ready under_100 starter leads get Chatwoot/Telegram handoff. */
+export function qualifiesForCrmHandoff(
+  segment: string | null | undefined,
+  capital: Capital,
+): boolean {
+  return segment === "HIGH" || isStarterHandoffSegment(segment, capital);
 }
 
 export type ProductMatch = {
@@ -47,27 +88,34 @@ function bundleLines(
   if (!showBundle) {
     return { bonusLine: null, bundleOfferLine: null };
   }
+  const copy = getBundleCopy(capital);
+  if (!copy) {
+    return { bonusLine: null, bundleOfferLine: null };
+  }
   switch (capital) {
+    case "under_100":
+      return {
+        bonusLine: copy.userPanelHeadline,
+        bundleOfferLine: "MT5 Guide + Ebook starter",
+      };
     case "100_300":
       return {
-        bonusLine: "Ebook included free (mini app exclusive).",
-        bundleOfferLine: "VIP + Ebook bundle",
+        bonusLine: "MT5 Guide included (mini app exclusive).",
+        bundleOfferLine: "VIP + MT5 Guide",
       };
     case "300_1000":
       return {
-        bonusLine: "Second product at 50% off (mini app exclusive).",
-        bundleOfferLine: "Pick one product + second at half price",
+        bonusLine: "GTMO Ebook included (mini app exclusive).",
+        bundleOfferLine: "FX Basics + Ebook",
       };
     case "1000_plus":
       return {
-        bonusLine: "One additional product of your choice — free (mini app exclusive).",
+        bonusLine:
+          "One additional product of your choice — free (mini app exclusive).",
         bundleOfferLine: "School + one free product",
       };
     default:
-      return {
-        bonusLine: "10% off your next product (mini app exclusive).",
-        bundleOfferLine: "10% off your next product",
-      };
+      return { bonusLine: null, bundleOfferLine: null };
   }
 }
 
@@ -86,10 +134,10 @@ export function getProductMatch(
   switch (capital) {
     case "under_100":
       return {
-        productKey: "ebook",
+        productKey: "starter",
         depositRequiredUsd: 50,
-        primaryTitle: "Ebook access",
-        primaryLine: "$50 deposit unlocks the Ebook.",
+        primaryTitle: "MT5 Guide + Ebook",
+        primaryLine: "$50 minimum funding activates MT5 Guide + Ebook.",
         bonusLine: showBundle ? bonusLine : null,
         bundleOfferLine: showBundle ? bundleOfferLine : null,
       };
@@ -106,8 +154,8 @@ export function getProductMatch(
       return {
         productKey: "fx_basics",
         depositRequiredUsd: 200,
-        primaryTitle: "FX Basics or Education",
-        primaryLine: "$200 deposit — choose FX Basics or Education.",
+        primaryTitle: "FX Basics",
+        primaryLine: "$200 deposit unlocks FX Basics access.",
         bonusLine: showBundle ? bonusLine : null,
         bundleOfferLine: showBundle ? bundleOfferLine : null,
       };

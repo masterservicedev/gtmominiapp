@@ -1,3 +1,12 @@
+/**
+ * Legacy inbound bot handler.
+ *
+ * Not used while Chatwoot owns Telegram webhook/inbound.
+ * Current Railway bot entrypoint is bot/index.ts, which runs outbound nurture only.
+ *
+ * Keep as reference only unless inbound handling is intentionally moved back from Chatwoot.
+ */
+
 import type { Context } from "grammy";
 import { db } from "../lib/db";
 import { users, events } from "../../lib/db/schema";
