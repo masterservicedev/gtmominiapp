@@ -183,18 +183,59 @@ function productEmoji(
   }
 }
 
+/** Mini-app activation bonus shown on lead cards — keyed by matched product, not bundle flags alone. */
 function buildBonusLine(
-  capital: Capital,
-  bundleEligible: boolean,
-  bundleUsed: boolean,
+  productKey: ProductKey,
   bundleOfferShown: boolean,
   bundleAccepted: boolean | null,
 ): string {
-  if (!bundleEligible || bundleUsed) return "No bonus attached";
-  if (bundleOfferShown && bundleAccepted === false) return "No bonus attached";
-  const bundle = getBundleCopy(capital);
-  if (!bundle) return "No bonus attached";
-  return bundle.agentEligibleBonus;
+  if (bundleOfferShown && bundleAccepted === false) {
+    return "No bonus attached";
+  }
+  switch (productKey) {
+    case "starter":
+      return "Ebook included with MT5 Guide 🎁";
+    case "vip":
+      return "MT5 Guide included after deposit 🎁";
+    case "fx_basics":
+      return "Ebook included after deposit 🎁";
+    case "school":
+      return "1 free product after deposit 🎁";
+    default:
+      return "No bonus attached";
+  }
+}
+
+function buildAgentActivationStep(
+  productKey: ProductKey,
+  bundleDeclined: boolean,
+): string {
+  if (bundleDeclined) {
+    switch (productKey) {
+      case "starter":
+        return "Activate MT5 Guide access only";
+      case "vip":
+        return "Activate VIP access only";
+      case "fx_basics":
+        return "Activate FX Basics access only";
+      case "school":
+        return "Activate School access only";
+      default:
+        return `Activate ${productDisplayName(productKey)}`;
+    }
+  }
+  switch (productKey) {
+    case "starter":
+      return "Activate MT5 Guide + Ebook";
+    case "vip":
+      return "Activate VIP access + MT5 Guide";
+    case "fx_basics":
+      return "Activate FX Basics + Ebook";
+    case "school":
+      return "Activate School access + selected free product";
+    default:
+      return `Activate ${productDisplayName(productKey)}`;
+  }
 }
 
 /** Full internal lead block for Chatwoot private note only — not for customer Telegram. */
@@ -221,11 +262,13 @@ export function buildQualifiedLeadCardText(
     bundleDeclined,
   );
   const bonusLine = buildBonusLine(
-    capital,
-    user.bundleEligible ?? false,
-    user.bundleUsed ?? false,
+    productMatch.productKey,
     extras?.bundleOfferShown ?? false,
     extras?.bundleAccepted ?? null,
+  );
+  const agentActivationStep = buildAgentActivationStep(
+    productMatch.productKey,
+    bundleDeclined,
   );
 
   const header = extras?.reactivation
@@ -270,7 +313,7 @@ export function buildQualifiedLeadCardText(
     `Agent Action:`,
     `1. Send broker registration link`,
     `2. Confirm deposit receipt`,
-    `3. Activate ${productName} + selected bonus product when eligible`,
+    `3. ${agentActivationStep}`,
   );
 
   return lines.join("\n");
