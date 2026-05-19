@@ -11,8 +11,8 @@ import { trackFunnelEvent } from "@/lib/funnel/track";
 import { loadWebApp } from "@/lib/twa";
 
 const QUESTIONNAIRE_STEPS = 5;
-/** Post-questionnaire: value bridge + product match + confirm intent */
-const POST_QUALIFY_STEPS = 3;
+/** Post-questionnaire: value bridge + activation confirm */
+const POST_QUALIFY_STEPS = 2;
 
 const steps = [
   {

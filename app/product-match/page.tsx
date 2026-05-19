@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * Assignment only: matched product, funding, three inclusions, compact bonus.
- * Persuasion lives on value-bridge; no emphasis grids or long catalog copy here.
+ * Merged activation step: matched access, funding frame, optional bonus toggle,
+ * what happens next, and confirm-handoff — no duplicate product catalog sell.
  */
 
 import { Suspense, useCallback, useEffect, useState } from "react";
@@ -13,52 +13,19 @@ import { getFunnelConfig, getPreQuestionnaireSteps } from "@/lib/funnel/resolve"
 import { getAccentPalette } from "@/lib/funnel/palette";
 import { trackFunnelEvent } from "@/lib/funnel/track";
 import { loadWebApp } from "@/lib/twa";
+import { getBundleCopy } from "@/lib/bundleCopy";
 import {
   qualifiesForCrmHandoff,
-  type ProductKey,
   type ProductMatch,
 } from "@/lib/productMatch";
-import {
-  getBundleSecondaryOptions,
-  getCatalogProduct,
-} from "@/lib/productCatalog";
+import { getCatalogProduct } from "@/lib/productCatalog";
 import type { Capital } from "@/lib/scoring";
 
-const KEY_INCLUSIONS: Record<ProductKey, string[]> = {
-  starter: [
-    "MT5 Guide — practical setup and execution, personally written by MO",
-    "GTMO Ebook — strategy, mindset, and signal framework",
-    "Starter access after $50+ account funding",
-  ],
-  mt5_guide: [
-    "Step-by-step MT5 setup and configuration",
-    "Execution workflow for following GTMO signals",
-    "Personally written by MO",
-  ],
-  ebook: [
-    "56-page strategy and signal guide",
-    "Entry, exit, and risk management explained",
-    "Instant digital access",
-  ],
-  vip: [
-    "Daily signals — Gold, Crypto, and FX",
-    "Live trade explanations in real time",
-    "Community of 10,000+ active traders",
-  ],
-  fx_basics: [
-    "Complete Forex basics curriculum",
-    "Channel-style delivery, ongoing content",
-    "GTMO team support throughout",
-  ],
-  education: [
-    "Legacy product — specialist confirms access if applicable",
-  ],
-  school: [
-    "Full video course library — beginner to advanced",
-    "Live trading sessions with real positions",
-    "Exclusive strategies from the GTMO himself!",
-  ],
-};
+const WHAT_HAPPENS_NEXT = [
+  "Your specialist sends your registration link in this chat",
+  "You fund your trading account at the level above",
+  "Your access is activated and confirmed here once verified",
+] as const;
 
 type Payload = {
   segment: string;
@@ -82,11 +49,13 @@ function ProductMatchInner() {
   const palette = getAccentPalette(cfg);
   const t = palette;
   const preSteps = getPreQuestionnaireSteps();
-  const totalFunnelSteps = preSteps + 8;
+  const totalFunnelSteps = preSteps + 7;
   const progressStep = preSteps + 7;
 
   const [payload, setPayload] = useState<Payload | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [acceptBundle, setAcceptBundle] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -140,6 +109,12 @@ function ProductMatchInner() {
   }, [load]);
 
   useEffect(() => {
+    if (payload?.productMatch.bundleOfferLine) {
+      setAcceptBundle(true);
+    }
+  }, [payload]);
+
+  useEffect(() => {
     if (payload) {
       void trackFunnelEvent("product_match_view", {
         variant,
@@ -148,16 +123,60 @@ function ProductMatchInner() {
     }
   }, [payload, variant]);
 
-  if (error) {
+  const onConfirm = async () => {
+    if (!payload || busy) return;
+    const pm = payload.productMatch;
+    const bundleShown = Boolean(pm.bundleOfferLine);
+    setBusy(true);
+    setError(null);
+    try {
+      const WebApp = await loadWebApp();
+      const body: Record<string, unknown> = { initData: WebApp.initData };
+      if (bundleShown) {
+        body.bundleAccepted = acceptBundle;
+      }
+      const res = await fetch("/api/confirm-handoff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Request failed");
+        setBusy(false);
+        return;
+      }
+      const seg = (data.segment as string) || payload.segment;
+      const pk = encodeURIComponent(payload.productMatch.productKey);
+      const bundleQ =
+        bundleShown && typeof acceptBundle === "boolean"
+          ? `&bundle=${acceptBundle ? "1" : "0"}`
+          : "";
+      if (data.handled === "mid_record_only") {
+        router.replace(
+          `/result?segment=${encodeURIComponent(seg)}&intent=1&productKey=${pk}${bundleQ}`,
+        );
+      } else {
+        router.replace(
+          `/result?segment=${encodeURIComponent(seg)}&handoff=1&productKey=${pk}${bundleQ}`,
+        );
+      }
+    } catch {
+      setError("Network error");
+      setBusy(false);
+    }
+  };
+
+  if (error && !payload) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-zinc-950 via-black to-zinc-950 px-6 text-center text-white">
         <p className="mb-6 text-sm text-zinc-400">{error}</p>
         <button
           type="button"
-          onClick={() => router.replace(`/result?segment=LOW`)}
+          onClick={() => router.replace("/qualify")}
           className={`rounded-xl px-6 py-3 text-sm font-semibold ${t.accentBg} ${t.accentButtonText}`}
         >
-          Continue
+          Back
         </button>
       </div>
     );
@@ -172,13 +191,10 @@ function ProductMatchInner() {
   }
 
   const pm = payload.productMatch;
+  const bundleShown = Boolean(pm.bundleOfferLine);
   const capital = payload.capital as Capital;
   const primary = getCatalogProduct(pm.productKey);
-  const bundleRule =
-    pm.bundleOfferLine && pm.bonusLine
-      ? getBundleSecondaryOptions(capital)
-      : null;
-  const keyInclusions = KEY_INCLUSIONS[pm.productKey] ?? [];
+  const bundleCopy = bundleShown ? getBundleCopy(capital) : null;
 
   return (
     <div className="relative flex min-h-screen flex-col bg-gradient-to-b from-zinc-950 via-black to-zinc-950 text-white">
@@ -196,9 +212,9 @@ function ProductMatchInner() {
       </div>
 
       <div className="relative mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pb-10 pt-8 sm:px-8">
-        <div className="mb-7">
+        <div className="mb-6">
           <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
-            You&apos;ve been matched with
+            Your access path
           </p>
           <h1 className="mb-1 text-2xl font-bold leading-tight tracking-tight text-zinc-50 md:text-3xl">
             {primary.displayName}
@@ -210,68 +226,108 @@ function ProductMatchInner() {
 
         <div className="mb-5 rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-3">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-zinc-400">Minimum account funding</p>
+            <p className="text-sm text-zinc-400">Fund your account with</p>
             <p className="text-base font-bold text-zinc-50">
               ${pm.depositRequiredUsd}+
             </p>
           </div>
-          <p className="mt-1 text-xs text-zinc-600">
-            Your access activates after your account is funded and verified.
+          <p className="mt-3 text-xs leading-relaxed text-zinc-500">
+            Your GTMO access activates once your deposit is verified.
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-zinc-600">
+            You are funding your own trading account — not purchasing from us.
           </p>
         </div>
 
-        <div className="mb-4 rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
-          <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
-            Included with your activation
-          </p>
-          <div className="space-y-2">
-            {keyInclusions.map((item, i) => (
-              <div key={i} className="flex items-start gap-2">
-                <span className={`mt-0.5 shrink-0 text-xs ${palette.bridgeCheckmark}`}>
-                  ✓
+        {bundleShown && bundleCopy ? (
+          <>
+            <div
+              className={`mb-4 rounded-xl border ${palette.bonusPanelBorder} ${palette.bonusPanelBg} p-4`}
+            >
+              <div className="mb-2 flex items-center gap-2">
+                <span className={`text-sm ${palette.bonusPanelAccent}`} aria-hidden>
+                  🎁
                 </span>
-                <p className="text-sm text-zinc-300">{item}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {bundleRule ? (
-          <div
-            className={`mb-6 rounded-xl border ${palette.bonusPanelBorder} ${palette.bonusPanelBg} px-4 py-3`}
-          >
-            <div className="flex items-start gap-2">
-              <span className={`text-sm ${palette.bonusPanelAccent}`} aria-hidden>
-                🎁
-              </span>
-              <div className="min-w-0 flex-1">
                 <p
                   className={`text-xs font-semibold uppercase tracking-widest ${palette.bonusPanelAccent}`}
                 >
                   Mini app activation bonus
                 </p>
-                <p className="mt-0.5 text-sm text-zinc-300">
-                  {bundleRule.description}
-                </p>
-                {bundleRule.disclaimer ? (
-                  <p className="mt-1 text-xs text-zinc-600">{bundleRule.disclaimer}</p>
-                ) : null}
               </div>
+              <p className="text-sm font-medium text-zinc-200">
+                {bundleCopy.userPanelHeadline}
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                {bundleCopy.userPanelBody}
+              </p>
             </div>
-          </div>
+
+            <div className="mb-5 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setAcceptBundle(true)}
+                className={`rounded-xl border py-2.5 text-xs font-semibold transition-colors sm:text-sm ${
+                  acceptBundle
+                    ? palette.bundleToggleSelected
+                    : "border-zinc-700 bg-zinc-950/50 text-zinc-400 hover:border-zinc-600"
+                } disabled:opacity-50`}
+              >
+                Include activation bonus
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setAcceptBundle(false)}
+                className={`rounded-xl border py-2.5 text-xs font-semibold transition-colors sm:text-sm ${
+                  !acceptBundle
+                    ? "border-zinc-400 bg-zinc-800/80 text-zinc-100"
+                    : "border-zinc-700 bg-zinc-950/50 text-zinc-400 hover:border-zinc-600"
+                } disabled:opacity-50`}
+              >
+                Primary access only
+              </button>
+            </div>
+          </>
         ) : null}
 
-        <button
-          type="button"
-          onClick={() =>
-            router.push(
-              `/confirm-intent?variant=${encodeURIComponent(variant)}`,
-            )
-          }
-          className={`mt-auto w-full rounded-xl py-4 text-sm font-semibold ${t.accentBg} ${t.accentButtonText} ${t.accentBgHover} transition-colors`}
-        >
-          Continue to activation →
-        </button>
+        <div className="mb-6 rounded-xl border border-zinc-800/80 bg-zinc-950/50 p-4">
+          <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
+            What happens next
+          </p>
+          <div className="space-y-3">
+            {WHAT_HAPPENS_NEXT.map((step, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <span className="mt-0.5 shrink-0 text-xs font-medium text-zinc-600">
+                  {i + 1}
+                </span>
+                <p className="text-sm leading-snug text-zinc-300">{step}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {error ? (
+          <p className="mb-4 text-sm text-red-400" role="alert">
+            {error}
+          </p>
+        ) : null}
+
+        <div className="mt-auto">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void onConfirm()}
+            className={`w-full rounded-xl py-4 text-sm font-semibold ${t.accentBg} ${t.accentButtonText} ${t.accentBgHover} transition-colors disabled:opacity-50`}
+          >
+            {busy
+              ? "…"
+              : "Confirm and connect me with a specialist →"}
+          </button>
+          <p className="mt-3 text-center text-[10px] leading-relaxed text-zinc-600">
+            Access is activated on deposit confirmation. Trading involves risk.
+          </p>
+        </div>
       </div>
     </div>
   );

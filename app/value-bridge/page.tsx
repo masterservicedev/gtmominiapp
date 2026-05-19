@@ -9,6 +9,125 @@ import { getFunnelConfig, getPreQuestionnaireSteps } from "@/lib/funnel/resolve"
 import { getAccentPalette } from "@/lib/funnel/palette";
 import { trackFunnelEvent } from "@/lib/funnel/track";
 import type { Capital } from "@/lib/scoring";
+import type { FunnelAccentPalette } from "@/lib/funnel/types";
+
+const MO_SESSION_POSTS = [
+  {
+    quote:
+      "$36,600+ closed today. 3 TPs for the free channel, 6 TPs for VIP today 💰",
+  },
+  {
+    quote:
+      "$27,000 up trading gold today. Probably one of the strongest days this year.",
+  },
+  {
+    quote: "$18,000+ closed quickly — one trade, sniped profits, done 💪",
+  },
+] as const;
+
+const MEMBER_REACTIONS = [
+  { quote: "I'm up 15% today. Thanks Golden Mo 🙏" },
+  { quote: "113 → 231 because of VIP. Really glad I joined, Mo ✅" },
+  { quote: "10% today 😂 Mo you're like dynamite 🧨" },
+] as const;
+
+function ChannelQuoteCard({
+  quote,
+  attribution,
+  variant,
+  palette,
+}: {
+  quote: string;
+  attribution: string;
+  variant: "mo" | "member";
+  palette: FunnelAccentPalette;
+}) {
+  const isMo = variant === "mo";
+  return (
+    <div
+      className={`rounded-xl border border-zinc-800/80 p-3.5 ${
+        isMo
+          ? `border-l-2 ${palette.accentBorder} bg-zinc-950/80`
+          : "border-l-2 border-zinc-700/80 bg-zinc-900/50"
+      }`}
+    >
+      <p
+        className={`text-sm leading-snug ${isMo ? "text-zinc-50" : "text-zinc-300"}`}
+      >
+        {quote}
+      </p>
+      <p className="mt-2 text-[10px] text-zinc-500">{attribution}</p>
+    </div>
+  );
+}
+
+function LiveChannelProofSection({ palette }: { palette: FunnelAccentPalette }) {
+  const interleaved = MO_SESSION_POSTS.flatMap((post, i) => [
+    { ...post, variant: "mo" as const },
+    { ...MEMBER_REACTIONS[i]!, variant: "member" as const },
+  ]);
+
+  return (
+    <section className="mb-4" aria-labelledby="live-channel-proof-heading">
+      <p
+        id="live-channel-proof-heading"
+        className="mb-2 text-[10px] uppercase tracking-widest text-zinc-500"
+      >
+        Live from the channel
+      </p>
+      <p className="mb-4 text-sm leading-relaxed text-zinc-500">
+        This is what the inside looks like on a normal trading day.
+      </p>
+
+      <div className="mb-4 hidden gap-3 sm:grid sm:grid-cols-2">
+        <div className="space-y-2">
+          {MO_SESSION_POSTS.map((post, i) => (
+            <ChannelQuoteCard
+              key={`mo-${i}`}
+              quote={post.quote}
+              attribution="Mo — live session"
+              variant="mo"
+              palette={palette}
+            />
+          ))}
+        </div>
+        <div className="space-y-2">
+          {MEMBER_REACTIONS.map((reaction, i) => (
+            <ChannelQuoteCard
+              key={`member-${i}`}
+              quote={reaction.quote}
+              attribution="Community member"
+              variant="member"
+              palette={palette}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="mb-4 space-y-2 sm:hidden">
+        {interleaved.map((item, i) => (
+          <ChannelQuoteCard
+            key={`mobile-${i}`}
+            quote={item.quote}
+            attribution={
+              item.variant === "mo" ? "Mo — live session" : "Community member"
+            }
+            variant={item.variant}
+            palette={palette}
+          />
+        ))}
+      </div>
+
+      <p className="text-center text-sm font-medium leading-relaxed text-zinc-300 sm:text-[0.9375rem]">
+        This is not a course you watch alone.
+        <br className="hidden sm:inline" /> This is a live environment — every
+        session called in real time, every result shared as it happens.
+        <br className="hidden sm:inline" /> When you fund your trading account,
+        you step inside this.
+      </p>
+    </section>
+  );
+}
 
 const CAPITALS: Capital[] = [
   "under_100",
@@ -187,7 +306,7 @@ function ValueBridgeInner() {
   const palette = getAccentPalette(cfg);
   const t = palette;
   const preSteps = getPreQuestionnaireSteps();
-  const totalFunnelSteps = preSteps + 8;
+  const totalFunnelSteps = preSteps + 7;
   const progressStep = preSteps + 6;
 
   const capitalRaw = params.get("capital");
@@ -290,6 +409,8 @@ function ValueBridgeInner() {
           </div>
         ))}
       </div>
+
+      <LiveChannelProofSection palette={palette} />
 
       {content.activatesAfterFunding.length > 0 ? (
         <div className="mb-4 rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5">
