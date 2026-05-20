@@ -55,7 +55,7 @@ function ProductMatchInner() {
   const [payload, setPayload] = useState<Payload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [acceptBundle, setAcceptBundle] = useState(false);
+  const [acceptBundle, setAcceptBundle] = useState<boolean>(true);
 
   const load = useCallback(async () => {
     try {
@@ -131,10 +131,10 @@ function ProductMatchInner() {
     setError(null);
     try {
       const WebApp = await loadWebApp();
-      const body: Record<string, unknown> = { initData: WebApp.initData };
-      if (bundleShown) {
-        body.bundleAccepted = acceptBundle;
-      }
+      const body: Record<string, unknown> = {
+        initData: WebApp.initData,
+        bundleAccepted: pm.bundleOfferLine ? acceptBundle : null,
+      };
       const res = await fetch("/api/confirm-handoff", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -242,16 +242,17 @@ function ProductMatchInner() {
           </p>
         </div>
 
-        {bundleShown && bundleCopy ? (
-          <>
-            <div
-              className={`mb-4 rounded-xl border ${palette.bonusPanelBorder} ${palette.bonusPanelBg} p-4`}
-            >
+        {pm.bundleOfferLine && bundleCopy ? (
+          <section
+            className={`mb-6 rounded-xl border ${palette.bonusPanelBorder} ${palette.bonusPanelBg} p-4`}
+            aria-labelledby="activation-bonus-heading"
+          >
               <div className="mb-2 flex items-center gap-2">
                 <span className={`text-sm ${palette.bonusPanelAccent}`} aria-hidden>
                   🎁
                 </span>
                 <p
+                  id="activation-bonus-heading"
                   className={`text-xs font-semibold uppercase tracking-widest ${palette.bonusPanelAccent}`}
                 >
                   Mini app activation bonus
@@ -263,9 +264,7 @@ function ProductMatchInner() {
               <p className="mt-2 text-sm leading-relaxed text-zinc-400">
                 {bundleCopy.userPanelBody}
               </p>
-            </div>
-
-            <div className="mb-5 grid grid-cols-2 gap-2">
+            <div className="mt-4 grid grid-cols-2 gap-2">
               <button
                 type="button"
                 disabled={busy}
@@ -284,14 +283,14 @@ function ProductMatchInner() {
                 onClick={() => setAcceptBundle(false)}
                 className={`rounded-xl border py-2.5 text-xs font-semibold transition-colors sm:text-sm ${
                   !acceptBundle
-                    ? "border-zinc-400 bg-zinc-800/80 text-zinc-100"
+                    ? palette.bundleToggleSelected
                     : "border-zinc-700 bg-zinc-950/50 text-zinc-400 hover:border-zinc-600"
                 } disabled:opacity-50`}
               >
                 Primary access only
               </button>
             </div>
-          </>
+          </section>
         ) : null}
 
         <div className="mb-6 rounded-xl border border-zinc-800/80 bg-zinc-950/50 p-4">
