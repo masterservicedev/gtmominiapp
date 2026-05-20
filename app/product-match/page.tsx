@@ -216,9 +216,12 @@ function ProductMatchInner() {
           <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
             Your access path
           </p>
-          <h1 className="mb-1 text-2xl font-bold leading-tight tracking-tight text-zinc-50 md:text-3xl">
+          <h1 className="mb-2 text-2xl font-bold leading-tight tracking-tight text-zinc-50 md:text-3xl">
             {primary.displayName}
           </h1>
+          <p className="mb-1 text-sm leading-relaxed text-zinc-400">
+            Based on your answers, this is your matched path.
+          </p>
           <p className={`text-sm font-medium ${palette.bridgeHeadline}`}>
             {primary.tagline}
           </p>

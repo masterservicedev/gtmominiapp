@@ -11,25 +11,93 @@ import { trackFunnelEvent } from "@/lib/funnel/track";
 import type { Capital } from "@/lib/scoring";
 import type { FunnelAccentPalette } from "@/lib/funnel/types";
 
-const MO_SESSION_POSTS = [
-  {
-    quote:
-      "$36,600+ closed today. 3 TPs for the free channel, 6 TPs for VIP today 💰",
-  },
-  {
-    quote:
-      "$27,000 up trading gold today. Probably one of the strongest days this year.",
-  },
-  {
-    quote: "$18,000+ closed quickly — one trade, sniped profits, done 💪",
-  },
-] as const;
+type ProofContent = {
+  statLine: string;
+  moPosts: readonly { quote: string }[];
+  memberReactions: readonly { quote: string }[];
+};
 
-const MEMBER_REACTIONS = [
-  { quote: "I'm up 15% today. Thanks Golden Mo 🙏" },
-  { quote: "113 → 231 because of VIP. Really glad I joined, Mo ✅" },
-  { quote: "10% today 😂 Mo you're like dynamite 🧨" },
-] as const;
+/** Tier-tuned channel proof — starter leans member/setup; higher tiers show session results. */
+const PROOF_BY_CAPITAL: Record<Capital, ProofContent> = {
+  under_100: {
+    statLine:
+      "Live sessions run every day in the channel — here is the community and guidance you step into when you fund your account.",
+    moPosts: [
+      {
+        quote:
+          "Every session is called in real time — setup, entries, and risk explained as markets move.",
+      },
+      {
+        quote:
+          "3 TPs for the free channel and 6 for VIP today — shared live so you see how execution works 💰",
+      },
+    ],
+    memberReactions: [
+      { quote: "I'm up 15% today. Thanks Golden Mo 🙏" },
+      {
+        quote:
+          "Really glad I joined — the structure finally made sense for my account ✅",
+      },
+    ],
+  },
+  "100_300": {
+    statLine:
+      "23 of 24 take profits hit last week, all shared live — here is what the inside looks like on a normal day.",
+    moPosts: [
+      {
+        quote:
+          "$36,600+ closed today. 3 TPs for the free channel, 6 TPs for VIP today 💰",
+      },
+      {
+        quote:
+          "$18,000+ closed quickly — one trade, sniped profits, done 💪",
+      },
+    ],
+    memberReactions: [
+      { quote: "113 → 231 because of VIP. Really glad I joined, Mo ✅" },
+      { quote: "10% today 😂 Mo you're like dynamite 🧨" },
+    ],
+  },
+  "300_1000": {
+    statLine:
+      "1,150+ pips called live in community sessions last week — here is what that looks like inside the channel.",
+    moPosts: [
+      {
+        quote:
+          "$27,000 up trading gold today. Probably one of the strongest days this year.",
+      },
+      {
+        quote:
+          "Team VIP continues printing — TP1 ✅ TP2 ✅✅ — breakeven set for zero risk.",
+      },
+    ],
+    memberReactions: [
+      { quote: "I'm up 15% today. Thanks Golden Mo 🙏" },
+      { quote: "216 on the day — such a good day again, perfect Mo 🙏" },
+    ],
+  },
+  "1000_plus": {
+    statLine:
+      "$35,000+ managed live during a single NFP week — here is what full access looks like inside.",
+    moPosts: [
+      {
+        quote:
+          "$36,600+ closed today. 3 TPs for the free channel, 6 TPs for VIP today 💰",
+      },
+      {
+        quote:
+          "$27,000 up trading gold today. Probably one of the strongest days this year.",
+      },
+    ],
+    memberReactions: [
+      { quote: "113 → 231 because of VIP. Really glad I joined, Mo ✅" },
+      {
+        quote:
+          "I can boldly move forward — blessed to come across you Mo 🙏",
+      },
+    ],
+  },
+};
 
 function ChannelQuoteCard({
   quote,
@@ -61,19 +129,29 @@ function ChannelQuoteCard({
   );
 }
 
-function LiveChannelProofSection({ palette }: { palette: FunnelAccentPalette }) {
-  const interleaved = MO_SESSION_POSTS.flatMap((post, i) => [
+function LiveChannelProofSection({
+  capital,
+  palette,
+}: {
+  capital: Capital;
+  palette: FunnelAccentPalette;
+}) {
+  const proof = PROOF_BY_CAPITAL[capital];
+  const interleaved = proof.moPosts.flatMap((post, i) => [
     { ...post, variant: "mo" as const },
-    { ...MEMBER_REACTIONS[i]!, variant: "member" as const },
+    { ...proof.memberReactions[i]!, variant: "member" as const },
   ]);
 
   return (
-    <section className="mb-4" aria-labelledby="live-channel-proof-heading">
+    <section className="mb-5" aria-labelledby="live-channel-proof-heading">
       <p
         id="live-channel-proof-heading"
         className="mb-2 text-[10px] uppercase tracking-widest text-zinc-500"
       >
         Live from the channel
+      </p>
+      <p className={`mb-4 text-sm font-medium leading-snug ${palette.bridgeHeadline}`}>
+        {proof.statLine}
       </p>
       <p className="mb-4 text-sm leading-relaxed text-zinc-500">
         This is what the inside looks like on a normal trading day.
@@ -81,7 +159,7 @@ function LiveChannelProofSection({ palette }: { palette: FunnelAccentPalette }) 
 
       <div className="mb-4 hidden gap-3 sm:grid sm:grid-cols-2">
         <div className="space-y-2">
-          {MO_SESSION_POSTS.map((post, i) => (
+          {proof.moPosts.map((post, i) => (
             <ChannelQuoteCard
               key={`mo-${i}`}
               quote={post.quote}
@@ -92,7 +170,7 @@ function LiveChannelProofSection({ palette }: { palette: FunnelAccentPalette }) 
           ))}
         </div>
         <div className="space-y-2">
-          {MEMBER_REACTIONS.map((reaction, i) => (
+          {proof.memberReactions.map((reaction, i) => (
             <ChannelQuoteCard
               key={`member-${i}`}
               quote={reaction.quote}
@@ -125,6 +203,10 @@ function LiveChannelProofSection({ palette }: { palette: FunnelAccentPalette }) 
         <br className="hidden sm:inline" /> When you fund your trading account,
         you step inside this.
       </p>
+      <p className="mt-3 text-center text-[10px] leading-relaxed text-zinc-600">
+        Posts are from a live channel environment. Past results are not typical
+        and do not guarantee your outcomes. Trading involves risk.
+      </p>
     </section>
   );
 }
@@ -143,12 +225,8 @@ function isCapital(raw: string | null): raw is Capital {
 type TierContent = {
   qualifyHeadline: string;
   qualifySub: string;
-  whatGoesWrong: { heading: string; body: string };
-  howAccessHelps: { heading: string; body: string };
-  processProof: { value: string; label: string }[];
-  activatesAfterFunding: string[];
-  miniAppBonus: string | null;
-  transition: string;
+  whatGoesWrong: { body: string };
+  howAccessHelps: { body: string };
 };
 
 const tierContent: Record<Capital, TierContent> = {
@@ -157,26 +235,11 @@ const tierContent: Record<Capital, TierContent> = {
     qualifySub:
       "You do not need a large account to begin properly — you need structure first.",
     whatGoesWrong: {
-      heading: "What usually goes wrong at this stage",
-      body: "Most people with under $100 jump into live markets before they know how to set up MT5, size positions, or follow a signal framework. They lose what they have, get frustrated, and exit — not because the opportunity was wrong, but because the setup was missing.",
+      body: "Most people with under $100 jump into live markets before they know how to set up MT5, size positions, or follow a signal framework. They lose what they have and exit — not because the opportunity was wrong, but because the setup was missing.",
     },
     howAccessHelps: {
-      heading: "How starter access changes that",
-      body: "The MT5 Guide walks you through practical setup and execution — personally written by MO. The GTMO Ebook gives you the signal framework and mindset behind how GTMO trades. Together they help you start with clarity before you scale capital.",
+      body: "The MT5 Guide and GTMO Ebook give you practical setup and the signal framework behind how GTMO trades — so you start with clarity before you scale capital, inside a live community not a solo course.",
     },
-    processProof: [
-      { value: "MT5", label: "Guide — practical setup and execution by MO" },
-      { value: "56", label: "pages in the GTMO Ebook — signal framework" },
-      { value: "$50", label: "minimum funding activates starter access" },
-    ],
-    activatesAfterFunding: [
-      "MT5 Guide — practical MT5 setup and execution, personally written by MO",
-      "GTMO Ebook — strategy, mindset, and signal framework",
-      "Activation after your account is funded and verified via your registration link",
-    ],
-    miniAppBonus:
-      "Because you applied through the mini app, MT5 Guide and the GTMO Ebook are included together when you fund your account with $50+.",
-    transition: "Here is your starter activation path.",
   },
 
   "100_300": {
@@ -184,74 +247,22 @@ const tierContent: Record<Capital, TierContent> = {
     qualifySub:
       "Small capital managed with structure outperforms large capital managed without it.",
     whatGoesWrong: {
-      heading: "What usually goes wrong at this stage",
-      body: "Traders at this level often follow signals without understanding why an entry was taken, where the stop logic came from, or how to size a position correctly for their account. One bad trade sequence wipes the account — not because the signals were wrong, but because the execution framework was missing.",
+      body: "Traders at this level often follow signals without understanding entries, stops, or position sizing. One bad sequence wipes the account — not because the signals were wrong, but because the execution framework was missing.",
     },
     howAccessHelps: {
-      heading: "How your access changes that",
-      body: "VIP access puts you inside the environment where entries are explained in real time, not just posted. You see the reasoning, the risk management, and the exits as they happen. That is the difference between following blindly and building a repeatable approach.",
+      body: "VIP puts you inside the environment where entries are explained in real time. You see reasoning, risk management, and exits as they happen — the difference between following blindly and building a repeatable approach with the community.",
     },
-    processProof: [
-      {
-        value: "23/24",
-        label:
-          "take profits hit last week — all shared live with entries, exits, and risk management in real time",
-      },
-      {
-        value: "Daily",
-        label: "live sessions — entries called before execution, not after",
-      },
-      {
-        value: "10,000+",
-        label: "traders in the community following the same setups",
-      },
-    ],
-    activatesAfterFunding: [
-      "VIP signals channel — Gold, Crypto, and FX daily",
-      "Live trade explanations with entry, exit and stop logic shown in real time",
-      "Direct access to the affiliated broker with deposit bonuses",
-      "Community of active traders at your level",
-    ],
-    miniAppBonus:
-      "Because you applied through the mini app, the MT5 Guide is included with your VIP access at no extra cost.",
-    transition: "Here is your recommended access path.",
   },
 
   "300_1000": {
     qualifyHeadline: "You have enough capital to trade seriously.",
     qualifySub: "At this level, structure matters more than size.",
     whatGoesWrong: {
-      heading: "What usually goes wrong at this stage",
-      body: "Traders with $300–$1,000 often have enough confidence to take positions but not enough structure to manage them under pressure. They understand the basics but misread entries, overtrade during volatility, or ignore risk management when a trade moves against them. The account erodes slowly — not from one disaster, but from consistent small mistakes that compound.",
+      body: "Traders with $300–$1,000 often take positions without structure under pressure — small mistakes compound until the account erodes, not from one disaster but from inconsistent execution.",
     },
     howAccessHelps: {
-      heading: "How your access changes that",
-      body: "FX Basics gives you a structured Forex curriculum with ongoing channel-style delivery. You follow live context from the GTMO trader as markets move and build the habits serious trading requires.",
+      body: "FX Basics gives you structured Forex curriculum with ongoing live context from the GTMO trader as markets move — habits and community at your capital level, not isolated learning.",
     },
-    processProof: [
-      {
-        value: "1,150+",
-        label: "pips called live in community sessions in a single week",
-      },
-      {
-        value: "Real-time",
-        label:
-          "trade breakdowns — entry, exit, and risk explained before execution",
-      },
-      {
-        value: "Live",
-        label: "chart views and analysis not shared publicly",
-      },
-    ],
-    activatesAfterFunding: [
-      "FX Basics — complete Forex curriculum with ongoing GTMO support",
-      "Structured coverage of market structure, setups, and execution discipline",
-      "Ongoing live context from the GTMO trader as markets move",
-      "Community support from traders operating at your capital level",
-    ],
-    miniAppBonus:
-      "Because you applied through the mini app, the GTMO Ebook is included with your FX Basics access at no extra cost.",
-    transition: "Here is your recommended access path.",
   },
 
   "1000_plus": {
@@ -259,38 +270,11 @@ const tierContent: Record<Capital, TierContent> = {
     qualifySub:
       "The infrastructure to do it with structure is what activates next.",
     whatGoesWrong: {
-      heading: "What usually goes wrong at this stage",
-      body: "Traders with $1,000+ available often have the capital to take meaningful positions but enter the market without surrounding infrastructure — no structured education, no live context, no community. They trade in isolation, rely on fragmented information, and make decisions without a repeatable framework. The capital is there. The system is not.",
+      body: "Traders with $1,000+ often have capital but trade in isolation — fragmented information, no live context, no community. The capital is there; the system is not.",
     },
     howAccessHelps: {
-      heading: "How your access changes that",
-      body: "Full GTMO access surrounds your capital with everything a serious trader needs — structured video courses, live sessions where real positions are opened and managed in real time, exclusive strategies, and a community of 10,000+ traders operating in the same environment.",
+      body: "Full School access surrounds your capital with video courses, live sessions with real positions, exclusive strategies, and 10,000+ traders in the same environment — merit-built, not shortcuts.",
     },
-    processProof: [
-      {
-        value: "$35,000+",
-        label:
-          "secured in community sessions during a single NFP event — managed live with full risk transparency",
-      },
-      {
-        value: "1,150+",
-        label: "pips called live in a single trading week",
-      },
-      {
-        value: "100%",
-        label: "live — every session, every signal, every day",
-      },
-    ],
-    activatesAfterFunding: [
-      "Full GTMO School — all video courses, beginner to advanced",
-      "Exclusive chart views and technical analysis not published publicly",
-      "Live trading sessions — positions opened and managed in real time",
-      "Exclusive strategies from the GTMO himself!",
-      "Member pricing on all future GTMO products and events",
-    ],
-    miniAppBonus:
-      "Because you applied through the mini app, one additional product of your choice is included with your School access — completely free. Confirmed with your specialist after funding.",
-    transition: "Here is your full access path.",
   },
 };
 
@@ -361,12 +345,13 @@ function ValueBridgeInner() {
     </div>
   );
 
-
   return shell(
     <div className="relative mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pb-10 pt-8 sm:px-8">
-      <div className="mb-7">
-        <p className={`mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] ${palette.valueBridgeEyebrow}`}>
-          Your access path
+      <div className="mb-6">
+        <p
+          className={`mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] ${palette.valueBridgeEyebrow}`}
+        >
+          Why this fits you
         </p>
         <h1 className="mb-3 font-serif text-2xl font-normal leading-snug tracking-tight text-zinc-50 md:text-[1.75rem]">
           {content.qualifyHeadline}
@@ -376,87 +361,20 @@ function ValueBridgeInner() {
         </p>
       </div>
 
-      <div className="mb-4 rounded-2xl border border-zinc-800/80 bg-zinc-950/40 p-5">
-        <p className="mb-3 text-[10px] text-zinc-500 uppercase tracking-widest">
-          {content.whatGoesWrong.heading}
-        </p>
-        <p className="text-sm leading-relaxed text-zinc-300">
+      <div className="mb-5 rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5">
+        <p className="mb-4 text-sm leading-relaxed text-zinc-400">
           {content.whatGoesWrong.body}
-        </p>
-      </div>
-
-      <div className="mb-4 rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5">
-        <p className="mb-3 text-[10px] text-zinc-500 uppercase tracking-widest">
-          {content.howAccessHelps.heading}
         </p>
         <p className="text-sm leading-relaxed text-zinc-300">
           {content.howAccessHelps.body}
         </p>
       </div>
 
-      <div className="mb-4 grid grid-cols-3 gap-2 sm:gap-3">
-        {content.processProof.map((stat, i) => (
-          <div
-            key={i}
-            className="rounded-xl border border-zinc-800 bg-zinc-950/80 p-3 text-center"
-          >
-            <p className="text-base font-bold leading-tight text-zinc-50 sm:text-lg">
-              {stat.value}
-            </p>
-            <p className="mt-1 text-[10px] leading-tight text-zinc-500 sm:text-xs">
-              {stat.label}
-            </p>
-          </div>
-        ))}
-      </div>
+      <LiveChannelProofSection capital={capital} palette={palette} />
 
-      <LiveChannelProofSection palette={palette} />
-
-      {content.activatesAfterFunding.length > 0 ? (
-        <div className="mb-4 rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5">
-          <p className="mb-4 text-[10px] text-zinc-500 uppercase tracking-widest">
-            What activates after your account is funded
-          </p>
-          <div className="space-y-2">
-            {content.activatesAfterFunding.map((item, i) => (
-              <div key={i} className="flex items-start gap-2">
-                <span className={`mt-0.5 shrink-0 text-xs ${palette.bridgeCheckmark}`}>
-                  ✓
-                </span>
-                <p className="text-sm leading-snug text-zinc-300">{item}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      {content.miniAppBonus ? (
-        <div
-          className={`mb-6 rounded-2xl border ${palette.bonusPanelBorder} ${palette.bonusPanelBg} p-5`}
-        >
-          <div className="mb-2 flex items-center gap-2">
-            <span className={`text-sm ${palette.bonusPanelAccent}`} aria-hidden>
-              🎁
-            </span>
-            <p
-              className={`text-xs font-semibold uppercase tracking-widest ${palette.bonusPanelAccent}`}
-            >
-              Mini app activation bonus
-            </p>
-          </div>
-          <p className="text-sm leading-relaxed text-zinc-300">
-            {content.miniAppBonus}
-          </p>
-        </div>
-      ) : null}
-
-      <p className="mb-6 text-center text-sm leading-relaxed text-zinc-500">
-        {content.transition}
-      </p>
-
-      <p className="mb-4 text-center text-[10px] leading-relaxed text-zinc-600">
-        Figures and examples refer to community-reported outcomes and are not
-        guarantees of your results. Trading involves risk.
+      <p className="mb-4 text-center text-sm leading-relaxed text-zinc-500">
+        Your matched access path is next — funding unlocks your tools, not a
+        product purchase from us.
       </p>
 
       <button
@@ -465,9 +383,7 @@ function ValueBridgeInner() {
         disabled={revealing}
         className={`mt-auto w-full rounded-xl py-4 text-sm font-semibold ${t.accentBg} ${t.accentButtonText} ${t.accentBgHover} transition-colors disabled:opacity-70`}
       >
-        {revealing
-          ? "Loading your access path…"
-          : "Continue to activation →"}
+        {revealing ? "Loading…" : "See your access path →"}
       </button>
     </div>,
   );
