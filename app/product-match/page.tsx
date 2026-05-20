@@ -109,7 +109,10 @@ function ProductMatchInner() {
   }, [load]);
 
   useEffect(() => {
-    if (payload?.productMatch.bundleOfferLine) {
+    if (!payload) return;
+    const cap = payload.capital as Capital;
+    const tierHasBonus = getBundleCopy(cap) !== null;
+    if (tierHasBonus && !payload.bundleUsed) {
       setAcceptBundle(true);
     }
   }, [payload]);
@@ -126,14 +129,18 @@ function ProductMatchInner() {
   const onConfirm = async () => {
     if (!payload || busy) return;
     const pm = payload.productMatch;
-    const bundleShown = Boolean(pm.bundleOfferLine);
+    const cap = payload.capital as Capital;
+    const tierHasBonus = getBundleCopy(cap) !== null;
+    const confirmBundleCopy =
+      tierHasBonus && !payload.bundleUsed ? getBundleCopy(cap) : null;
+    const bundleShown = confirmBundleCopy !== null;
     setBusy(true);
     setError(null);
     try {
       const WebApp = await loadWebApp();
       const body: Record<string, unknown> = {
         initData: WebApp.initData,
-        bundleAccepted: pm.bundleOfferLine ? acceptBundle : null,
+        bundleAccepted: bundleShown ? acceptBundle : null,
       };
       const res = await fetch("/api/confirm-handoff", {
         method: "POST",
@@ -191,10 +198,13 @@ function ProductMatchInner() {
   }
 
   const pm = payload.productMatch;
-  const bundleShown = Boolean(pm.bundleOfferLine);
   const capital = payload.capital as Capital;
   const primary = getCatalogProduct(pm.productKey);
-  const bundleCopy = bundleShown ? getBundleCopy(capital) : null;
+  // Show bonus panel if tier has a bonus AND bundle has not already been used
+  const tierHasBonus = getBundleCopy(capital) !== null;
+  const bundleCopy =
+    tierHasBonus && !payload.bundleUsed ? getBundleCopy(capital) : null;
+  const bundleShown = bundleCopy !== null;
 
   return (
     <div className="relative flex min-h-screen flex-col bg-gradient-to-b from-zinc-950 via-black to-zinc-950 text-white">
@@ -242,7 +252,7 @@ function ProductMatchInner() {
           </p>
         </div>
 
-        {pm.bundleOfferLine && bundleCopy ? (
+        {bundleCopy ? (
           <section
             className={`mb-6 rounded-xl border ${palette.bonusPanelBorder} ${palette.bonusPanelBg} p-4`}
             aria-labelledby="activation-bonus-heading"
