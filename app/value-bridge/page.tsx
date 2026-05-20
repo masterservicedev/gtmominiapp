@@ -8,7 +8,7 @@ import { normalizeEntryVariant, type AdVariant } from "@/lib/funnel/normalize";
 import { getFunnelConfig, getPreQuestionnaireSteps } from "@/lib/funnel/resolve";
 import { getAccentPalette } from "@/lib/funnel/palette";
 import { trackFunnelEvent } from "@/lib/funnel/track";
-import type { Capital } from "@/lib/scoring";
+import type { Capital, Readiness } from "@/lib/scoring";
 import type { FunnelAccentPalette } from "@/lib/funnel/types";
 
 type ProofContent = {
@@ -99,6 +99,141 @@ const PROOF_BY_CAPITAL: Record<Capital, ProofContent> = {
   },
 };
 
+const FRAMING_BY_CAPITAL: Record<Capital, string> = {
+  under_100:
+    "When you fund your account with $50, you stop learning alone and start with structure, guidance, and a community behind you.",
+  "100_300":
+    "When you fund your account with $100, you step inside the live environment where those results above are called every day.",
+  "300_1000":
+    "When you fund your account with $200, you join the environment where every session is called live — not reported after.",
+  "1000_plus":
+    "When you fund your account with $500, you get full access to the environment and community that produced what you just read.",
+};
+
+const CTA_BY_CAPITAL: Record<Capital, string> = {
+  under_100: "Start my setup →",
+  "100_300": "Activate VIP access →",
+  "300_1000": "Activate FX Basics access →",
+  "1000_plus": "Activate School access →",
+};
+
+type ReadinessGroup = "soon" | "this_month" | "generic";
+
+type OpeningCopy = {
+  eyebrow: string;
+  headline: string;
+  sub: string;
+};
+
+const OPENING_BY_CAPITAL: Record<
+  Capital,
+  Record<ReadinessGroup, OpeningCopy>
+> = {
+  under_100: {
+    soon: {
+      eyebrow: "BASED ON YOUR ANSWERS",
+      headline:
+        "You have under $100 and you are ready to start. That is exactly where structure matters most.",
+      sub: "Before you risk capital on live markets, the right setup changes everything.",
+    },
+    this_month: {
+      eyebrow: "BASED ON YOUR ANSWERS",
+      headline:
+        "You have under $100 and you are planning to start this month.",
+      sub: "The right setup before you fund is what separates traders who last from those who don't.",
+    },
+    generic: {
+      eyebrow: "BASED ON YOUR ANSWERS",
+      headline: "You are at the right starting point.",
+      sub: "Before you risk capital on live markets, the right setup changes everything.",
+    },
+  },
+  "100_300": {
+    soon: {
+      eyebrow: "BASED ON YOUR ANSWERS",
+      headline:
+        "You have $100–$300 and you are ready to move. Small capital managed with structure outperforms large capital managed without it.",
+      sub: "Here is why VIP access is the right starting point for where you are now.",
+    },
+    this_month: {
+      eyebrow: "BASED ON YOUR ANSWERS",
+      headline:
+        "You have $100–$300 and you are planning to start this month.",
+      sub: "The structure you build now determines what your account looks like in 90 days.",
+    },
+    generic: {
+      eyebrow: "BASED ON YOUR ANSWERS",
+      headline: "You are starting seriously.",
+      sub: "Here is why VIP access is the right starting point for where you are now.",
+    },
+  },
+  "300_1000": {
+    soon: {
+      eyebrow: "BASED ON YOUR ANSWERS",
+      headline:
+        "You have $300–$1,000 and you are ready now. At this level, structure matters more than size.",
+      sub: "Here is what traders at your capital level get wrong — and how FX Basics changes that.",
+    },
+    this_month: {
+      eyebrow: "BASED ON YOUR ANSWERS",
+      headline: "You have $300–$1,000 and you are almost ready.",
+      sub: "Traders at this level have enough confidence to take positions but not enough structure to manage them. That is what changes next.",
+    },
+    generic: {
+      eyebrow: "BASED ON YOUR ANSWERS",
+      headline: "You have enough capital to trade seriously.",
+      sub: "Here is what traders at your capital level get wrong — and how FX Basics changes that.",
+    },
+  },
+  "1000_plus": {
+    soon: {
+      eyebrow: "BASED ON YOUR ANSWERS",
+      headline:
+        "You have $1,000+ and you are ready to operate at full access.",
+      sub: "The capital is there. The infrastructure to use it with structure is what activates next.",
+    },
+    this_month: {
+      eyebrow: "BASED ON YOUR ANSWERS",
+      headline: "You have $1,000+ and you are planning your next move.",
+      sub: "Most traders at this level have capital but trade in isolation. School access changes that.",
+    },
+    generic: {
+      eyebrow: "BASED ON YOUR ANSWERS",
+      headline: "You are ready to operate at full access.",
+      sub: "The capital is there. The infrastructure to use it with structure is what activates next.",
+    },
+  },
+};
+
+function isReadiness(raw: string | null): raw is Readiness {
+  return (
+    raw === "ready_now" ||
+    raw === "seven_days" ||
+    raw === "this_month" ||
+    raw === "not_ready"
+  );
+}
+
+function readinessGroup(raw: Readiness): ReadinessGroup {
+  if (raw === "ready_now" || raw === "seven_days") return "soon";
+  if (raw === "this_month") return "this_month";
+  return "soon";
+}
+
+function getPersonalisedOpening(
+  capital: Capital,
+  readinessRaw: string | null,
+): OpeningCopy {
+  if (!readinessRaw || !isReadiness(readinessRaw)) {
+    return OPENING_BY_CAPITAL[capital].generic;
+  }
+  return OPENING_BY_CAPITAL[capital][readinessGroup(readinessRaw)];
+}
+
+function memberFirstCapital(capital: Capital): boolean {
+  return capital === "under_100" || capital === "100_300";
+}
+
 function ChannelQuoteCard({
   quote,
   attribution,
@@ -132,15 +267,54 @@ function ChannelQuoteCard({
 function LiveChannelProofSection({
   capital,
   palette,
+  framingSentence,
 }: {
   capital: Capital;
   palette: FunnelAccentPalette;
+  framingSentence: string;
 }) {
   const proof = PROOF_BY_CAPITAL[capital];
-  const interleaved = proof.moPosts.flatMap((post, i) => [
-    { ...post, variant: "mo" as const },
-    { ...proof.memberReactions[i]!, variant: "member" as const },
-  ]);
+  const membersFirst = memberFirstCapital(capital);
+
+  const interleaved = membersFirst
+    ? [
+        { ...proof.memberReactions[0]!, variant: "member" as const },
+        { ...proof.moPosts[0]!, variant: "mo" as const },
+        { ...proof.memberReactions[1]!, variant: "member" as const },
+        { ...proof.moPosts[1]!, variant: "mo" as const },
+      ]
+    : proof.moPosts.flatMap((post, i) => [
+        { ...post, variant: "mo" as const },
+        { ...proof.memberReactions[i]!, variant: "member" as const },
+      ]);
+
+  const moColumn = (
+    <div className="space-y-2">
+      {proof.moPosts.map((post, i) => (
+        <ChannelQuoteCard
+          key={`mo-${i}`}
+          quote={post.quote}
+          attribution="Mo — live session"
+          variant="mo"
+          palette={palette}
+        />
+      ))}
+    </div>
+  );
+
+  const memberColumn = (
+    <div className="space-y-2">
+      {proof.memberReactions.map((reaction, i) => (
+        <ChannelQuoteCard
+          key={`member-${i}`}
+          quote={reaction.quote}
+          attribution="Community member"
+          variant="member"
+          palette={palette}
+        />
+      ))}
+    </div>
+  );
 
   return (
     <section className="mb-5" aria-labelledby="live-channel-proof-heading">
@@ -150,7 +324,9 @@ function LiveChannelProofSection({
       >
         Live from the channel
       </p>
-      <p className={`mb-4 text-sm font-medium leading-snug ${palette.bridgeHeadline}`}>
+      <p
+        className={`mb-4 text-sm font-medium leading-snug ${palette.bridgeHeadline}`}
+      >
         {proof.statLine}
       </p>
       <p className="mb-4 text-sm leading-relaxed text-zinc-500">
@@ -158,28 +334,17 @@ function LiveChannelProofSection({
       </p>
 
       <div className="mb-4 hidden gap-3 sm:grid sm:grid-cols-2">
-        <div className="space-y-2">
-          {proof.moPosts.map((post, i) => (
-            <ChannelQuoteCard
-              key={`mo-${i}`}
-              quote={post.quote}
-              attribution="Mo — live session"
-              variant="mo"
-              palette={palette}
-            />
-          ))}
-        </div>
-        <div className="space-y-2">
-          {proof.memberReactions.map((reaction, i) => (
-            <ChannelQuoteCard
-              key={`member-${i}`}
-              quote={reaction.quote}
-              attribution="Community member"
-              variant="member"
-              palette={palette}
-            />
-          ))}
-        </div>
+        {membersFirst ? (
+          <>
+            {memberColumn}
+            {moColumn}
+          </>
+        ) : (
+          <>
+            {moColumn}
+            {memberColumn}
+          </>
+        )}
       </div>
 
       <div className="mb-4 space-y-2 sm:hidden">
@@ -197,15 +362,7 @@ function LiveChannelProofSection({
       </div>
 
       <p className="text-center text-sm font-medium leading-relaxed text-zinc-300 sm:text-[0.9375rem]">
-        This is not a course you watch alone.
-        <br className="hidden sm:inline" /> This is a live environment — every
-        session called in real time, every result shared as it happens.
-        <br className="hidden sm:inline" /> When you fund your trading account,
-        you step inside this.
-      </p>
-      <p className="mt-3 text-center text-[10px] leading-relaxed text-zinc-600">
-        Posts are from a live channel environment. Past results are not typical
-        and do not guarantee your outcomes. Trading involves risk.
+        {framingSentence}
       </p>
     </section>
   );
@@ -223,56 +380,51 @@ function isCapital(raw: string | null): raw is Capital {
 }
 
 type TierContent = {
-  qualifyHeadline: string;
-  qualifySub: string;
-  whatGoesWrong: { body: string };
-  howAccessHelps: { body: string };
+  whatGoesWrong: { heading: string; body: string };
+  howAccessHelps: { heading: string; body: string };
 };
 
 const tierContent: Record<Capital, TierContent> = {
   under_100: {
-    qualifyHeadline: "Start with the right setup before risking more capital.",
-    qualifySub:
-      "You do not need a large account to begin properly — you need structure first.",
     whatGoesWrong: {
+      heading: "What usually goes wrong at this stage",
       body: "Most people with under $100 jump into live markets before they know how to set up MT5, size positions, or follow a signal framework. They lose what they have and exit — not because the opportunity was wrong, but because the setup was missing.",
     },
     howAccessHelps: {
+      heading: "How starter access changes that",
       body: "The MT5 Guide and GTMO Ebook give you practical setup and the signal framework behind how GTMO trades — so you start with clarity before you scale capital, inside a live community not a solo course.",
     },
   },
 
   "100_300": {
-    qualifyHeadline: "You are starting seriously.",
-    qualifySub:
-      "Small capital managed with structure outperforms large capital managed without it.",
     whatGoesWrong: {
+      heading: "What usually goes wrong at this stage",
       body: "Traders at this level often follow signals without understanding entries, stops, or position sizing. One bad sequence wipes the account — not because the signals were wrong, but because the execution framework was missing.",
     },
     howAccessHelps: {
+      heading: "How your access changes that",
       body: "VIP puts you inside the environment where entries are explained in real time. You see reasoning, risk management, and exits as they happen — the difference between following blindly and building a repeatable approach with the community.",
     },
   },
 
   "300_1000": {
-    qualifyHeadline: "You have enough capital to trade seriously.",
-    qualifySub: "At this level, structure matters more than size.",
     whatGoesWrong: {
+      heading: "What usually goes wrong at this stage",
       body: "Traders with $300–$1,000 often take positions without structure under pressure — small mistakes compound until the account erodes, not from one disaster but from inconsistent execution.",
     },
     howAccessHelps: {
+      heading: "How your access changes that",
       body: "FX Basics gives you structured Forex curriculum with ongoing live context from the GTMO trader as markets move — habits and community at your capital level, not isolated learning.",
     },
   },
 
   "1000_plus": {
-    qualifyHeadline: "You are ready to operate at full access.",
-    qualifySub:
-      "The infrastructure to do it with structure is what activates next.",
     whatGoesWrong: {
+      heading: "What usually goes wrong at this stage",
       body: "Traders with $1,000+ often have capital but trade in isolation — fragmented information, no live context, no community. The capital is there; the system is not.",
     },
     howAccessHelps: {
+      heading: "How your access changes that",
       body: "Full School access surrounds your capital with video courses, live sessions with real positions, exclusive strategies, and 10,000+ traders in the same environment — merit-built, not shortcuts.",
     },
   },
@@ -295,6 +447,7 @@ function ValueBridgeInner() {
 
   const capitalRaw = params.get("capital");
   const capital = isCapital(capitalRaw) ? capitalRaw : null;
+  const readiness = params.get("readiness");
   const content = capital ? tierContent[capital] : null;
 
   useEffect(() => {
@@ -327,6 +480,9 @@ function ValueBridgeInner() {
     );
   }
 
+  const opening = getPersonalisedOpening(capital, readiness);
+  const ctaLabel = CTA_BY_CAPITAL[capital];
+
   const shell = (children: ReactNode) => (
     <div className="relative flex min-h-screen flex-col bg-gradient-to-b from-zinc-950 via-black to-zinc-950 text-white">
       <div
@@ -351,31 +507,39 @@ function ValueBridgeInner() {
         <p
           className={`mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] ${palette.valueBridgeEyebrow}`}
         >
-          Why this fits you
+          {opening.eyebrow}
         </p>
         <h1 className="mb-3 font-serif text-2xl font-normal leading-snug tracking-tight text-zinc-50 md:text-[1.75rem]">
-          {content.qualifyHeadline}
+          {opening.headline}
         </h1>
         <p className={`text-sm font-medium leading-snug ${palette.bridgeHeadline}`}>
-          {content.qualifySub}
+          {opening.sub}
+        </p>
+      </div>
+
+      <div className="mb-4 rounded-2xl border border-zinc-800/80 bg-zinc-950/40 p-5">
+        <p className="mb-3 text-[10px] text-zinc-500 uppercase tracking-widest">
+          {content.whatGoesWrong.heading}
+        </p>
+        <p className="text-sm leading-relaxed text-zinc-300">
+          {content.whatGoesWrong.body}
         </p>
       </div>
 
       <div className="mb-5 rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5">
-        <p className="mb-4 text-sm leading-relaxed text-zinc-400">
-          {content.whatGoesWrong.body}
+        <p className="mb-3 text-[10px] text-zinc-500 uppercase tracking-widest">
+          {content.howAccessHelps.heading}
         </p>
         <p className="text-sm leading-relaxed text-zinc-300">
           {content.howAccessHelps.body}
         </p>
       </div>
 
-      <LiveChannelProofSection capital={capital} palette={palette} />
-
-      <p className="mb-4 text-center text-sm leading-relaxed text-zinc-500">
-        Your matched access path is next — funding unlocks your tools, not a
-        product purchase from us.
-      </p>
+      <LiveChannelProofSection
+        capital={capital}
+        palette={palette}
+        framingSentence={FRAMING_BY_CAPITAL[capital]}
+      />
 
       <button
         type="button"
@@ -383,8 +547,13 @@ function ValueBridgeInner() {
         disabled={revealing}
         className={`mt-auto w-full rounded-xl py-4 text-sm font-semibold ${t.accentBg} ${t.accentButtonText} ${t.accentBgHover} transition-colors disabled:opacity-70`}
       >
-        {revealing ? "Loading…" : "See your access path →"}
+        {revealing ? "Loading…" : ctaLabel}
       </button>
+
+      <p className="mt-3 text-center text-[10px] leading-relaxed text-zinc-600">
+        Posts are from a live channel environment. Past results are not typical
+        and do not guarantee your outcomes. Trading involves risk.
+      </p>
     </div>,
   );
 }

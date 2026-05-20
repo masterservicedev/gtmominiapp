@@ -158,6 +158,7 @@ function QualifyInner() {
           const vb = new URLSearchParams({
             variant: String(variant),
             capital: String(data.capital ?? ""),
+            readiness: String(newAnswers.readiness ?? ""),
             segment: String(data.segment ?? ""),
             score: String(data.score ?? ""),
           });
@@ -169,6 +170,7 @@ function QualifyInner() {
           const vb = new URLSearchParams({
             variant: String(variant),
             capital: String(data.capital ?? ""),
+            readiness: String(newAnswers.readiness ?? ""),
             segment: String(data.segment ?? ""),
             score: String(data.score ?? ""),
           });
