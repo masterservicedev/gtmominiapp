@@ -109,12 +109,8 @@ function ProductMatchInner() {
   }, [load]);
 
   useEffect(() => {
-    if (!payload) return;
-    const cap = payload.capital as Capital;
-    const tierHasBonus = getBundleCopy(cap) !== null;
-    if (tierHasBonus && !payload.bundleUsed) {
-      setAcceptBundle(true);
-    }
+    if (!payload || payload.bundleUsed) return;
+    setAcceptBundle(true);
   }, [payload]);
 
   useEffect(() => {
@@ -129,9 +125,7 @@ function ProductMatchInner() {
   const onConfirm = async () => {
     if (!payload || busy) return;
     const cap = payload.capital as Capital;
-    const tierHasBonus = getBundleCopy(cap) !== null;
-    const confirmBundleCopy =
-      tierHasBonus && !payload.bundleUsed ? getBundleCopy(cap) : null;
+    const confirmBundleCopy = !payload.bundleUsed ? getBundleCopy(cap) : null;
     const bundleShown = confirmBundleCopy !== null;
     setBusy(true);
     setError(null);
@@ -199,10 +193,7 @@ function ProductMatchInner() {
   const pm = payload.productMatch;
   const capital = payload.capital as Capital;
   const primary = getCatalogProduct(pm.productKey);
-  // Show bonus panel if tier has a bonus AND bundle has not already been used
-  const tierHasBonus = getBundleCopy(capital) !== null;
-  const bundleCopy =
-    tierHasBonus && !payload.bundleUsed ? getBundleCopy(capital) : null;
+  const bundleCopy = !payload.bundleUsed ? getBundleCopy(capital) : null;
 
   return (
     <div className="relative flex min-h-screen flex-col bg-gradient-to-b from-zinc-950 via-black to-zinc-950 text-white">

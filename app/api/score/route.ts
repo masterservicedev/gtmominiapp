@@ -87,6 +87,7 @@ export async function POST(req: NextRequest) {
         confirmedProductKey: null,
         bundleOfferShown: false,
         bundleAccepted: null,
+        bundleUsed: false,
       })
       .where(eq(users.id, user.id));
 

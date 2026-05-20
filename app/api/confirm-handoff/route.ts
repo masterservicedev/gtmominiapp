@@ -80,9 +80,8 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-    const bundleEligible = user.bundleEligible ?? false;
     const bundleUsed = user.bundleUsed ?? false;
-    const productMatch = getProductMatch(capital, bundleEligible, bundleUsed);
+    const productMatch = getProductMatch(capital, true, bundleUsed);
     console.log("[confirm-handoff] productKey:", productMatch.productKey);
     const bundleShown = productMatch.bundleOfferLine != null;
 
@@ -133,7 +132,7 @@ export async function POST(req: NextRequest) {
 
     const extras = buildLeadExtrasFromState({
       capital: answers?.capital,
-      bundleEligible,
+      bundleEligible: true,
       bundleUsed,
       bundleAccepted,
       bundleOfferShown: bundleShown,
