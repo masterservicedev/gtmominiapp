@@ -94,13 +94,15 @@ export function buildCustomerHandoffMessage(
   const bundleCopy = getBundleCopy(cap);
   const bundleLines: string[] = [];
   if (extras) {
-    if (extras.bundleOfferShown && extras.bundleAccepted === true && bundleCopy) {
-      bundleLines.push(``, bundleCopy.customerDmLine);
-    } else if (extras.bundleOfferShown && extras.bundleAccepted === false) {
+    const explicitlyDeclined =
+      extras.bundleOfferShown && extras.bundleAccepted === false;
+    if (explicitlyDeclined) {
       bundleLines.push(
         ``,
         `You're proceeding with the primary offer only — no mini app activation bonus attached.`,
       );
+    } else if (bundleCopy) {
+      bundleLines.push(``, bundleCopy.customerDmLine);
     }
   } else if (
     bundleCopy &&
