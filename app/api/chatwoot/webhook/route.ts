@@ -328,6 +328,15 @@ export async function POST(req: NextRequest) {
     const messageType = payload.message_type ?? message?.message_type;
     const isOutgoing = messageType === "outgoing" || messageType === 1;
     if (isOutgoing && event !== "conversation_updated") {
+      // Before skipping — check if deposit-confirmed label is present.
+      // Chatwoot sometimes fires message_created (outgoing) instead of
+      // conversation_updated when a label is applied. Handle it here.
+      const outgoingLabels = collectLabelTitles(getConversation(payload));
+      if (conversationHasDepositConfirmedLabel(outgoingLabels)) {
+        console.log("[chatwoot-webhook] deposit-confirmed on outgoing message — processing");
+        await handleDepositConfirmed(payload);
+        return NextResponse.json({ ok: true });
+      }
       console.log("[chatwoot-webhook] skip outgoing message");
       return NextResponse.json({ ok: true });
     }
