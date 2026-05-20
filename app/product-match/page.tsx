@@ -128,7 +128,6 @@ function ProductMatchInner() {
 
   const onConfirm = async () => {
     if (!payload || busy) return;
-    const pm = payload.productMatch;
     const cap = payload.capital as Capital;
     const tierHasBonus = getBundleCopy(cap) !== null;
     const confirmBundleCopy =
@@ -204,7 +203,6 @@ function ProductMatchInner() {
   const tierHasBonus = getBundleCopy(capital) !== null;
   const bundleCopy =
     tierHasBonus && !payload.bundleUsed ? getBundleCopy(capital) : null;
-  const bundleShown = bundleCopy !== null;
 
   return (
     <div className="relative flex min-h-screen flex-col bg-gradient-to-b from-zinc-950 via-black to-zinc-950 text-white">
