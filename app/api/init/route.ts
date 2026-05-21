@@ -83,7 +83,11 @@ export async function POST(req: NextRequest) {
 
     /** Explicit `entryVariant` from client wins; then `start_param` `var`; else random active offer or env fallback. */
     const startParamVariant = parsed.variant?.trim() || null;
-    const hasIncomingAttribution = Boolean(startParamVariant);
+    // Treat any incoming source/campaign/cid as attribution signal,
+    // not only variant. Link builder links carry src + cmp but no var.
+    const hasIncomingAttribution = Boolean(
+      startParamVariant || parsed.source || parsed.campaign || parsed.cid,
+    );
 
     let variant: string | null | undefined = fromClient;
     if (!variant && startParamVariant) {
