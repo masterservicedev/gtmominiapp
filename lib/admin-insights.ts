@@ -17,12 +17,21 @@ export function runInsightRules(
 ): AdminInsight[] {
   const insights: AdminInsight[] = [];
 
-  if (a.staleHandoffMidHigh >= 5) {
+  if (a.staleHandoffHigh >= 5) {
     insights.push({
-      id: "stale-handoff-mid-high",
-      severity: a.staleHandoffMidHigh >= 25 ? "critical" : "warning",
-      title: "Qualified users without recent handoff",
-      detail: `${a.staleHandoffMidHigh} HIGH/MID users completed the questionnaire but have no handoff_confirmed event in the last 14 days.`,
+      id: "stale-handoff-high",
+      severity: a.staleHandoffHigh >= 25 ? "critical" : "warning",
+      title: "HIGH leads without recent handoff",
+      detail: `${a.staleHandoffHigh} HIGH users completed the questionnaire but have no handoff_confirmed event in the last 14 days.`,
+    });
+  }
+
+  if (a.staleMidNoIntentConfirm >= 5) {
+    insights.push({
+      id: "stale-mid-no-intent",
+      severity: a.staleMidNoIntentConfirm >= 25 ? "critical" : "warning",
+      title: "MID leads stuck before intent confirm",
+      detail: `${a.staleMidNoIntentConfirm} MID users scored 14+ days ago and have not confirmed intent on step 9 (no Chatwoot handoff expected until then).`,
     });
   }
 

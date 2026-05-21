@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import {
   clampAdminReEngagementDays,
+  getBroadcastSendsByType,
   getUpcomingReEngagementQueue,
 } from "@/lib/admin-queries";
 import {
@@ -20,7 +21,10 @@ export async function GET(req: NextRequest) {
   const days = clampAdminReEngagementDays(
     req.nextUrl.searchParams.get("days"),
   );
-  const rows = await getUpcomingReEngagementQueue(days);
+  const [rows, sendsByType] = await Promise.all([
+    getUpcomingReEngagementQueue(days),
+    getBroadcastSendsByType(days),
+  ]);
 
   const counts: Record<string, number> = {};
   for (const r of rows) {
@@ -70,11 +74,15 @@ export async function GET(req: NextRequest) {
     };
   });
 
+  const totalSends = sendsByType.reduce((s, r) => s + r.sentCount, 0);
+
   return NextResponse.json({
     days,
     generatedAt: new Date().toISOString(),
     total: items.length,
     countsByBroadcastType: counts,
+    sendsByType,
+    totalSends,
     items,
   });
 }

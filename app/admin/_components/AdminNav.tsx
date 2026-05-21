@@ -8,7 +8,6 @@ const links = [
   { href: "/admin/traffic", label: "Traffic" },
   { href: "/admin/link-builder", label: "Link builder" },
   { href: "/admin/re-engagement", label: "Re-engage" },
-  { href: "/admin/broadcast-split", label: "Split test" },
   { href: "/admin/users", label: "Users" },
   { href: "/admin/insights", label: "Insights" },
 ];

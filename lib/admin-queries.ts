@@ -4,7 +4,11 @@ import { users, events, nurtureQueue } from "@/lib/db/schema";
 import { desc, eq, ilike, or, and, asc, gte, lte, inArray } from "drizzle-orm";
 import type { Capital } from "@/lib/scoring";
 import type { EventType } from "@/lib/db/schema";
-import { RE_ENGAGEMENT_BROADCAST_TYPES } from "@/lib/reEngagementBroadcasts";
+import {
+  RE_ENGAGEMENT_BROADCAST_TYPES,
+  RE_ENGAGEMENT_LABELS,
+  type ReEngagementBroadcastType,
+} from "@/lib/reEngagementBroadcasts";
 
 export function clampAdminDays(raw: string | null | undefined): number {
   const n = raw != null ? Number.parseInt(String(raw), 10) : 7;
@@ -338,14 +342,14 @@ export async function getEventsTimelineForUser(userId: string, limit: number) {
     .limit(lim);
 }
 
-/** HIGH/MID completed questionnaire but no handoff_confirmed event in `staleDays`. */
-export async function countStaleQualifiedNoHandoff(staleDays: number): Promise<number> {
+/** HIGH completed questionnaire but no handoff_confirmed in `staleDays`. */
+export async function countStaleHighNoHandoff(staleDays: number): Promise<number> {
   const sd = Math.min(Math.max(staleDays, 1), 90);
   const { rows } = await db.execute(sql`
     SELECT COUNT(*)::int AS n
     FROM users u
     WHERE u.questionnaire_completed = true
-      AND u.segment IN ('HIGH', 'MID')
+      AND u.segment = 'HIGH'
       AND NOT EXISTS (
         SELECT 1
         FROM events e
@@ -353,6 +357,21 @@ export async function countStaleQualifiedNoHandoff(staleDays: number): Promise<n
           AND e.event_type = 'handoff_confirmed'
           AND e.created_at > NOW() - (${sd}::int * interval '1 day')
       )
+  `);
+  return Number((rows[0] as { n?: number } | undefined)?.n ?? 0);
+}
+
+/** MID completed questionnaire but never confirmed intent (step 9) within `staleDays` of scoring. */
+export async function countStaleMidNoIntentConfirm(staleDays: number): Promise<number> {
+  const sd = Math.min(Math.max(staleDays, 1), 90);
+  const { rows } = await db.execute(sql`
+    SELECT COUNT(*)::int AS n
+    FROM users u
+    WHERE u.questionnaire_completed = true
+      AND u.segment = 'MID'
+      AND u.intent_confirmed_at IS NULL
+      AND u.questionnaire_completed_at IS NOT NULL
+      AND u.questionnaire_completed_at < NOW() - (${sd}::int * interval '1 day')
   `);
   return Number((rows[0] as { n?: number } | undefined)?.n ?? 0);
 }
@@ -459,7 +478,8 @@ export type AdminAggregates = {
   segments: SegmentRow[];
   capital: CapitalRow[];
   questionnaireDropoff: { started: number; completed: number };
-  staleHandoffMidHigh: number;
+  staleHandoffHigh: number;
+  staleMidNoIntentConfirm: number;
   bundleEligibleNoOffer: number;
   topUtm: Awaited<ReturnType<typeof getTopUtmSourceConcentration>>;
   overdueNurture: number;
@@ -474,7 +494,8 @@ export async function loadAdminAggregates(days: number): Promise<AdminAggregates
     segments,
     capital,
     questionnaireDropoff,
-    staleHandoffMidHigh,
+    staleHandoffHigh,
+    staleMidNoIntentConfirm,
     bundleEligibleNoOffer,
     topUtm,
     overdueNurture,
@@ -486,7 +507,8 @@ export async function loadAdminAggregates(days: number): Promise<AdminAggregates
     getSegmentBreakdown(),
     getCapitalDistributionFromLatestQuestionnaire(),
     getQuestionnaireEventDropoff(days),
-    countStaleQualifiedNoHandoff(14),
+    countStaleHighNoHandoff(14),
+    countStaleMidNoIntentConfirm(14),
     countBundleEligibleQuestionnaireNoOffer(),
     getTopUtmSourceConcentration(days),
     countOverdueNurturePending(),
@@ -501,7 +523,8 @@ export async function loadAdminAggregates(days: number): Promise<AdminAggregates
     segments,
     capital,
     questionnaireDropoff,
-    staleHandoffMidHigh,
+    staleHandoffHigh,
+    staleMidNoIntentConfirm,
     bundleEligibleNoOffer,
     topUtm,
     overdueNurture,
@@ -612,7 +635,44 @@ export type BroadcastSplitStatRow = {
   replyRatePct: number | null;
 };
 
-/** Sent vs reply counts per re-engagement type and A/B/C variant (excludes high_to_mid_day14). */
+export type BroadcastSendStatRow = {
+  broadcastType: ReEngagementBroadcastType;
+  label: string;
+  sentCount: number;
+};
+
+/** `broadcast_sent` events in the last `days`, grouped by nurture broadcast type. */
+export async function getBroadcastSendsByType(
+  days: number,
+): Promise<BroadcastSendStatRow[]> {
+  const d = Math.min(Math.max(days, 1), 90);
+  const types = [...RE_ENGAGEMENT_BROADCAST_TYPES];
+  const { rows } = await db.execute(sql`
+    SELECT
+      metadata->>'broadcastType' AS broadcast_type,
+      COUNT(*)::int AS sent_count
+    FROM events
+    WHERE event_type = 'broadcast_sent'
+      AND created_at > NOW() - (${d}::int * interval '1 day')
+      AND metadata->>'broadcastType' IN (
+        'high_day2', 'high_day5', 'mid_day3', 'mid_day10', 'low_day7'
+      )
+    GROUP BY 1
+  `);
+  const byType = new Map<string, number>();
+  for (const row of rows as { broadcast_type?: string; sent_count?: number }[]) {
+    if (row.broadcast_type) {
+      byType.set(row.broadcast_type, row.sent_count ?? 0);
+    }
+  }
+  return types.map((bt) => ({
+    broadcastType: bt,
+    label: RE_ENGAGEMENT_LABELS[bt],
+    sentCount: byType.get(bt) ?? 0,
+  }));
+}
+
+/** @deprecated A/B split removed — use getBroadcastSendsByType. */
 export async function getBroadcastSplitStats(): Promise<BroadcastSplitStatRow[]> {
   const { rows } = await db.execute(sql`
     SELECT

@@ -24,11 +24,19 @@ type Row = {
   adminHint: string;
 };
 
+type SendStat = {
+  broadcastType: string;
+  label: string;
+  sentCount: number;
+};
+
 type Payload = {
   days: number;
   generatedAt: string;
   total: number;
+  totalSends: number;
   countsByBroadcastType: Record<string, number>;
+  sendsByType: SendStat[];
   items: Row[];
 };
 
@@ -48,12 +56,6 @@ function formatRelativeSchedule(iso: string): string {
   if (diffH < 24) return `In ${diffH}h`;
   const diffD = Math.round(diffH / 24);
   return `In ${diffD} day${diffD !== 1 ? "s" : ""}`;
-}
-
-function versionLabel(variant: string): string {
-  const v = (variant || "A").trim().toUpperCase().slice(0, 1);
-  if (v === "A" || v === "B" || v === "C") return `Message version ${v}`;
-  return "Message version";
 }
 
 function truncateOneLine(text: string, max = 100): string {
@@ -82,7 +84,12 @@ export default function AdminReEngagementPage() {
       setData(null);
       return;
     }
-    setData(await res.json());
+    const j = await res.json();
+    setData({
+      ...j,
+      sendsByType: j.sendsByType ?? [],
+      totalSends: j.totalSends ?? 0,
+    });
   }, [days]);
 
   useEffect(() => {
@@ -97,10 +104,10 @@ export default function AdminReEngagementPage() {
             Re-engagement
           </p>
           <h1 className="mt-1.5 text-[22px] font-semibold tracking-tight text-white">
-            Upcoming scheduled messages
+            Nurture queue &amp; sends
           </h1>
           <p className="mt-1 max-w-xl text-sm text-zinc-500">
-            Users who will receive an automated follow-up from the bot in the next{" "}
+            Scheduled follow-ups (Railway worker) and sends logged in the last{" "}
             {days} days
           </p>
         </div>
@@ -132,7 +139,39 @@ export default function AdminReEngagementPage() {
         </div>
       ) : !data ? (
         <p className="text-sm text-zinc-500">Loading…</p>
-      ) : data.items.length === 0 ? (
+      ) : (
+        <>
+          <section className="rounded-xl border border-zinc-800 bg-zinc-950/50 px-5 py-5">
+            <h2 className="text-[15px] font-semibold text-white">
+              Broadcasts sent (last {days} days)
+            </h2>
+            <p className="mt-1 text-xs text-zinc-500">
+              Counts from <code className="text-emerald-500/90">broadcast_sent</code>{" "}
+              events after the Railway worker delivers each message.
+            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {data.sendsByType.map((s) => (
+                <div
+                  key={s.broadcastType}
+                  className="rounded-lg border border-zinc-800 bg-zinc-950/80 px-4 py-3"
+                >
+                  <p className="text-xs font-medium text-zinc-400">{s.label}</p>
+                  <p className="mt-1 text-2xl font-bold tabular-nums text-white">
+                    {s.sentCount}
+                  </p>
+                  <p className="text-[11px] text-zinc-600">sent</p>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-sm text-zinc-500">
+              Total sends:{" "}
+              <span className="font-semibold tabular-nums text-zinc-200">
+                {data.totalSends}
+              </span>
+            </p>
+          </section>
+
+          {data.items.length === 0 ? (
         <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 px-8 py-14 text-center">
           <div
             className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-900/80 text-2xl text-zinc-500"
@@ -149,7 +188,7 @@ export default function AdminReEngagementPage() {
             will receive.
           </p>
         </div>
-      ) : (
+          ) : (
         <>
           <div className="flex flex-wrap items-center gap-6 rounded-xl border border-zinc-800 bg-zinc-950/50 px-5 py-4">
             <div>
@@ -190,10 +229,11 @@ export default function AdminReEngagementPage() {
                     className="flex w-full items-center gap-3 px-4 py-3.5 text-left sm:gap-4"
                   >
                     <div
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-sm font-bold ring-1 ${segCls}`}
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold ring-1 ${segCls}`}
                       aria-hidden
+                      title={r.broadcastType ?? undefined}
                     >
-                      {(r.messageVariant || "A").slice(0, 1).toUpperCase()}
+                      {seg.slice(0, 1)}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
@@ -215,9 +255,6 @@ export default function AdminReEngagementPage() {
                       </div>
                       <p className="mt-0.5 truncate text-xs text-zinc-500">
                         {r.campaignLabel} · {preview}
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-zinc-600">
-                        {versionLabel(r.messageVariant)}
                       </p>
                     </div>
                     <div className="shrink-0 text-right">
@@ -275,6 +312,8 @@ export default function AdminReEngagementPage() {
               minute: "2-digit",
             })}
           </p>
+        </>
+          )}
         </>
       )}
     </div>
