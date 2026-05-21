@@ -21,7 +21,7 @@ import {
   fireCrmVoluumPostback,
   buildLeadExtrasFromState,
 } from "@/lib/handoffHighIntent";
-import { scheduleHighReactivationNurture } from "@/lib/nurtureSchedule";
+import { scheduleHighNurture } from "@/lib/nurtureSchedule";
 import type { InferSelectModel } from "drizzle-orm";
 
 type UserRow = InferSelectModel<typeof users>;
@@ -163,7 +163,7 @@ export async function confirmReactivationHandoff(
     await fireCrmVoluumPostback(user.voluumCid);
 
     if (user.segment === "HIGH") {
-      await scheduleHighReactivationNurture(user.id, user.telegramId, now);
+      await scheduleHighNurture(user.id, user.telegramId, now);
     }
   }
 

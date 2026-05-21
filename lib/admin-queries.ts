@@ -634,8 +634,7 @@ export async function getBroadcastSplitStats(): Promise<BroadcastSplitStatRow[]>
         AND metadata->>'broadcastType' IS NOT NULL
         AND metadata->>'variant' IS NOT NULL
         AND metadata->>'broadcastType' IN (
-          'reactivation_48h', 'reactivation_day5', 'mid_day7', 'mid_day14',
-          'mid_day21', 'low_day14', 'low_day30'
+          'high_day2', 'high_day5', 'mid_day3', 'mid_day10', 'low_day7'
         )
       GROUP BY 1, 2
     ) sent

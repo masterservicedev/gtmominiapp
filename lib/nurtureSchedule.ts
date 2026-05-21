@@ -1,164 +1,99 @@
 import { db } from "@/lib/db";
 import { nurtureQueue } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
-import { assignVariant } from "@/lib/reEngagementBroadcasts";
 
-export const HIGH_REACTIVATION_TYPES = [
-  "reactivation_48h",
-  "reactivation_day5",
-  "high_to_mid_day14",
-] as const;
-
-export async function hasPendingHighReactivation(userId: string) {
-  const rows = await db
-    .select({ id: nurtureQueue.id })
-    .from(nurtureQueue)
+export async function cancelPendingNurture(userId: string) {
+  await db
+    .update(nurtureQueue)
+    .set({ status: "cancelled" })
     .where(
-      and(
-        eq(nurtureQueue.userId, userId),
-        eq(nurtureQueue.status, "pending"),
-        eq(nurtureQueue.broadcastType, "reactivation_48h"),
-      ),
-    )
-    .limit(1);
-  return rows.length > 0;
+      and(eq(nurtureQueue.userId, userId), eq(nurtureQueue.status, "pending")),
+    );
 }
 
-/** From first CRM handoff / READY — 48h, day 5, day 14 HIGH→MID reclass. */
-export async function scheduleHighReactivationNurture(
+/** Schedules for HIGH segment after Chatwoot handoff */
+export async function scheduleHighNurture(
   userId: string,
   telegramId: number,
-  from: Date,
-) {
-  if (await hasPendingHighReactivation(userId)) return;
+  now: Date,
+): Promise<void> {
+  await cancelPendingNurture(userId);
 
-  const ms = from.getTime();
-  const rows = [
+  const day2 = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+  const day5 = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
+
+  await db.insert(nurtureQueue).values([
     {
       userId,
       telegramId,
       step: 0,
-      scheduledAt: new Date(ms + 48 * 60 * 60 * 1000),
-      status: "pending" as const,
-      nurtureKind: "mid",
-      broadcastType: "reactivation_48h",
-      messageVariant: assignVariant(),
+      broadcastType: "high_day2",
+      scheduledAt: day2,
+      status: "pending",
+      messageVariant: "A",
     },
     {
       userId,
       telegramId,
       step: 1,
-      scheduledAt: new Date(ms + 5 * 24 * 60 * 60 * 1000),
-      status: "pending" as const,
-      nurtureKind: "mid",
-      broadcastType: "reactivation_day5",
-      messageVariant: assignVariant(),
+      broadcastType: "high_day5",
+      scheduledAt: day5,
+      status: "pending",
+      messageVariant: "A",
     },
-    {
-      userId,
-      telegramId,
-      step: 2,
-      scheduledAt: new Date(ms + 14 * 24 * 60 * 60 * 1000),
-      status: "pending" as const,
-      nurtureKind: "mid",
-      broadcastType: "high_to_mid_day14",
-      messageVariant: assignVariant(),
-    },
-  ];
-  await db.insert(nurtureQueue).values(rows);
+  ]);
 }
 
-/** MID extended sequence from questionnaire completion anchor. */
-export async function scheduleMidExtendedNurture(
+/** Schedules for MID segment after questionnaire complete */
+export async function scheduleMidNurture(
   userId: string,
   telegramId: number,
-  from: Date,
-) {
-  const ms = from.getTime();
-  const rows = [
+  now: Date,
+): Promise<void> {
+  await cancelPendingNurture(userId);
+
+  const day3 = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+  const day10 = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000);
+
+  await db.insert(nurtureQueue).values([
     {
       userId,
       telegramId,
-      step: 3,
-      scheduledAt: new Date(ms + 7 * 24 * 60 * 60 * 1000),
-      status: "pending" as const,
-      nurtureKind: "mid",
-      broadcastType: "mid_day7",
-      messageVariant: assignVariant(),
+      step: 0,
+      broadcastType: "mid_day3",
+      scheduledAt: day3,
+      status: "pending",
+      messageVariant: "A",
     },
     {
       userId,
       telegramId,
-      step: 4,
-      scheduledAt: new Date(ms + 14 * 24 * 60 * 60 * 1000),
-      status: "pending" as const,
-      nurtureKind: "mid",
-      broadcastType: "mid_day14",
-      messageVariant: assignVariant(),
+      step: 1,
+      broadcastType: "mid_day10",
+      scheduledAt: day10,
+      status: "pending",
+      messageVariant: "A",
     },
-    {
-      userId,
-      telegramId,
-      step: 5,
-      scheduledAt: new Date(ms + 21 * 24 * 60 * 60 * 1000),
-      status: "pending" as const,
-      nurtureKind: "mid",
-      broadcastType: "mid_day21",
-      messageVariant: assignVariant(),
-    },
-  ];
-  await db.insert(nurtureQueue).values(rows);
+  ]);
 }
 
-export async function scheduleLowDay14(
+/** Schedules for LOW/Starter segment after handoff */
+export async function scheduleLowNurture(
   userId: string,
   telegramId: number,
-  from: Date,
-) {
-  const ms = from.getTime();
+  now: Date,
+): Promise<void> {
+  await cancelPendingNurture(userId);
+
+  const day7 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
   await db.insert(nurtureQueue).values({
     userId,
     telegramId,
     step: 0,
-    scheduledAt: new Date(ms + 14 * 24 * 60 * 60 * 1000),
+    broadcastType: "low_day7",
+    scheduledAt: day7,
     status: "pending",
-    nurtureKind: "mid",
-    broadcastType: "low_day14",
-    messageVariant: assignVariant(),
-  });
-}
-
-export async function scheduleLowDay30FromNow(
-  userId: string,
-  telegramId: number,
-) {
-  const from = new Date();
-  await db.insert(nurtureQueue).values({
-    userId,
-    telegramId,
-    step: 1,
-    scheduledAt: new Date(from.getTime() + 14 * 24 * 60 * 60 * 1000),
-    status: "pending",
-    nurtureKind: "mid",
-    broadcastType: "low_day30",
-    messageVariant: assignVariant(),
-  });
-}
-
-/** After HIGH→MID at day 14 — next MID touchpoint. */
-export async function scheduleMidDay7AfterReclass(
-  userId: string,
-  telegramId: number,
-  from: Date,
-) {
-  await db.insert(nurtureQueue).values({
-    userId,
-    telegramId,
-    step: 3,
-    scheduledAt: new Date(from.getTime() + 7 * 24 * 60 * 60 * 1000),
-    status: "pending",
-    nurtureKind: "mid",
-    broadcastType: "mid_day7",
-    messageVariant: assignVariant(),
+    messageVariant: "A",
   });
 }

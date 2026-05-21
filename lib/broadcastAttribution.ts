@@ -1,6 +1,8 @@
 /**
+ * @deprecated Legacy inbound attribution — Chatwoot owns inbound replies now.
+ * Still used by legacy bot handlers and reactivate confirm for broadcast_reply events.
+ *
  * Attribute replies to the most recent re-engagement `broadcast_sent`.
- * MVP: scan recent `broadcast_sent` rows within ATTRIBUTION_WINDOW_DAYS (edge mis-attribution possible).
  */
 import { db } from "@/lib/db";
 import { events } from "@/lib/db/schema";
@@ -8,9 +10,7 @@ import { RE_ENGAGEMENT_BROADCAST_TYPES } from "@/lib/reEngagementBroadcasts";
 import { and, desc, eq, gte } from "drizzle-orm";
 
 const ATTRIBUTION_WINDOW_DAYS = 30;
-const ATTRIBUTION_TYPES = RE_ENGAGEMENT_BROADCAST_TYPES.filter(
-  (t) => t !== "high_to_mid_day14",
-);
+const ATTRIBUTION_TYPES = [...RE_ENGAGEMENT_BROADCAST_TYPES];
 const TYPE_SET = new Set<string>([...ATTRIBUTION_TYPES]);
 
 export type BroadcastSentMeta = {

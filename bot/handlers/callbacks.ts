@@ -12,7 +12,6 @@ import { db } from "../lib/db";
 import { users, broadcastOffers, events } from "../../lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getMiniAppWebAppUrl } from "../lib/config";
-import { scheduleLowDay30FromNow } from "../../lib/nurtureSchedule";
 import {
   findLatestReEngagementBroadcastSent,
   logBroadcastReply,
@@ -86,7 +85,6 @@ export async function handleCallbackQuery(ctx: Context) {
       return;
     }
     await ctx.answerCallbackQuery();
-    await scheduleLowDay30FromNow(user.id, user.telegramId);
     await ctx.reply(
       "No problem at all. The channel is here whenever you're ready.\n\nI'll check back in a couple of weeks.",
     );

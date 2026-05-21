@@ -1,11 +1,17 @@
+/**
+ * @deprecated Legacy re-engagement sends — replaced by lib/reEngagementBroadcasts.ts.
+ * Railway worker uses lib/reEngagementBroadcasts via bot/lib/nurture.ts.
+ * Kept for reference only; do not import from new code paths.
+ */
+
 import type { Api } from "grammy";
 import { db } from "./db";
 import { broadcastOffers, users } from "../../lib/db/schema";
 import { getMiniAppWebAppUrl, getChannelLinkUrl } from "./config";
 import {
   buildReEngagementTelegramBody,
-  type MessageVariant,
   type ReEngagementPreviewInput,
+  isReEngagementBroadcastType,
 } from "../../lib/reEngagementBroadcasts";
 
 export type UserRow = typeof users.$inferSelect;
@@ -14,8 +20,6 @@ function toPreviewInput(user: UserRow): ReEngagementPreviewInput {
   return {
     firstName: user.firstName,
     confirmedProductKey: user.confirmedProductKey,
-    bundleEligible: user.bundleEligible ?? false,
-    bundleUsed: user.bundleUsed ?? false,
   };
 }
 
@@ -48,80 +52,55 @@ function webAppReactivateButton(offerId: string) {
   };
 }
 
-export async function sendReactivation48h(
-  api: Api,
-  user: UserRow,
-  variant: MessageVariant,
-) {
+/** @deprecated */
+export async function sendReactivation48h(api: Api, user: UserRow) {
+  if (!isReEngagementBroadcastType("high_day2")) return;
   await api.sendMessage(
     user.telegramId,
-    buildReEngagementTelegramBody("reactivation_48h", toPreviewInput(user), variant),
-    { parse_mode: "Markdown" },
+    buildReEngagementTelegramBody("high_day2", toPreviewInput(user)),
   );
 }
 
-export async function sendReactivationDay5(
-  api: Api,
-  user: UserRow,
-  variant: MessageVariant,
-) {
+/** @deprecated */
+export async function sendReactivationDay5(api: Api, user: UserRow) {
   await api.sendMessage(
     user.telegramId,
-    buildReEngagementTelegramBody("reactivation_day5", toPreviewInput(user), variant),
-    { parse_mode: "Markdown" },
+    buildReEngagementTelegramBody("high_day5", toPreviewInput(user)),
   );
 }
 
-export async function sendMidDay7(
-  api: Api,
-  user: UserRow,
-  variant: MessageVariant,
-) {
+/** @deprecated */
+export async function sendMidDay7(api: Api, user: UserRow) {
   const offerId = await createBundleExtensionOffer(user.id);
   const extra = webAppReactivateButton(offerId);
   await api.sendMessage(
     user.telegramId,
-    buildReEngagementTelegramBody("mid_day7", toPreviewInput(user), variant),
-    {
-      parse_mode: "Markdown",
-      ...extra,
-    },
+    buildReEngagementTelegramBody("mid_day3", toPreviewInput(user)),
+    extra,
   );
 }
 
-export async function sendMidDay14(
-  api: Api,
-  user: UserRow,
-  variant: MessageVariant,
-) {
+/** @deprecated */
+export async function sendMidDay14(api: Api, user: UserRow) {
   const offerId = await createBundleExtensionOffer(user.id);
   const extra = webAppReactivateButton(offerId);
   await api.sendMessage(
     user.telegramId,
-    buildReEngagementTelegramBody("mid_day14", toPreviewInput(user), variant),
-    { parse_mode: "Markdown", ...extra },
+    buildReEngagementTelegramBody("mid_day10", toPreviewInput(user)),
+    extra,
   );
 }
 
-export async function sendMidDay21Final(
-  api: Api,
-  user: UserRow,
-  variant: MessageVariant,
-) {
+/** @deprecated */
+export async function sendMidDay21Final(api: Api, user: UserRow) {
   await api.sendMessage(
     user.telegramId,
-    buildReEngagementTelegramBody("mid_day21", toPreviewInput(user), variant),
-    { parse_mode: "Markdown" },
+    buildReEngagementTelegramBody("mid_day10", toPreviewInput(user)),
   );
 }
 
-export async function sendLowDay14(
-  api: Api,
-  user: UserRow,
-  variant: MessageVariant,
-) {
-  /** Callback keyboards are unreachable while the Railway worker is outbound-only
-   * (Chatwoot owns inbound). Use WebApp + channel URL buttons instead. */
+/** @deprecated */
+export async function sendLowDay14(api: Api, user: UserRow) {
   const offerId = await createBundleExtensionOffer(user.id);
   const readyUrl = getMiniAppWebAppUrl(reactivateStartParam(offerId));
   const channelUrl = getChannelLinkUrl();
@@ -150,26 +129,20 @@ export async function sendLowDay14(
     ]);
   }
 
-  await api.sendMessage(
-    user.telegramId,
-    buildReEngagementTelegramBody("low_day14", toPreviewInput(user), variant),
-    {
-      parse_mode: "Markdown",
-      ...(inline_keyboard.length > 0
-        ? { reply_markup: { inline_keyboard } }
-        : {}),
-    },
-  );
+  const text = buildReEngagementTelegramBody("low_day7", toPreviewInput(user));
+  if (inline_keyboard.length > 0) {
+    await api.sendMessage(user.telegramId, text, {
+      reply_markup: { inline_keyboard } as import("grammy").InlineKeyboard,
+    });
+  } else {
+    await api.sendMessage(user.telegramId, text);
+  }
 }
 
-export async function sendLowDay30Final(
-  api: Api,
-  user: UserRow,
-  variant: MessageVariant,
-) {
+/** @deprecated */
+export async function sendLowDay30Final(api: Api, user: UserRow) {
   await api.sendMessage(
     user.telegramId,
-    buildReEngagementTelegramBody("low_day30", toPreviewInput(user), variant),
-    { parse_mode: "Markdown" },
+    buildReEngagementTelegramBody("low_day7", toPreviewInput(user)),
   );
 }

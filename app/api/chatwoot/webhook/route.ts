@@ -8,6 +8,7 @@ import {
 } from "@/lib/chatwoot";
 import { getLatestQuestionnaireAnswers } from "@/lib/db/questionnaire";
 import { voluumPostbackUrl } from "@/lib/voluum";
+import { cancelPendingNurture } from "@/lib/nurtureSchedule";
 import {
   collectLabelTitles,
   conversationHasDepositConfirmedLabel,
@@ -121,6 +122,8 @@ async function handleDepositConfirmed(
       depositTotal: depositTotal > 0 ? depositTotal : user.depositTotal,
     })
     .where(eq(users.id, user.id));
+
+  await cancelPendingNurture(user.id);
 
   console.log("[chatwoot-webhook] db update:", {
     userId: user.id,

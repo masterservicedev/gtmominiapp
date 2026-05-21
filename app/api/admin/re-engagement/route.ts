@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
     const variant = normalizeMessageVariant(r.messageVariant);
     const telegram =
       previewIn && bt && isReEngagementBroadcastType(bt)
-        ? buildReEngagementTelegramBody(bt, previewIn, variant)
+        ? buildReEngagementTelegramBody(bt, previewIn)
         : "";
     const adminHint =
       bt && isReEngagementBroadcastType(bt)

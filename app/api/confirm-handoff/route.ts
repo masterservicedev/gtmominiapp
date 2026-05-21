@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validateInitData } from "@/lib/validation";
 import { db } from "@/lib/db";
-import { users, events, nurtureQueue } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
+import { users, events } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { getLatestQuestionnaireAnswers } from "@/lib/db/questionnaire";
 import {
   getProductMatch,
@@ -15,16 +15,11 @@ import {
   fireCrmVoluumPostback,
   buildLeadExtrasFromState,
 } from "@/lib/handoffHighIntent";
-import { scheduleHighReactivationNurture } from "@/lib/nurtureSchedule";
-
-async function cancelPendingNurture(userId: string) {
-  await db
-    .update(nurtureQueue)
-    .set({ status: "cancelled" })
-    .where(
-      and(eq(nurtureQueue.userId, userId), eq(nurtureQueue.status, "pending")),
-    );
-}
+import {
+  cancelPendingNurture,
+  scheduleHighNurture,
+  scheduleLowNurture,
+} from "@/lib/nurtureSchedule";
 
 export async function POST(req: NextRequest) {
   try {
@@ -203,7 +198,9 @@ export async function POST(req: NextRequest) {
       await fireCrmVoluumPostback(user.voluumCid);
 
       if (segment === "HIGH") {
-        await scheduleHighReactivationNurture(user.id, user.telegramId, now);
+        await scheduleHighNurture(user.id, user.telegramId, now);
+      } else if (starterHandoff) {
+        await scheduleLowNurture(user.id, user.telegramId, now);
       }
     }
 

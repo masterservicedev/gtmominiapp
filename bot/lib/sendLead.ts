@@ -10,7 +10,7 @@ import {
 } from "../../lib/leadCardContent";
 import { getProductMatch } from "../../lib/productMatch";
 import { attachInternalLeadToChatwoot } from "../../lib/handoffHighIntent";
-import { scheduleHighReactivationNurture } from "../../lib/nurtureSchedule";
+import { scheduleHighNurture } from "../../lib/nurtureSchedule";
 
 type UserRow = typeof users.$inferSelect;
 
@@ -77,10 +77,6 @@ export async function sendLeadCard(api: Api, user: UserRow) {
   }
 
   if (crmWasNew && user.segment === "HIGH") {
-    await scheduleHighReactivationNurture(
-      user.id,
-      user.telegramId,
-      new Date(),
-    );
+    await scheduleHighNurture(user.id, user.telegramId, new Date());
   }
 }
