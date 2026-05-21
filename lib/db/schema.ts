@@ -197,3 +197,12 @@ export const broadcastOffers = pgTable("broadcast_offers", {
   claimed: boolean("claimed").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+export const campaignLinks = pgTable("campaign_links", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  source: text("source").notNull(),
+  campaign: text("campaign").notNull(),
+  startParam: text("start_param").notNull(),
+  telegramLink: text("telegram_link").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});

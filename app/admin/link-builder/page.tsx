@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { adminApi } from "../_components/adminApi";
 
 const BOT_USERNAME =
   process.env.NEXT_PUBLIC_BOT_USERNAME?.trim() || "YourMiniAppBot";
@@ -71,16 +72,21 @@ const CAMPAIGN_SUGGESTIONS = [
   "ebook_promo",
 ];
 
-const SESSION_KEY = "gtmo_saved_links";
-
 type SavedLink = {
   id: string;
-  label: string;
-  link: string;
-  sourceLabel: string;
+  source: string;
   campaign: string;
+  startParam: string;
+  telegramLink: string;
   createdAt: string;
 };
+
+function sourceLabelFor(sourceValue: string): string {
+  return (
+    TRAFFIC_SOURCES.find((s) => s.sourceValue === sourceValue)?.label ??
+    sourceValue
+  );
+}
 
 function sanitiseCampaign(raw: string): string {
   return raw
@@ -212,61 +218,59 @@ export default function LinkBuilderPage() {
       : null;
   const telegramLink = startParam ? buildTelegramLink(startParam) : null;
 
+  const loadSavedLinks = useCallback(async () => {
+    try {
+      const res = await adminApi("/api/admin/campaign-links");
+      if (!res.ok) return;
+      const data = (await res.json()) as { links?: SavedLink[] };
+      const rows = (data.links ?? []).map((row) => ({
+        ...row,
+        createdAt:
+          typeof row.createdAt === "string"
+            ? row.createdAt
+            : new Date(row.createdAt as string).toISOString(),
+      }));
+      setSavedLinks(rows);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem(SESSION_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as unknown[];
-      if (!Array.isArray(parsed)) return;
-      const next: SavedLink[] = parsed.map((row) => {
-        const o = row as Record<string, unknown>;
-        return {
-          id: String(o.id ?? ""),
-          label: String(o.label ?? ""),
-          link: String(o.link ?? ""),
-          sourceLabel: String(o.sourceLabel ?? ""),
-          campaign: String(o.campaign ?? ""),
-          createdAt: String(o.createdAt ?? new Date().toISOString()),
-        };
-      });
-      setSavedLinks(next.filter((s) => s.id && s.link));
-    } catch {
-      /* ignore */
-    }
-  }, []);
+    void loadSavedLinks();
+  }, [loadSavedLinks]);
 
-  const persistSaved = useCallback((next: SavedLink[]) => {
-    setSavedLinks(next);
-    try {
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(next));
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  const saveLink = useCallback(() => {
-    if (!telegramLink || !source) return;
-    const entry: SavedLink = {
-      id: `${Date.now()}`,
-      label: linkLabel.trim() || `${source.label} · ${sanitised}`,
-      link: telegramLink,
-      sourceLabel: source.label,
-      campaign: sanitised,
-      createdAt: new Date().toISOString(),
+  const saveLink = useCallback(async () => {
+    if (!telegramLink || !source || !startParam) return;
+    const res = await adminApi("/api/admin/campaign-links", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        source: source.sourceValue,
+        campaign: sanitised,
+        startParam,
+        telegramLink,
+      }),
+    });
+    if (!res.ok) return;
+    const data = (await res.json()) as { link: SavedLink };
+    const link = {
+      ...data.link,
+      createdAt:
+        typeof data.link.createdAt === "string"
+          ? data.link.createdAt
+          : new Date(data.link.createdAt as string).toISOString(),
     };
-    const updated = [entry, ...savedLinks].slice(0, 20);
-    persistSaved(updated);
+    setSavedLinks((prev) => [link, ...prev]);
     setLinkLabel("");
     setSaveSuccess(true);
     window.setTimeout(() => setSaveSuccess(false), 2000);
-  }, [telegramLink, source, linkLabel, sanitised, savedLinks, persistSaved]);
+  }, [telegramLink, source, startParam, sanitised]);
 
-  const deleteLink = useCallback(
-    (id: string) => {
-      persistSaved(savedLinks.filter((l) => l.id !== id));
-    },
-    [savedLinks, persistSaved],
-  );
+  const deleteLink = useCallback(async (id: string) => {
+    await adminApi(`/api/admin/campaign-links/${id}`, { method: "DELETE" });
+    setSavedLinks((prev) => prev.filter((l) => l.id !== id));
+  }, []);
 
   const trimmedCampaign = campaign.trim();
   const campaignNeedsSanitiseHint =
@@ -532,7 +536,7 @@ export default function LinkBuilderPage() {
                   />
                   <button
                     type="button"
-                    onClick={saveLink}
+                    onClick={() => void saveLink()}
                     className={`shrink-0 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${
                       saveSuccess
                         ? "border border-emerald-500 bg-emerald-500 text-black"
@@ -608,8 +612,7 @@ export default function LinkBuilderPage() {
         <section className="rounded-xl border border-zinc-800 bg-zinc-950/50 px-5 py-5">
           <h2 className="text-[15px] font-semibold text-white">Saved links</h2>
           <p className="mt-1 text-xs text-zinc-500">
-            Saved for this browser session only — copy anything you need before
-            you close the tab.
+            Saved in the database — persists across sessions and devices.
           </p>
           <ul className="mt-4 space-y-2">
             {savedLinks.map((saved) => (
@@ -619,26 +622,26 @@ export default function LinkBuilderPage() {
               >
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-zinc-200">
-                    {saved.label}
+                    {sourceLabelFor(saved.source)} · {saved.campaign}
                   </p>
                   <div className="mt-1.5 flex flex-wrap gap-2">
                     <span className="rounded border border-zinc-800 bg-zinc-900 px-2 py-0.5 text-[11px] text-zinc-500">
-                      {saved.sourceLabel}
+                      {sourceLabelFor(saved.source)}
                     </span>
                     <span className="rounded border border-zinc-800 bg-zinc-900 px-2 py-0.5 font-mono text-[11px] text-zinc-500">
                       {saved.campaign}
                     </span>
                   </div>
                   <p className="mt-1.5 truncate font-mono text-[11px] text-zinc-600">
-                    {saved.link}
+                    {saved.telegramLink}
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-2">
-                  <CopyButton text={saved.link} />
+                  <CopyButton text={saved.telegramLink} />
                   <button
                     type="button"
                     aria-label="Remove saved link"
-                    onClick={() => deleteLink(saved.id)}
+                    onClick={() => void deleteLink(saved.id)}
                     className="rounded-lg border border-zinc-800 px-2.5 py-1.5 text-xs text-zinc-500 hover:border-zinc-700 hover:text-zinc-300"
                   >
                     Remove
