@@ -43,10 +43,7 @@ export function isReEngagementBroadcastType(
   );
 }
 
-export function normalizeMessageVariant(
-  raw?: string | null | undefined,
-): "A" {
-  void raw;
+export function normalizeMessageVariant(): "A" {
   return "A";
 }
 
@@ -99,28 +96,28 @@ export function buildReEngagementTelegramBody(
   broadcastType: ReEngagementBroadcastType,
   u: ReEngagementPreviewInput,
 ): string {
-  const product = displayProductName(u.confirmedProductKey);
+  const productName = displayProductName(u.confirmedProductKey);
 
   switch (broadcastType) {
     case "high_day2":
       return `Your registration link is waiting in this chat.
 
-When you're ready to fund your account and activate your ${product} access, your specialist is one message away.
+When you're ready to fund your account and activate your ${productName} access, your specialist is one message away.
 
 Tap below if you have questions or you're ready to continue.`;
 
     case "high_day5":
-      return `Your ${product} access path is still open.
+      return `Your ${productName} access path is still open.
 
 Your specialist has your registration link ready. Fund your account when you're ready and your access activates the same day.`;
 
     case "mid_day3":
-      return `You were matched with ${product} when you completed your application.
+      return `You were matched with ${productName} when you completed your application.
 
 Your specialist is ready to send your registration link when you are.`;
 
     case "mid_day10":
-      return `Your ${product} access path is still available.
+      return `Your ${productName} access path is still available.
 
 Tap below when you're ready to continue — this is the last reminder.`;
 

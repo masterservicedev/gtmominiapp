@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
             bundleUsed: r.bundleUsed ?? false,
           }
         : null;
-    const variant = normalizeMessageVariant(r.messageVariant);
+    const variant = normalizeMessageVariant();
     const telegram =
       previewIn && bt && isReEngagementBroadcastType(bt)
         ? buildReEngagementTelegramBody(bt, previewIn)
