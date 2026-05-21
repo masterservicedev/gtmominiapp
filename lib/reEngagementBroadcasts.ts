@@ -44,8 +44,9 @@ export function isReEngagementBroadcastType(
 }
 
 export function normalizeMessageVariant(
-  _raw: string | null | undefined,
+  raw?: string | null | undefined,
 ): "A" {
+  void raw;
   return "A";
 }
 
@@ -59,11 +60,10 @@ type TelegramSendApi = {
   ) => Promise<unknown>;
 };
 
-function productName(user: UserRow): string {
-  const key = user.confirmedProductKey;
-  if (!key) return "your matched access";
+function displayProductName(confirmedProductKey: string | null): string {
+  if (!confirmedProductKey) return "your matched access";
   try {
-    return getCatalogProduct(key as ProductKey).displayName;
+    return getCatalogProduct(confirmedProductKey as ProductKey).displayName;
   } catch {
     return "your matched access";
   }
@@ -99,16 +99,7 @@ export function buildReEngagementTelegramBody(
   broadcastType: ReEngagementBroadcastType,
   u: ReEngagementPreviewInput,
 ): string {
-  const product = u.confirmedProductKey
-    ? (() => {
-        try {
-          return getCatalogProduct(u.confirmedProductKey as ProductKey)
-            .displayName;
-        } catch {
-          return "your matched access";
-        }
-      })()
-    : "your matched access";
+  const product = displayProductName(u.confirmedProductKey);
 
   switch (broadcastType) {
     case "high_day2":
