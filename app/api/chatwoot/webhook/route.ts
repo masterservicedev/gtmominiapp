@@ -290,12 +290,17 @@ export async function POST(req: NextRequest) {
 
     const conversation = getConversation(payload);
     const conversationId = extractConversationId(payload);
-    const inboxId =
+    const inboxIdRaw =
       (conversation?.inbox_id as number | undefined) ??
+      ((payload as Record<string, unknown>).inbox_id as number | undefined) ??
       ((payload.inbox as Record<string, unknown> | undefined)?.id as
         | number
         | undefined) ??
       null;
+    const inboxId =
+      inboxIdRaw != null && Number.isFinite(Number(inboxIdRaw))
+        ? Number(inboxIdRaw)
+        : null;
     const labels = collectLabelTitles(conversation);
     const meta = payload.meta as Record<string, unknown> | undefined;
     const sender = (meta?.sender ??
@@ -369,16 +374,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // Mini-app inbox filter — webhook itself is global, but only the mini-app
-    // inbox should drive mini-app business logic. If the env var is missing or
-    // not numeric, fall through so we don't accidentally drop everything.
+    // Mini-app inbox filter — env var is required; events from other inboxes
+    // are skipped. Events with no inbox_id in the payload fall through so we
+    // do not lose mini-app conversations whose shape omits it.
     const miniappInboxRaw = process.env.CHATWOOT_MINIAPP_INBOX_ID;
-    const miniappInboxId = miniappInboxRaw ? Number(miniappInboxRaw) : NaN;
-    const eventInboxId = Number(
-      p?.conversation?.inbox_id ?? p?.inbox?.id,
-    );
-    if (Number.isFinite(miniappInboxId) && eventInboxId !== miniappInboxId) {
-      console.log("[chatwoot-webhook] skip non-miniapp inbox", eventInboxId);
+    const miniAppInboxId = miniappInboxRaw
+      ? parseInt(miniappInboxRaw, 10)
+      : null;
+
+    if (!miniAppInboxId || !Number.isFinite(miniAppInboxId)) {
+      console.warn("[chatwoot-webhook] CHATWOOT_MINIAPP_INBOX_ID not set");
+      return NextResponse.json({ ok: true });
+    }
+
+    if (inboxId !== null && inboxId !== miniAppInboxId) {
+      console.log(`[chatwoot-webhook] skip non-miniapp inbox ${inboxId}`);
       return NextResponse.json({ ok: true });
     }
 
@@ -395,7 +405,7 @@ export async function POST(req: NextRequest) {
         telegramId,
         conversationId,
         typeof contactId === "number" ? contactId : null,
-        Number.isFinite(eventInboxId) ? eventInboxId : null,
+        inboxId,
       );
     }
 
