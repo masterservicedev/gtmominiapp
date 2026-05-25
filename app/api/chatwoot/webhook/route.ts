@@ -4,6 +4,7 @@ import { users, events } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import {
   addChatwootNote,
+  getConversationLabelTitles,
   setConversationCustomAttribute,
 } from "@/lib/chatwoot";
 import { getLatestQuestionnaireAnswers } from "@/lib/db/questionnaire";
@@ -114,7 +115,18 @@ async function handleDepositConfirmed(
     return;
   }
 
-  const titles = collectLabelTitles(conversation);
+  // Webhook payload labels can be empty even when a label was applied.
+  // Fetch live labels directly from Chatwoot API to get accurate state.
+  let titles: string[] = collectLabelTitles(conversation);
+
+  if (titles.length === 0 && conversationId) {
+    titles = await getConversationLabelTitles(conversationId);
+    console.log(
+      `[chatwoot-webhook] fetched live labels for ${conversationId}:`,
+      titles,
+    );
+  }
+
   const depositConfirmed = conversationHasDepositConfirmedLabel(titles);
   console.log("[chatwoot-webhook] deposit-confirmed detected:", depositConfirmed);
   if (!depositConfirmed) return;
