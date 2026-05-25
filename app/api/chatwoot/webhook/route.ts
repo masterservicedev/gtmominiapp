@@ -259,6 +259,14 @@ async function handleReturningUserNote(
 }
 
 export async function POST(req: NextRequest) {
+  const secret = req.nextUrl.searchParams.get("secret");
+  const expectedSecret = process.env.CHATWOOT_WEBHOOK_SECRET ?? "";
+
+  if (expectedSecret && secret !== expectedSecret) {
+    console.warn("[chatwoot-webhook] Unauthorized request rejected");
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const payload = (await req.json()) as Record<string, unknown>;
     const event = String(payload.event || "");

@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
       utmSource,
       utmCampaign,
       utmContent,
-      startParam,
+      startParam: bodyStartParam,
     } = body as {
       initData?: unknown;
       voluumCid?: string | null;
@@ -33,12 +33,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { user: tgUser } = validateInitData(initData);
+    const validated = validateInitData(initData);
+    const tgUser = validated.user;
+
+    // Use signed start_param from initData as authoritative source
+    const validatedStartParam = validated.startParam ?? "";
+    const bodyStart =
+      typeof bodyStartParam === "string" ? bodyStartParam : "";
+    const rawStart = bodyStart || validatedStartParam || "";
+    if (
+      bodyStart &&
+      validatedStartParam &&
+      bodyStart !== validatedStartParam
+    ) {
+      console.warn("[init] startParam mismatch — using signed value", {
+        body: bodyStart,
+        signed: validatedStartParam,
+      });
+    }
+    const startParam = validatedStartParam || rawStart;
 
     /** Authoritative parse of Telegram `start_param` (also sent raw from client for logging consistency). */
-    const parsed = parseStartParam(
-      typeof startParam === "string" ? startParam : "",
-    );
+    const parsed = parseStartParam(startParam);
 
     const fromBodyCid =
       typeof voluumCid === "string" && voluumCid.trim()
