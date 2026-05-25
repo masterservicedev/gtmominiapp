@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
       : "telegram_fallback";
 
     if (!conversationId) {
-      console.log("[handoff] fallback direct Telegram used");
+      console.log("[handoff] no Chatwoot conversation — direct Telegram only");
       await sendHighIntentTelegramLead(user, answers, extras);
     }
     console.log(`[confirm-handoff] result mode: ${handoffMode}`);

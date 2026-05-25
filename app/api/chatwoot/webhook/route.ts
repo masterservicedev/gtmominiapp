@@ -70,6 +70,19 @@ async function handleDepositConfirmed(
 
   const telegramId = extractTelegramId(payload);
 
+  // For API-inbox contacts created by findOrCreateMiniAppConversation,
+  // the Telegram id is stored as the contact `identifier` rather than in
+  // the Telegram-channel social profile fields.
+  const contactIdentifier = (
+    payload.contact as Record<string, unknown> | undefined
+  )?.identifier as string | undefined;
+  const telegramIdFromIdentifier =
+    contactIdentifier && /^\d+$/.test(contactIdentifier)
+      ? parseInt(contactIdentifier, 10)
+      : null;
+
+  const resolvedTelegramId = telegramId ?? telegramIdFromIdentifier;
+
   const [byConv] = await db
     .select()
     .from(users)
@@ -80,11 +93,11 @@ async function handleDepositConfirmed(
   let matchedBy: "conversationId" | "telegramId" | null = byConv
     ? "conversationId"
     : null;
-  if (!user && telegramId != null) {
+  if (!user && resolvedTelegramId != null) {
     const [byTg] = await db
       .select()
       .from(users)
-      .where(eq(users.telegramId, telegramId))
+      .where(eq(users.telegramId, resolvedTelegramId))
       .limit(1);
     user = byTg;
     if (user) matchedBy = "telegramId";

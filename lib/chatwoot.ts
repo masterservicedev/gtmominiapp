@@ -403,6 +403,10 @@ export async function findOrCreateMiniAppConversation(
           },
         },
       );
+      console.log(
+        `[chatwoot] Create contact raw response:`,
+        JSON.stringify(data),
+      );
       contactId = data?.id ?? data?.payload?.id ?? null;
       console.log(
         `[chatwoot] Created contact ${contactId} for tg ${telegramId}`,

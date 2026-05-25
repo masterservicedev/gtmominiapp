@@ -16,7 +16,6 @@ import {
   findOrCreateMiniAppConversation,
   getConversationLabelTitles,
   addChatwootNote,
-  sendChatwootOutboundMessage,
   addLabel,
   assignToTeam,
 } from "@/lib/chatwoot";
@@ -31,7 +30,7 @@ type AnswerRow = InferSelectModel<typeof questionnaireAnswers> | null;
 export async function sendHighIntentTelegramLead(
   user: UserRow,
   answers: AnswerRow,
-  extras: LeadCardExtras,
+  extras?: LeadCardExtras,
 ): Promise<void> {
   await telegramSendMessage(
     user.telegramId,
@@ -124,11 +123,11 @@ export async function attachInternalLeadToChatwoot(
     }
   }
 
-  await sendChatwootOutboundMessage(
-    conversationId,
-    buildCustomerHandoffMessage(user, answers, extras),
-  );
-  console.log("[handoff] outbound Chatwoot message sent");
+  // Always send the customer-facing message via the Telegram Bot API.
+  // Chatwoot API-type inboxes do not push outgoing messages to Telegram,
+  // so we never rely on sendChatwootOutboundMessage for delivery.
+  await sendHighIntentTelegramLead(user, answers, extras);
+  console.log("[handoff] direct Telegram customer message sent");
 
   await addChatwootNote(
     conversationId,
