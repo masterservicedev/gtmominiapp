@@ -444,3 +444,70 @@ export async function findOrCreateMiniAppConversation(
     return null;
   }
 }
+
+/**
+ * Post a summary note to the Telegram inbox conversation for a user.
+ * This lets agents see the mini app lead in context alongside user messages.
+ * Does nothing if no Telegram inbox conversation exists or env var is missing.
+ */
+export async function postLeadSummaryToTelegramInbox(
+  telegramId: number,
+  summaryNote: string,
+): Promise<void> {
+  if (!ACCOUNT_ID) return;
+
+  const telegramInboxId = process.env.CHATWOOT_TELEGRAM_INBOX_ID
+    ? parseInt(process.env.CHATWOOT_TELEGRAM_INBOX_ID, 10)
+    : null;
+
+  if (!telegramInboxId || !Number.isFinite(telegramInboxId)) {
+    console.log(
+      "[chatwoot] CHATWOOT_TELEGRAM_INBOX_ID not set — skipping Telegram inbox note",
+    );
+    return;
+  }
+
+  const contact = await findContactByTelegramId(telegramId);
+  if (!contact?.id) {
+    console.log(
+      `[chatwoot] No contact found for tg ${telegramId} — skipping Telegram inbox note`,
+    );
+    return;
+  }
+
+  try {
+    const { data } = await chatwoot.get<{ payload?: ConvPayload[] }>(
+      `/accounts/${ACCOUNT_ID}/contacts/${contact.id}/conversations`,
+    );
+    const list = Array.isArray(data.payload) ? data.payload : [];
+    const conv = list
+      .filter((c) => c.inbox_id === telegramInboxId)
+      .sort(
+        (a, b) =>
+          ((b.last_activity_at as number) || 0) -
+          ((a.last_activity_at as number) || 0),
+      )[0];
+
+    if (!conv?.id) {
+      console.log(
+        `[chatwoot] No Telegram inbox conversation for tg ${telegramId}`,
+      );
+      return;
+    }
+
+    await chatwoot.post(
+      `/accounts/${ACCOUNT_ID}/conversations/${conv.id}/messages`,
+      {
+        content: summaryNote,
+        message_type: "outgoing",
+        private: true,
+      },
+    );
+    console.log(
+      `[chatwoot] Lead summary posted to Telegram inbox conversation ${conv.id}`,
+    );
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[chatwoot] Telegram inbox summary note error:", msg);
+  }
+}

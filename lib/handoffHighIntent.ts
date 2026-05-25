@@ -18,6 +18,7 @@ import {
   addChatwootNote,
   addLabel,
   assignToTeam,
+  postLeadSummaryToTelegramInbox,
 } from "@/lib/chatwoot";
 import { conversationHasDepositConfirmedLabel } from "@/lib/chatwootDeposit";
 import { voluumPostbackUrl } from "@/lib/voluum";
@@ -169,6 +170,30 @@ export async function attachInternalLeadToChatwoot(
       await assignToTeam(conversationId, teamId);
     }
   }
+
+  // Post summary note to Telegram inbox so the agent sees the lead in context.
+  // Fire-and-forget — failure does not affect the handoff result.
+  const productTitle =
+    extras?.productMatch?.primaryTitle ?? productKey;
+  const capitalText = answers?.capital
+    ? answers.capital.replace(/_/g, " ")
+    : "—";
+  const summaryNote = [
+    `⚡ MINI APP LEAD — ${productKey.toUpperCase()}`,
+    ``,
+    `This user completed the GTMO application and has been matched.`,
+    ``,
+    `Product: ${productTitle}`,
+    `Segment: ${user.segment ?? "—"}`,
+    `Capital: ${capitalText}`,
+    ``,
+    `Full lead card and deposit tracking: API inbox conversation #${conversationId}`,
+    `Apply deposit-confirmed label HERE (Telegram inbox) after deposit is verified.`,
+  ].join("\n");
+
+  void postLeadSummaryToTelegramInbox(telegramId, summaryNote).catch((err) => {
+    console.error("[handoff] Telegram inbox summary failed:", err);
+  });
 
   return conversationId;
 }
