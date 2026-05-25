@@ -164,6 +164,7 @@ async function linkConversationToUser(
   telegramId: number,
   conversationId: string,
   contactId: number | null,
+  inboxId: number | null,
 ): Promise<void> {
   try {
     const [match] = await db
@@ -172,6 +173,22 @@ async function linkConversationToUser(
       .where(eq(users.telegramId, telegramId))
       .limit(1);
     if (!match) return;
+
+    const miniAppInboxId = process.env.CHATWOOT_MINIAPP_INBOX_ID
+      ? parseInt(process.env.CHATWOOT_MINIAPP_INBOX_ID, 10)
+      : null;
+    const isFromMiniAppInbox =
+      miniAppInboxId != null &&
+      Number.isFinite(miniAppInboxId) &&
+      inboxId === miniAppInboxId;
+    const userHasNoConversation = !match.chatwootConversationId;
+
+    if (!userHasNoConversation && !isFromMiniAppInbox) {
+      console.log(
+        "[chatwoot-webhook] skip overwrite — existing conversation from mini app inbox takes priority",
+      );
+      return;
+    }
 
     const updates: Partial<typeof users.$inferInsert> = {
       chatwootConversationId: conversationId,
@@ -378,6 +395,7 @@ export async function POST(req: NextRequest) {
         telegramId,
         conversationId,
         typeof contactId === "number" ? contactId : null,
+        Number.isFinite(eventInboxId) ? eventInboxId : null,
       );
     }
 

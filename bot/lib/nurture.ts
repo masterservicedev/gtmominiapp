@@ -94,6 +94,27 @@ export async function processNurtureQueue(bot: Bot): Promise<void> {
         `[nurture] failed ${queue.broadcastType} for ${user.telegramId}:`,
         err,
       );
+
+      const newRetryCount = (queue.retryCount ?? 0) + 1;
+      const MAX_RETRIES = 3;
+
+      if (newRetryCount >= MAX_RETRIES) {
+        await db
+          .update(nurtureQueue)
+          .set({ status: "failed", retryCount: newRetryCount })
+          .where(eq(nurtureQueue.id, queue.id));
+        console.log(
+          `[nurture] marked as failed after ${MAX_RETRIES} attempts: ${queue.id}`,
+        );
+      } else {
+        await db
+          .update(nurtureQueue)
+          .set({ retryCount: newRetryCount })
+          .where(eq(nurtureQueue.id, queue.id));
+        console.log(
+          `[nurture] retry ${newRetryCount}/${MAX_RETRIES} for ${queue.id}`,
+        );
+      }
     }
   }
 }

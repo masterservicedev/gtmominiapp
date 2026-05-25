@@ -104,6 +104,19 @@ function QualifyInner() {
   const funnelStepNumber = preSteps + currentStep + 1;
 
   useEffect(() => {
+    let cancelled = false;
+    void loadWebApp().then((WebApp) => {
+      if (cancelled) return;
+      if (!WebApp.initData) {
+        router.replace("/");
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
+  useEffect(() => {
     trackFunnelEvent("questionnaire_start", { variant });
   }, [variant]);
 
@@ -130,6 +143,10 @@ function QualifyInner() {
 
       try {
         const WebApp = await loadWebApp();
+        if (!WebApp.initData) {
+          router.replace("/");
+          return;
+        }
         const res = await fetch("/api/score", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

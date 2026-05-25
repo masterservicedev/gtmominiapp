@@ -3,10 +3,50 @@ import { validateInitData } from "@/lib/validation";
 import { db } from "@/lib/db";
 import { users, events, offers } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import axios from "axios";
 import { normalizeEntryVariant } from "@/lib/funnel/normalize";
 import { parseStartParam } from "@/lib/startParam";
 import { getClientIpRaw, normalizeStoredClientIp } from "@/lib/client-ip";
+
+function scheduleGeoUpdate(userId: string, ipForGeo: string): void {
+  void (async () => {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 2000);
+      const geo = await fetch(`https://ipapi.co/${ipForGeo}/json/`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      if (!geo.ok) return;
+      const geoData = (await geo.json()) as {
+        country_name?: string;
+        country_code?: string;
+      };
+      const country = geoData.country_name ?? null;
+      const countryCode = geoData.country_code ?? null;
+      if (country || countryCode) {
+        await db
+          .update(users)
+          .set({
+            ...(country ? { country } : {}),
+            ...(countryCode ? { countryCode } : {}),
+          })
+          .where(eq(users.id, userId));
+      }
+    } catch {
+      // Geo lookup failed silently — country stays null
+    }
+  })();
+}
+
+function isAuthValidationError(message: string): boolean {
+  return (
+    message.includes("Invalid") ||
+    message.includes("Unauthorized") ||
+    message.includes("hash") ||
+    message.includes("expired") ||
+    message.includes("Missing")
+  );
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -67,19 +107,6 @@ export async function POST(req: NextRequest) {
     const ipRaw = getClientIpRaw(req);
     const ipForGeo = ipRaw || "0.0.0.0";
     const storedClientIp = normalizeStoredClientIp(ipRaw);
-
-    let country: string | null = null;
-    let countryCode: string | null = null;
-    try {
-      const geo = await axios.get(`https://ipapi.co/${ipForGeo}/json/`, {
-        timeout: 5000,
-      });
-      country = geo.data.country_name ?? null;
-      countryCode = geo.data.country_code ?? null;
-    } catch {
-      country = null;
-      countryCode = null;
-    }
 
     const existing = await db
       .select()
@@ -161,8 +188,6 @@ export async function POST(req: NextRequest) {
           utmSource: nextUtmSource,
           utmCampaign: nextUtmCampaign,
           utmContent: nextUtmContent,
-          country,
-          countryCode,
           signupIp: storedClientIp,
           lastSeenIp: storedClientIp,
           source: "mini_app",
@@ -178,12 +203,9 @@ export async function POST(req: NextRequest) {
         .update(users)
         .set({
           lastSeenAt: new Date(),
-          country,
-          countryCode,
           lastSeenIp: storedClientIp,
           ...(hasIncomingAttribution
             ? {
-                entryVariant: normalizedVariant,
                 ...utmPatch,
                 ...(effectiveCid ? { voluumCid: effectiveCid } : {}),
               }
@@ -202,8 +224,9 @@ export async function POST(req: NextRequest) {
         returning: existing.length > 0,
         ...(storedClientIp ? { ip: storedClientIp } : {}),
       },
-      country,
     });
+
+    scheduleGeoUpdate(userId, ipForGeo);
 
     return NextResponse.json({
       success: true,
@@ -214,7 +237,12 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error("/api/init error:", message);
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    if (isAuthValidationError(message)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    console.error("[init] unexpected error:", message);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

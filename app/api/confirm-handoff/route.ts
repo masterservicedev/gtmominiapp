@@ -214,7 +214,19 @@ export async function POST(req: NextRequest) {
       handoffFallback: handoffMode === "telegram_fallback",
       segment: user.segment,
     });
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+
+    if (
+      message.includes("Invalid") ||
+      message.includes("Unauthorized") ||
+      message.includes("hash") ||
+      message.includes("expired")
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    console.error("[confirm-handoff] unexpected error:", message);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

@@ -1,17 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validateInitData } from "@/lib/validation";
 import { db } from "@/lib/db";
-import { users, events, nurtureQueue } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
-
-async function cancelPendingNurture(userId: string) {
-  await db
-    .update(nurtureQueue)
-    .set({ status: "cancelled" })
-    .where(
-      and(eq(nurtureQueue.userId, userId), eq(nurtureQueue.status, "pending")),
-    );
-}
+import { users, events } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 export async function POST(req: NextRequest) {
   try {
@@ -53,26 +44,6 @@ export async function POST(req: NextRequest) {
 
     const now = new Date();
 
-    await cancelPendingNurture(user.id);
-
-    const schedules = [
-      new Date(now.getTime()),
-      new Date(now.getTime() + 24 * 60 * 60 * 1000),
-      new Date(now.getTime() + 48 * 60 * 60 * 1000),
-    ];
-
-    for (let i = 0; i < schedules.length; i++) {
-      await db.insert(nurtureQueue).values({
-        userId: user.id,
-        telegramId: user.telegramId,
-        step: i,
-        scheduledAt: schedules[i]!,
-        status: "pending",
-        nurtureKind: "intent_decline",
-        broadcastType: "nurture",
-      });
-    }
-
     await db
       .update(users)
       .set({ intentDeclinedAt: now })
@@ -87,7 +58,19 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ ok: true });
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+
+    if (
+      message.includes("Invalid") ||
+      message.includes("Unauthorized") ||
+      message.includes("hash") ||
+      message.includes("expired")
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    console.error("[decline-intent] unexpected error:", message);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

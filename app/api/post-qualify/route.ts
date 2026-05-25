@@ -57,7 +57,19 @@ export async function POST(req: NextRequest) {
       intentConfirmedAt: user.intentConfirmedAt,
       intentDeclinedAt: user.intentDeclinedAt,
     });
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+
+    if (
+      message.includes("Invalid") ||
+      message.includes("Unauthorized") ||
+      message.includes("hash") ||
+      message.includes("expired")
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    console.error("[post-qualify] unexpected error:", message);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

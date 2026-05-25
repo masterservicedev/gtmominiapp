@@ -16,6 +16,7 @@ import {
 import { getAccentPalette } from "@/lib/funnel/palette";
 import { getFunnelTemplateConfig } from "@/lib/funnel/configs/registry";
 import { trackFunnelEvent } from "@/lib/funnel/track";
+import { loadWebApp } from "@/lib/twa";
 
 function OfferInner() {
   const router = useRouter();
@@ -41,6 +42,19 @@ function OfferInner() {
     }
     setVideoUnlocked(!offer.video.src || offer.video.minWatchSeconds <= 0);
   }, [offer]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadWebApp().then((WebApp) => {
+      if (cancelled) return;
+      if (!WebApp.initData) {
+        router.replace("/");
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   useEffect(() => {
     trackFunnelEvent("offer_view", { variant, surface: "offer_page" });

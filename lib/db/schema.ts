@@ -178,6 +178,7 @@ export const nurtureQueue = pgTable("nurture_queue", {
   scheduledAt: timestamp("scheduled_at").notNull(),
   sentAt: timestamp("sent_at"),
   status: text("status").default("pending"),
+  retryCount: integer("retry_count").default(0).notNull(),
   /** `mid` = post-score MID nurture; `intent_decline` = user declined in-app intent step */
   nurtureKind: text("nurture_kind").default("mid"),
   /** nurture = default 0–2 day copy; other values drive re-engagement broadcasts. */

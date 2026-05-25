@@ -129,7 +129,17 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error("/api/score error:", message);
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    if (
+      message.includes("Invalid") ||
+      message.includes("Unauthorized") ||
+      message.includes("hash") ||
+      message.includes("expired")
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    console.error("[score] unexpected error:", message);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
