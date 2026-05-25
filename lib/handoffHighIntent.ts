@@ -13,7 +13,7 @@ import {
 } from "@/lib/leadCardContent";
 import { telegramSendMessage } from "@/lib/telegramBotApi";
 import {
-  findLatestConversationIdForTelegramUser,
+  findOrCreateMiniAppConversation,
   getConversationLabelTitles,
   addChatwootNote,
   sendChatwootOutboundMessage,
@@ -81,8 +81,7 @@ export async function attachInternalLeadToChatwoot(
     segment: user.segment,
   });
 
-  // Prefer the conversation id persisted by the Chatwoot webhook
-  // (users.chatwootConversationId), fall back to live /contacts/search.
+  // Find existing conversation OR create one in the API inbox
   let conversationId: string | null = user.chatwootConversationId ?? null;
   if (conversationId) {
     console.log(
@@ -91,20 +90,24 @@ export async function attachInternalLeadToChatwoot(
     );
   } else {
     console.log(
-      "[handoff] no stored conversation id, falling back to live search",
+      "[handoff] no stored conversation id — find or create in mini app inbox",
     );
-    conversationId = await findLatestConversationIdForTelegramUser(telegramId);
+    conversationId = await findOrCreateMiniAppConversation(
+      telegramId,
+      user.username ?? null,
+      user.firstName ?? null,
+    );
   }
 
   if (!conversationId) {
-    console.log(
-      "[handoff] No existing Chatwoot conversation for tg",
+    console.error(
+      "[handoff] Could not find or create Chatwoot conversation for",
       telegramId,
     );
     return null;
   }
 
-  console.log("[handoff] existing conversation found:", conversationId);
+  console.log("[handoff] conversation ready:", conversationId);
 
   if (extras?.reactivation) {
     const labelTitles = await getConversationLabelTitles(conversationId);

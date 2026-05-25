@@ -353,3 +353,90 @@ export async function sendChatwootOutboundMessage(
     console.error("[chatwoot] Outbound message error:", msg);
   }
 }
+
+/**
+ * Find an existing Chatwoot conversation for a Telegram user,
+ * or create one in the API inbox if none exists.
+ * Uses CHATWOOT_MINIAPP_INBOX_ID (must be an API-type inbox).
+ * Never creates conversations on Telegram-type inboxes.
+ */
+export async function findOrCreateMiniAppConversation(
+  telegramId: number,
+  userName: string | null,
+  firstName: string | null,
+): Promise<string | null> {
+  if (!ACCOUNT_ID) return null;
+
+  // Try existing conversation first
+  const existing = await findLatestConversationIdForTelegramUser(telegramId);
+  if (existing) {
+    console.log(
+      `[chatwoot] Found existing conversation ${existing} for tg ${telegramId}`,
+    );
+    return existing;
+  }
+
+  const inboxId = process.env.CHATWOOT_MINIAPP_INBOX_ID;
+  if (!inboxId) {
+    console.warn(
+      "[chatwoot] CHATWOOT_MINIAPP_INBOX_ID not set — cannot create conversation",
+    );
+    return null;
+  }
+
+  // Find or create contact
+  let contactId: number | null = null;
+  const existingContact = await findContactByTelegramId(telegramId);
+  contactId = existingContact?.id ?? null;
+
+  if (!contactId) {
+    try {
+      const displayName = firstName || userName || `TG_${telegramId}`;
+      const { data } = await chatwoot.post(
+        `/accounts/${ACCOUNT_ID}/contacts`,
+        {
+          name: displayName,
+          identifier: String(telegramId),
+          additional_attributes: {
+            telegram_id: telegramId,
+            username: userName ?? "",
+          },
+        },
+      );
+      contactId = data?.id ?? data?.payload?.id ?? null;
+      console.log(
+        `[chatwoot] Created contact ${contactId} for tg ${telegramId}`,
+      );
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[chatwoot] Contact create error", msg);
+      return null;
+    }
+  }
+
+  if (!contactId) {
+    console.error("[chatwoot] Could not find or create contact");
+    return null;
+  }
+
+  // Create conversation in API inbox
+  try {
+    const { data } = await chatwoot.post(
+      `/accounts/${ACCOUNT_ID}/conversations`,
+      {
+        contact_id: contactId,
+        inbox_id: Number(inboxId),
+        additional_attributes: { telegram_id: telegramId },
+      },
+    );
+    const convId = data?.id ? String(data.id) : null;
+    console.log(
+      `[chatwoot] Created conversation ${convId} for tg ${telegramId}`,
+    );
+    return convId;
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[chatwoot] Conversation create error", msg);
+    return null;
+  }
+}
