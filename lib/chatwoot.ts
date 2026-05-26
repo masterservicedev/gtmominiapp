@@ -470,28 +470,54 @@ export async function postLeadSummaryToTelegramInbox(
     return;
   }
 
-  const contact = await findContactByTelegramId(telegramId);
-  if (!contact?.id) {
-    console.log(
-      `[chatwoot] No contact found for tg ${telegramId} — skipping Telegram inbox note`,
-    );
-    return;
-  }
-
   try {
-    const { data } = await chatwoot.get<{ payload?: ConvPayload[] }>(
-      `/accounts/${ACCOUNT_ID}/contacts/${contact.id}/conversations`,
+    const { data: searchData } = await chatwoot.get<{
+      payload?: ContactPayload[];
+    }>(
+      `/accounts/${ACCOUNT_ID}/contacts/search?q=${telegramId}&include_contacts=true`,
     );
-    const list = Array.isArray(data.payload) ? data.payload : [];
-    const conv = list
-      .filter((c) => c.inbox_id === telegramInboxId)
-      .sort(
-        (a, b) =>
-          ((b.last_activity_at as number) || 0) -
-          ((a.last_activity_at as number) || 0),
-      )[0];
 
-    if (!conv?.id) {
+    const contacts = Array.isArray(searchData?.payload)
+      ? searchData.payload
+      : [];
+
+    if (contacts.length === 0) {
+      console.log(
+        `[chatwoot] No contacts found for tg ${telegramId} — skipping Telegram inbox note`,
+      );
+      return;
+    }
+
+    let targetConvId: number | null = null;
+
+    for (const contact of contacts) {
+      if (!contact?.id) continue;
+      try {
+        const { data: convData } = await chatwoot.get<{
+          payload?: ConvPayload[];
+        }>(`/accounts/${ACCOUNT_ID}/contacts/${contact.id}/conversations`);
+        const list = Array.isArray(convData.payload) ? convData.payload : [];
+        const conv = list
+          .filter((c) => c.inbox_id === telegramInboxId)
+          .sort(
+            (a, b) =>
+              ((b.last_activity_at as number) || 0) -
+              ((a.last_activity_at as number) || 0),
+          )[0];
+
+        if (conv?.id) {
+          targetConvId = conv.id;
+          console.log(
+            `[chatwoot] Found Telegram inbox conversation ${targetConvId} via contact ${contact.id}`,
+          );
+          break;
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    if (!targetConvId) {
       console.log(
         `[chatwoot] No Telegram inbox conversation for tg ${telegramId}`,
       );
@@ -499,7 +525,7 @@ export async function postLeadSummaryToTelegramInbox(
     }
 
     await chatwoot.post(
-      `/accounts/${ACCOUNT_ID}/conversations/${conv.id}/messages`,
+      `/accounts/${ACCOUNT_ID}/conversations/${targetConvId}/messages`,
       {
         content: summaryNote,
         message_type: "activity",
@@ -507,7 +533,7 @@ export async function postLeadSummaryToTelegramInbox(
       },
     );
     console.log(
-      `[chatwoot] Lead summary posted to Telegram inbox conversation ${conv.id}`,
+      `[chatwoot] Lead summary posted to Telegram inbox conversation ${targetConvId}`,
     );
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
