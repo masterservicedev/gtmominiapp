@@ -454,6 +454,9 @@ export async function postLeadSummaryToTelegramInbox(
   telegramId: number,
   summaryNote: string,
 ): Promise<void> {
+  console.log(
+    `[chatwoot] postLeadSummaryToTelegramInbox called for tg ${telegramId}`,
+  );
   if (!ACCOUNT_ID) return;
 
   const telegramInboxId = process.env.CHATWOOT_TELEGRAM_INBOX_ID
@@ -499,7 +502,7 @@ export async function postLeadSummaryToTelegramInbox(
       `/accounts/${ACCOUNT_ID}/conversations/${conv.id}/messages`,
       {
         content: summaryNote,
-        message_type: "outgoing",
+        message_type: "activity",
         private: true,
       },
     );

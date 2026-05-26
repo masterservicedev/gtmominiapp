@@ -191,6 +191,9 @@ export async function attachInternalLeadToChatwoot(
     `Apply deposit-confirmed label HERE (Telegram inbox) after deposit is verified.`,
   ].join("\n");
 
+  console.log(
+    `[handoff] posting summary to Telegram inbox for tg ${telegramId}`,
+  );
   void postLeadSummaryToTelegramInbox(telegramId, summaryNote).catch((err) => {
     console.error("[handoff] Telegram inbox summary failed:", err);
   });
