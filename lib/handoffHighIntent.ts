@@ -236,17 +236,15 @@ export async function attachInternalLeadToChatwoot(
     }
   }
 
-  // Post Telegram inbox summary now if the 977 conversation already exists.
-  // For paid traffic with no prior Telegram message, it will not. In that case
-  // the webhook handler posts it later when the 977 conversation is created.
+  // Post the full lead card into the Telegram inbox now if the 977
+  // conversation already exists. For paid traffic with no prior Telegram
+  // message, it will not — the webhook handler posts it later when the 977
+  // conversation is created.
   await maybePostTelegramInboxSummaryAtHandoff({
-    userId: user.id,
+    user,
     contactId,
-    productKey,
-    productTitle: extras?.productMatch?.primaryTitle ?? productKey,
-    segment: user.segment ?? null,
-    capital: answers?.capital ?? null,
-    apiConversationId,
+    answers,
+    extras,
     alreadyPosted: user.chatwootTelegramSummaryPostedAt != null,
   });
 
@@ -262,13 +260,10 @@ function parseStoredContactId(raw: string | null | undefined): number | null {
 }
 
 async function maybePostTelegramInboxSummaryAtHandoff(args: {
-  userId: string;
+  user: UserRow;
   contactId: number;
-  productKey: string;
-  productTitle: string;
-  segment: string | null;
-  capital: string | null | undefined;
-  apiConversationId: string;
+  answers: AnswerRow;
+  extras: LeadCardExtras | undefined;
   alreadyPosted: boolean;
 }): Promise<void> {
   if (args.alreadyPosted) {
@@ -296,7 +291,7 @@ async function maybePostTelegramInboxSummaryAtHandoff(args: {
     })
     .where(
       and(
-        eq(users.id, args.userId),
+        eq(users.id, args.user.id),
         isNull(users.chatwootTelegramSummaryPostedAt),
       ),
     )
@@ -309,29 +304,30 @@ async function maybePostTelegramInboxSummaryAtHandoff(args: {
     return;
   }
 
-  const summary = buildTelegramInboxSummary({
-    productKey: args.productKey,
-    productTitle: args.productTitle,
-    segment: args.segment,
-    capital: args.capital,
-    apiConversationId: args.apiConversationId,
-  });
+  // Post the full qualified-lead card into the Telegram inbox so the agent
+  // sees the same information that lives in the API inbox private note,
+  // without having to switch inboxes.
+  const noteContent = buildQualifiedLeadCardText(
+    args.user,
+    args.answers,
+    args.extras,
+  );
 
   try {
-    await addChatwootNote(telegramConvId, summary);
+    await addChatwootNote(telegramConvId, noteContent);
     console.log(
-      `[handoff] telegram inbox summary posted to conversation ${telegramConvId}`,
+      `[handoff] full lead card posted to telegram inbox conversation ${telegramConvId}`,
     );
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(
-      "[handoff] telegram inbox summary post failed — rolling back idempotency flag",
+      "[handoff] telegram inbox lead card post failed — rolling back idempotency flag",
       msg,
     );
     await db
       .update(users)
       .set({ chatwootTelegramSummaryPostedAt: null })
-      .where(eq(users.id, args.userId));
+      .where(eq(users.id, args.user.id));
   }
 }
 
