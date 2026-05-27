@@ -314,7 +314,7 @@ export function buildQualifiedLeadCardText(
     ``,
     `Agent Action:`,
     `1. Send broker registration link`,
-    `2. Confirm deposit receipt`,
+    `2. Apply deposit-confirmed label HERE (GTMOMiniAppBot inbox) after deposit is verified.`,
     `3. ${agentActivationStep}`,
   );
 
