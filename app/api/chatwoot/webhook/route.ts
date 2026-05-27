@@ -15,9 +15,8 @@ import {
   conversationHasDepositConfirmedLabel,
   extractDepositAmountUsd,
 } from "@/lib/chatwootDeposit";
-import { capitalFromAnswers } from "@/lib/leadCardContent";
-import { getProductMatch } from "@/lib/productMatch";
-import { buildTelegramInboxSummary } from "@/lib/handoffHighIntent";
+import { buildQualifiedLeadCardText } from "@/lib/leadCardContent";
+import { buildLeadExtrasFromState } from "@/lib/handoffHighIntent";
 
 // Single shared helper used by:
 //   - summary log
@@ -357,21 +356,21 @@ async function postTelegramInboxSummaryForUser(args: {
   if (!user) return;
 
   const answers = await getLatestQuestionnaireAnswers(user.id);
-  const capital = capitalFromAnswers(answers?.capital);
-  const productKey =
-    user.confirmedProductKey ??
-    getProductMatch(capital, user.bundleEligible ?? true, user.bundleUsed ?? false)
-      .productKey;
-  const productTitle = String(productKey);
 
-  const summary = buildTelegramInboxSummary({
-    productKey: String(productKey),
-    productTitle,
-    segment: user.segment ?? null,
-    capital: answers?.capital ?? null,
-    apiConversationId:
-      user.chatwootApiConversationId ?? user.chatwootConversationId ?? null,
+  // Reconstruct the LeadCardExtras the immediate handoff path uses, sourced
+  // entirely from persisted user state. `reactivation` does NOT apply here —
+  // reactivation has its own 976 conversation and posts its lead card there
+  // directly; the deferred Telegram inbox path only fires for first-time
+  // handoffs that completed before the 977 conversation existed.
+  const extras = buildLeadExtrasFromState({
+    capital: answers?.capital,
+    bundleEligible: user.bundleEligible ?? false,
+    bundleUsed: user.bundleUsed ?? false,
+    bundleAccepted: user.bundleAccepted ?? null,
+    bundleOfferShown: user.bundleOfferShown ?? false,
   });
+
+  const content = buildQualifiedLeadCardText(user, answers, extras);
 
   // Conditional update — only the first concurrent caller wins. Prevents
   // duplicate notes from repeated webhook deliveries even if the post itself
@@ -395,14 +394,14 @@ async function postTelegramInboxSummaryForUser(args: {
   }
 
   try {
-    await addChatwootNote(telegramConversationId, summary);
+    await addChatwootNote(telegramConversationId, content);
     console.log(
-      `[chatwoot-webhook] telegram inbox summary posted to ${telegramConversationId} for user ${user.id}`,
+      `[chatwoot-webhook] telegram inbox lead card posted to ${telegramConversationId} for user ${user.id}`,
     );
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(
-      "[chatwoot-webhook] telegram inbox summary post failed — rolling back idempotency flag",
+      "[chatwoot-webhook] telegram inbox lead card post failed — rolling back idempotency flag",
       msg,
     );
     await db
