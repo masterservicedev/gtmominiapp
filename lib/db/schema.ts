@@ -104,7 +104,14 @@ export const users = pgTable("users", {
   questionnaireCompleted: boolean("questionnaire_completed").default(false),
   crmTriggered: boolean("crm_triggered").default(false),
   chatwootContactId: text("chatwoot_contact_id"),
+  /** Legacy single-conversation pointer — kept for backward compatibility. */
   chatwootConversationId: text("chatwoot_conversation_id"),
+  /** Mini-app inbox (API channel) conversation that hosts the lead-card note + labels. */
+  chatwootApiConversationId: text("chatwoot_api_conversation_id"),
+  /** Telegram inbox (Telegram channel) conversation where agents reply to the customer. */
+  chatwootTelegramConversationId: text("chatwoot_telegram_conversation_id"),
+  /** Set once we have posted the lead summary into the Telegram inbox conversation; idempotency guard. */
+  chatwootTelegramSummaryPostedAt: timestamp("chatwoot_telegram_summary_posted_at"),
   depositTotal: integer("deposit_total").default(0),
   productsUnlocked: text("products_unlocked").array().default([]),
   confirmedProductKey: text("confirmed_product_key"),

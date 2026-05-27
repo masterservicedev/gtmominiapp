@@ -1,4 +1,6 @@
 import type { InferSelectModel } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { and, eq, isNull } from "drizzle-orm";
 import { users, questionnaireAnswers } from "@/lib/db/schema";
 import {
   getProductMatch,
@@ -18,7 +20,8 @@ import {
   addChatwootNote,
   addLabel,
   assignToTeam,
-  postLeadSummaryToTelegramInbox,
+  ensureTelegramContactInbox,
+  findTelegramInboxConversationForContact,
 } from "@/lib/chatwoot";
 import { conversationHasDepositConfirmedLabel } from "@/lib/chatwootDeposit";
 import { voluumPostbackUrl } from "@/lib/voluum";
@@ -68,6 +71,35 @@ async function logLabel(
   console.log(`[label] ${label}`, ok ? "success" : "fail");
 }
 
+/**
+ * Build the agent-facing summary note that gets posted into the Telegram
+ * inbox conversation. Exported so the webhook handler can rebuild the same
+ * note when the Telegram conversation is created after handoff.
+ */
+export function buildTelegramInboxSummary(args: {
+  productKey: string;
+  productTitle: string;
+  segment: string | null;
+  capital: string | null | undefined;
+  apiConversationId: string | null;
+}): string {
+  const capitalText = args.capital ? args.capital.replace(/_/g, " ") : "—";
+  return [
+    `⚡ MINI APP LEAD — ${args.productKey.toUpperCase()}`,
+    ``,
+    `This user completed the GTMO application and has been matched.`,
+    ``,
+    `Product: ${args.productTitle}`,
+    `Segment: ${args.segment ?? "—"}`,
+    `Capital: ${capitalText}`,
+    ``,
+    args.apiConversationId
+      ? `Full lead card and deposit tracking: API inbox conversation #${args.apiConversationId}`
+      : `Full lead card and deposit tracking: API inbox conversation (id not yet recorded)`,
+    `Apply deposit-confirmed label HERE (Telegram inbox) after deposit is verified.`,
+  ].join("\n");
+}
+
 export async function attachInternalLeadToChatwoot(
   telegramId: number,
   productKey: ProductKey,
@@ -81,46 +113,79 @@ export async function attachInternalLeadToChatwoot(
     segment: user.segment,
   });
 
-  // Find existing conversation OR create one in the API inbox
-  let conversationId: string | null = user.chatwootConversationId ?? null;
-  if (conversationId) {
-    console.log(
-      "[handoff] using stored chatwootConversationId:",
-      conversationId,
-    );
-  } else {
-    console.log(
-      "[handoff] no stored conversation id — find or create in mini app inbox",
-    );
-    conversationId = await findOrCreateMiniAppConversation(
-      telegramId,
-      user.username ?? null,
-      user.firstName ?? null,
-    );
-  }
+  const knownContactId = parseStoredContactId(user.chatwootContactId);
 
-  if (!conversationId) {
+  const resolved = await findOrCreateMiniAppConversation(
+    telegramId,
+    user.username ?? null,
+    user.firstName ?? null,
+    knownContactId,
+  );
+
+  if (!resolved) {
     console.error(
-      "[handoff] Could not find or create Chatwoot conversation for",
+      "[handoff] Could not resolve canonical Chatwoot contact for",
       telegramId,
     );
     return null;
   }
 
-  console.log("[handoff] conversation ready:", conversationId);
+  const { contactId, apiConversationId, contactCreated } = resolved;
+  console.log("[handoff] canonical contact resolved", {
+    contactId,
+    apiConversationId,
+    contactCreated,
+  });
+
+  // Persist canonical contact + API inbox conversation id immediately so any
+  // subsequent webhook event (deposit-confirmed, etc.) can route by primary key.
+  // Mirror the API inbox id into the legacy `chatwootConversationId` column so
+  // every existing reader of that column keeps working during rollout.
+  await db
+    .update(users)
+    .set({
+      chatwootContactId: String(contactId),
+      chatwootApiConversationId: apiConversationId,
+      chatwootConversationId: apiConversationId,
+    })
+    .where(eq(users.id, user.id));
+
+  // Pre-bind the canonical contact to the Telegram inbox BEFORE any inbound
+  // Telegram event arrives. Chatwoot's Telegram ingestion reuses this row when
+  // the user later messages the bot, preventing the split-contact problem.
+  const bindingResult = await ensureTelegramContactInbox({
+    contactId,
+    telegramId,
+  });
+  if (bindingResult.status === "conflict_requires_reconciliation") {
+    console.error(
+      "[chatwoot] chatwoot_split_contact_reconciliation_required",
+      {
+        telegramId,
+        canonicalContactId: contactId,
+        reason: "telegram_contact_inbox_binding_conflict",
+        details: bindingResult.details,
+      },
+    );
+  } else {
+    console.log(`[chatwoot] telegram contact_inbox binding: ${bindingResult.status}`, {
+      contactId,
+      telegramId,
+    });
+  }
 
   if (extras?.reactivation) {
-    const labelTitles = await getConversationLabelTitles(conversationId);
+    const labelTitles = await getConversationLabelTitles(apiConversationId);
     if (conversationHasDepositConfirmedLabel(labelTitles)) {
       console.log(
         "[reactivate] skip pending labels because deposit-confirmed exists",
       );
       await addChatwootNote(
-        conversationId,
+        apiConversationId,
         buildQualifiedLeadCardText(user, answers, extras),
       );
       console.log("[handoff] private reactivation note sent (deposit confirmed)");
-      return conversationId;
+      return apiConversationId;
     }
   }
 
@@ -131,7 +196,7 @@ export async function attachInternalLeadToChatwoot(
   console.log("[handoff] direct Telegram customer message sent");
 
   await addChatwootNote(
-    conversationId,
+    apiConversationId,
     buildQualifiedLeadCardText(user, answers, extras),
   );
   console.log("[handoff] private lead note sent");
@@ -139,13 +204,13 @@ export async function attachInternalLeadToChatwoot(
   console.log("[handoff] applying labels...");
 
   const productLabel = `product-${productKeyToChatwootLabelSuffix(productKey)}`;
-  await logLabel(conversationId, "qualified-lead");
-  await logLabel(conversationId, productLabel);
-  await logLabel(conversationId, "deposit-pending");
+  await logLabel(apiConversationId, "qualified-lead");
+  await logLabel(apiConversationId, productLabel);
+  await logLabel(apiConversationId, "deposit-pending");
 
   const segmentLabel = user.segment ? SEGMENT_LABELS[user.segment] : undefined;
   if (segmentLabel) {
-    await logLabel(conversationId, segmentLabel);
+    await logLabel(apiConversationId, segmentLabel);
   } else {
     console.log(
       "[label] segment-* skipped (no segment or UNSCORED):",
@@ -156,49 +221,118 @@ export async function attachInternalLeadToChatwoot(
   const capital = capitalFromAnswers(answers?.capital);
   const capitalLabel = CAPITAL_LABELS[capital];
   if (capitalLabel) {
-    await logLabel(conversationId, capitalLabel);
+    await logLabel(apiConversationId, capitalLabel);
   } else {
     console.log("[label] capital-* skipped (unknown capital):", capital);
   }
 
-  await logLabel(conversationId, "handoff-requested");
+  await logLabel(apiConversationId, "handoff-requested");
 
   const teamRaw = process.env.CHATWOOT_CLOSERS_TEAM_ID;
   if (teamRaw) {
     const teamId = parseInt(teamRaw, 10);
     if (Number.isFinite(teamId)) {
-      await assignToTeam(conversationId, teamId);
+      await assignToTeam(apiConversationId, teamId);
     }
   }
 
-  // Post summary note to Telegram inbox so the agent sees the lead in context.
-  // Fire-and-forget — failure does not affect the handoff result.
-  const productTitle =
-    extras?.productMatch?.primaryTitle ?? productKey;
-  const capitalText = answers?.capital
-    ? answers.capital.replace(/_/g, " ")
-    : "—";
-  const summaryNote = [
-    `⚡ MINI APP LEAD — ${productKey.toUpperCase()}`,
-    ``,
-    `This user completed the GTMO application and has been matched.`,
-    ``,
-    `Product: ${productTitle}`,
-    `Segment: ${user.segment ?? "—"}`,
-    `Capital: ${capitalText}`,
-    ``,
-    `Full lead card and deposit tracking: API inbox conversation #${conversationId}`,
-    `Apply deposit-confirmed label HERE (Telegram inbox) after deposit is verified.`,
-  ].join("\n");
-
-  console.log(
-    `[handoff] posting summary to Telegram inbox for tg ${telegramId}`,
-  );
-  void postLeadSummaryToTelegramInbox(telegramId, summaryNote).catch((err) => {
-    console.error("[handoff] Telegram inbox summary failed:", err);
+  // Post Telegram inbox summary now if the 977 conversation already exists.
+  // For paid traffic with no prior Telegram message, it will not. In that case
+  // the webhook handler posts it later when the 977 conversation is created.
+  await maybePostTelegramInboxSummaryAtHandoff({
+    userId: user.id,
+    contactId,
+    productKey,
+    productTitle: extras?.productMatch?.primaryTitle ?? productKey,
+    segment: user.segment ?? null,
+    capital: answers?.capital ?? null,
+    apiConversationId,
+    alreadyPosted: user.chatwootTelegramSummaryPostedAt != null,
   });
 
-  return conversationId;
+  return apiConversationId;
+}
+
+function parseStoredContactId(raw: string | null | undefined): number | null {
+  if (raw == null) return null;
+  const trimmed = String(raw).trim();
+  if (!trimmed) return null;
+  const n = Number(trimmed);
+  return Number.isFinite(n) ? n : null;
+}
+
+async function maybePostTelegramInboxSummaryAtHandoff(args: {
+  userId: string;
+  contactId: number;
+  productKey: string;
+  productTitle: string;
+  segment: string | null;
+  capital: string | null | undefined;
+  apiConversationId: string;
+  alreadyPosted: boolean;
+}): Promise<void> {
+  if (args.alreadyPosted) {
+    console.log("[handoff] telegram inbox summary already posted previously");
+    return;
+  }
+
+  const telegramConvId = await findTelegramInboxConversationForContact(
+    args.contactId,
+  );
+  if (!telegramConvId) {
+    console.log(
+      "[handoff] no telegram inbox conversation yet — webhook will post summary on first inbound",
+    );
+    return;
+  }
+
+  // Conditional update guards against duplicate posts from races with the
+  // webhook handler. Only the first caller flips the timestamp from NULL.
+  const claimed = await db
+    .update(users)
+    .set({
+      chatwootTelegramConversationId: telegramConvId,
+      chatwootTelegramSummaryPostedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(users.id, args.userId),
+        isNull(users.chatwootTelegramSummaryPostedAt),
+      ),
+    )
+    .returning({ id: users.id });
+
+  if (claimed.length === 0) {
+    console.log(
+      "[handoff] telegram inbox summary already claimed by another path — skip",
+    );
+    return;
+  }
+
+  const summary = buildTelegramInboxSummary({
+    productKey: args.productKey,
+    productTitle: args.productTitle,
+    segment: args.segment,
+    capital: args.capital,
+    apiConversationId: args.apiConversationId,
+  });
+
+  try {
+    await addChatwootNote(telegramConvId, summary);
+    console.log(
+      `[handoff] telegram inbox summary posted to conversation ${telegramConvId}`,
+    );
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(
+      "[handoff] telegram inbox summary post failed — rolling back idempotency flag",
+      msg,
+    );
+    await db
+      .update(users)
+      .set({ chatwootTelegramSummaryPostedAt: null })
+      .where(eq(users.id, args.userId));
+  }
 }
 
 export async function fireCrmVoluumPostback(voluumCid: string | null) {

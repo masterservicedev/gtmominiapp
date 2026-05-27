@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { isAxiosError } from "axios";
 import { collectLabelTitles } from "@/lib/chatwootDeposit";
 
 const chatwoot = axios.create({
@@ -354,63 +354,281 @@ export async function sendChatwootOutboundMessage(
   }
 }
 
+function readTelegramInboxId(): number | null {
+  const raw = process.env.CHATWOOT_TELEGRAM_INBOX_ID;
+  if (!raw) return null;
+  const parsed = parseInt(raw, 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function readMiniAppInboxId(): number | null {
+  const raw = process.env.CHATWOOT_MINIAPP_INBOX_ID;
+  if (!raw) return null;
+  const parsed = parseInt(raw, 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+type ContactInboxRow = {
+  inbox?: { id?: number };
+  inbox_id?: number;
+  source_id?: string | number;
+};
+
+type FullContactPayload = {
+  id?: number;
+  contact_inboxes?: ContactInboxRow[];
+};
+
+async function fetchContactWithInboxes(
+  contactId: number,
+): Promise<FullContactPayload | null> {
+  if (!ACCOUNT_ID) return null;
+  try {
+    const { data } = await chatwoot.get<{
+      payload?: FullContactPayload;
+      contact_inboxes?: ContactInboxRow[];
+      id?: number;
+    }>(`/accounts/${ACCOUNT_ID}/contacts/${contactId}`);
+    const payload =
+      (data as { payload?: FullContactPayload }).payload ??
+      (data as FullContactPayload);
+    return payload ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function contactInboxesContainBinding(
+  rows: ContactInboxRow[] | undefined,
+  inboxId: number,
+  telegramId: number,
+): boolean {
+  if (!Array.isArray(rows)) return false;
+  const tg = String(telegramId);
+  return rows.some((row) => {
+    const innerInboxId = row.inbox?.id ?? row.inbox_id;
+    if (innerInboxId !== inboxId) return false;
+    if (row.source_id == null) return false;
+    return String(row.source_id) === tg;
+  });
+}
+
+export type TelegramContactInboxResult =
+  | { status: "bound"; inboxId: number }
+  | { status: "already_bound"; inboxId: number }
+  | { status: "conflict_requires_reconciliation"; details: unknown };
+
 /**
- * Find an existing Chatwoot conversation for a Telegram user,
- * or create one in the API inbox if none exists.
- * Uses CHATWOOT_MINIAPP_INBOX_ID (must be an API-type inbox).
- * Never creates conversations on Telegram-type inboxes.
+ * Ensure the canonical Chatwoot contact has a `contact_inbox` row for the
+ * Telegram inbox (CHATWOOT_TELEGRAM_INBOX_ID) with `source_id = String(telegramId)`.
+ *
+ * When this row exists ahead of any inbound Telegram event, Chatwoot's Telegram
+ * ingestion resolves the user against the canonical contact instead of creating
+ * a new one, eliminating the split-contact problem at source.
+ *
+ * Behaviour:
+ *   - "already_bound"   — relation exists, no Chatwoot request was made.
+ *   - "bound"           — relation was created in this call.
+ *   - "conflict_requires_reconciliation" — the relation could not be created
+ *     and was not present on the canonical contact afterwards. This usually
+ *     means an older Telegram-created contact already owns the
+ *     (inbox, source_id) pair. The handoff may continue but a manual contact
+ *     merge is required to fully fix the user.
+ */
+export async function ensureTelegramContactInbox(params: {
+  contactId: number;
+  telegramId: number;
+}): Promise<TelegramContactInboxResult> {
+  const { contactId, telegramId } = params;
+
+  if (!ACCOUNT_ID) {
+    return {
+      status: "conflict_requires_reconciliation",
+      details: "CHATWOOT_ACCOUNT_ID not set",
+    };
+  }
+
+  const telegramInboxId = readTelegramInboxId();
+  if (telegramInboxId == null) {
+    return {
+      status: "conflict_requires_reconciliation",
+      details: "CHATWOOT_TELEGRAM_INBOX_ID not set",
+    };
+  }
+
+  const before = await fetchContactWithInboxes(contactId);
+  if (
+    contactInboxesContainBinding(
+      before?.contact_inboxes,
+      telegramInboxId,
+      telegramId,
+    )
+  ) {
+    return { status: "already_bound", inboxId: telegramInboxId };
+  }
+
+  try {
+    await chatwoot.post(
+      `/accounts/${ACCOUNT_ID}/contacts/${contactId}/contact_inboxes`,
+      {
+        inbox_id: telegramInboxId,
+        source_id: String(telegramId),
+      },
+    );
+    return { status: "bound", inboxId: telegramInboxId };
+  } catch (err: unknown) {
+    const status = isAxiosError(err) ? err.response?.status : undefined;
+    const details = isAxiosError(err)
+      ? (err.response?.data ?? err.message)
+      : err instanceof Error
+        ? err.message
+        : String(err);
+
+    if (status === 422 || status === 409) {
+      const after = await fetchContactWithInboxes(contactId);
+      if (
+        contactInboxesContainBinding(
+          after?.contact_inboxes,
+          telegramInboxId,
+          telegramId,
+        )
+      ) {
+        return { status: "already_bound", inboxId: telegramInboxId };
+      }
+      return { status: "conflict_requires_reconciliation", details };
+    }
+
+    return { status: "conflict_requires_reconciliation", details };
+  }
+}
+
+/**
+ * Find the most recently active Telegram inbox conversation that hangs off the
+ * given canonical contact. Uses the stored contact id as the primary lookup
+ * key — never a `/contacts/search` heuristic. Returns null when none exists,
+ * which is the correct state for a paid mini-app user who has not yet sent any
+ * Telegram message.
+ */
+export async function findTelegramInboxConversationForContact(
+  contactId: number,
+): Promise<string | null> {
+  if (!ACCOUNT_ID) return null;
+  const telegramInboxId = readTelegramInboxId();
+  if (telegramInboxId == null) return null;
+
+  try {
+    const { data } = await chatwoot.get<{ payload?: ConvPayload[] }>(
+      `/accounts/${ACCOUNT_ID}/contacts/${contactId}/conversations`,
+    );
+    const list = Array.isArray(data?.payload) ? data.payload : [];
+    const filtered = list.filter((c) => c.inbox_id === telegramInboxId);
+    if (filtered.length === 0) return null;
+
+    filtered.sort((a, b) => {
+      const la = a.last_activity_at ?? 0;
+      const lb = b.last_activity_at ?? 0;
+      if (lb !== la) return lb - la;
+      const ca = a.created_at ?? 0;
+      const cb = b.created_at ?? 0;
+      return cb - ca;
+    });
+
+    const pick =
+      filtered.find((c) => c.status === "open" || c.status === "pending") ??
+      filtered[0];
+    return pick?.id != null ? String(pick.id) : null;
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(
+      `[chatwoot] findTelegramInboxConversationForContact error for contact ${contactId}:`,
+      msg,
+    );
+    return null;
+  }
+}
+
+export type MiniAppConversationResult = {
+  contactId: number;
+  apiConversationId: string;
+  /** True when this call created a new Chatwoot contact (vs. adopted an existing one). */
+  contactCreated: boolean;
+};
+
+/**
+ * Resolve to a single canonical Chatwoot contact for the Telegram user, then
+ * ensure an API inbox (CHATWOOT_MINIAPP_INBOX_ID) conversation exists for it.
+ *
+ * Precedence:
+ *   1. `knownContactId` from `users.chatwoot_contact_id`.
+ *   2. `/contacts/search?q=telegramId` (matches legacy `identifier = String(telegramId)`
+ *      and new `identifier = telegram:<id>` via substring search, plus any
+ *      Telegram-channel contact whose social attribute is indexed).
+ *   3. Create a fresh contact under the API inbox using
+ *      `identifier = telegram:<id>` and `additional_attributes.telegram_id`.
+ *
+ * The caller is responsible for binding the resolved contact to the Telegram
+ * inbox via `ensureTelegramContactInbox` before any inbound Telegram message
+ * arrives. This function does not perform that binding.
  */
 export async function findOrCreateMiniAppConversation(
   telegramId: number,
   userName: string | null,
   firstName: string | null,
-): Promise<string | null> {
+  knownContactId?: number | null,
+): Promise<MiniAppConversationResult | null> {
   if (!ACCOUNT_ID) return null;
 
-  // Try existing conversation first
-  const existing = await findLatestConversationIdForTelegramUser(telegramId);
-  if (existing) {
-    console.log(
-      `[chatwoot] Found existing conversation ${existing} for tg ${telegramId}`,
-    );
-    return existing;
-  }
-
-  const inboxId = process.env.CHATWOOT_MINIAPP_INBOX_ID;
-  if (!inboxId) {
+  const miniAppInboxId = readMiniAppInboxId();
+  if (miniAppInboxId == null) {
     console.warn(
       "[chatwoot] CHATWOOT_MINIAPP_INBOX_ID not set — cannot create conversation",
     );
     return null;
   }
 
-  // Find or create contact
-  let contactId: number | null = null;
-  const existingContact = await findContactByTelegramId(telegramId);
-  contactId = existingContact?.id ?? null;
+  let contactId = knownContactId ?? null;
+  let contactCreated = false;
+
+  if (!contactId) {
+    const candidate = await findContactByTelegramId(telegramId);
+    if (candidate?.id != null) {
+      contactId = candidate.id;
+      console.log(
+        `[chatwoot] adopting existing contact ${contactId} for tg ${telegramId}`,
+      );
+    }
+  } else {
+    console.log(
+      `[chatwoot] using known canonical contact ${contactId} for tg ${telegramId}`,
+    );
+  }
 
   if (!contactId) {
     try {
       const displayName = firstName || userName || `TG_${telegramId}`;
-      const { data } = await chatwoot.post(
-        `/accounts/${ACCOUNT_ID}/contacts`,
-        {
-          name: displayName,
-          identifier: String(telegramId),
-          additional_attributes: {
-            telegram_id: telegramId,
-            username: userName ?? "",
-          },
+      const { data } = await chatwoot.post<{
+        id?: number;
+        payload?: { id?: number };
+        contact?: { id?: number };
+      }>(`/accounts/${ACCOUNT_ID}/contacts`, {
+        inbox_id: miniAppInboxId,
+        name: displayName,
+        identifier: `telegram:${telegramId}`,
+        additional_attributes: {
+          telegram_id: String(telegramId),
+          username: userName ?? "",
+          acquisition_source: "mini_app",
         },
-      );
-      console.log(
-        `[chatwoot] Create contact raw response:`,
-        JSON.stringify(data),
-      );
-      contactId = data?.id ?? data?.payload?.id ?? null;
-      console.log(
-        `[chatwoot] Created contact ${contactId} for tg ${telegramId}`,
-      );
+      });
+      const created =
+        data?.id ?? data?.payload?.id ?? data?.contact?.id ?? null;
+      if (created != null) {
+        contactId = created;
+        contactCreated = true;
+        console.log(
+          `[chatwoot] created canonical contact ${contactId} for tg ${telegramId}`,
+        );
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error("[chatwoot] Contact create error", msg);
@@ -419,124 +637,85 @@ export async function findOrCreateMiniAppConversation(
   }
 
   if (!contactId) {
-    console.error("[chatwoot] Could not find or create contact");
+    console.error(
+      `[chatwoot] Could not find or create canonical contact for tg ${telegramId}`,
+    );
     return null;
   }
 
-  // Create conversation in API inbox
+  const apiConversationId = await findOrCreateApiInboxConversationForContact(
+    contactId,
+    telegramId,
+    miniAppInboxId,
+  );
+
+  if (!apiConversationId) return null;
+
+  return { contactId, apiConversationId, contactCreated };
+}
+
+async function findOrCreateApiInboxConversationForContact(
+  contactId: number,
+  telegramId: number,
+  miniAppInboxId: number,
+): Promise<string | null> {
+  if (!ACCOUNT_ID) return null;
+
   try {
-    const { data } = await chatwoot.post(
+    const { data } = await chatwoot.get<{ payload?: ConvPayload[] }>(
+      `/accounts/${ACCOUNT_ID}/contacts/${contactId}/conversations`,
+    );
+    const list = Array.isArray(data?.payload) ? data.payload : [];
+    const existing = list
+      .filter((c) => c.inbox_id === miniAppInboxId)
+      .sort((a, b) => {
+        const la = a.last_activity_at ?? 0;
+        const lb = b.last_activity_at ?? 0;
+        if (lb !== la) return lb - la;
+        const ca = a.created_at ?? 0;
+        const cb = b.created_at ?? 0;
+        return cb - ca;
+      });
+    const pick =
+      existing.find((c) => c.status === "open" || c.status === "pending") ??
+      existing[0];
+    if (pick?.id != null) {
+      const id = String(pick.id);
+      console.log(
+        `[chatwoot] reusing API inbox conversation ${id} for contact ${contactId}`,
+      );
+      return id;
+    }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(
+      `[chatwoot] list conversations error for contact ${contactId}:`,
+      msg,
+    );
+  }
+
+  try {
+    const { data } = await chatwoot.post<{ id?: number }>(
       `/accounts/${ACCOUNT_ID}/conversations`,
       {
         contact_id: contactId,
-        inbox_id: Number(inboxId),
-        additional_attributes: { telegram_id: telegramId },
+        inbox_id: miniAppInboxId,
+        additional_attributes: { telegram_id: String(telegramId) },
       },
     );
-    const convId = data?.id ? String(data.id) : null;
-    console.log(
-      `[chatwoot] Created conversation ${convId} for tg ${telegramId}`,
-    );
+    const convId = data?.id != null ? String(data.id) : null;
+    if (convId) {
+      console.log(
+        `[chatwoot] created API inbox conversation ${convId} for contact ${contactId}`,
+      );
+    }
     return convId;
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[chatwoot] Conversation create error", msg);
+    console.error(
+      `[chatwoot] API inbox conversation create error for contact ${contactId}:`,
+      msg,
+    );
     return null;
-  }
-}
-
-/**
- * Post a summary note to the Telegram inbox conversation for a user.
- * This lets agents see the mini app lead in context alongside user messages.
- * Does nothing if no Telegram inbox conversation exists or env var is missing.
- */
-export async function postLeadSummaryToTelegramInbox(
-  telegramId: number,
-  summaryNote: string,
-): Promise<void> {
-  console.log(
-    `[chatwoot] postLeadSummaryToTelegramInbox called for tg ${telegramId}`,
-  );
-  if (!ACCOUNT_ID) return;
-
-  const telegramInboxId = process.env.CHATWOOT_TELEGRAM_INBOX_ID
-    ? parseInt(process.env.CHATWOOT_TELEGRAM_INBOX_ID, 10)
-    : null;
-
-  if (!telegramInboxId || !Number.isFinite(telegramInboxId)) {
-    console.log(
-      "[chatwoot] CHATWOOT_TELEGRAM_INBOX_ID not set — skipping Telegram inbox note",
-    );
-    return;
-  }
-
-  try {
-    const { data: searchData } = await chatwoot.get<{
-      payload?: ContactPayload[];
-    }>(
-      `/accounts/${ACCOUNT_ID}/contacts/search?q=${telegramId}&include_contacts=true`,
-    );
-
-    const contacts = Array.isArray(searchData?.payload)
-      ? searchData.payload
-      : [];
-
-    if (contacts.length === 0) {
-      console.log(
-        `[chatwoot] No contacts found for tg ${telegramId} — skipping Telegram inbox note`,
-      );
-      return;
-    }
-
-    let targetConvId: number | null = null;
-
-    for (const contact of contacts) {
-      if (!contact?.id) continue;
-      try {
-        const { data: convData } = await chatwoot.get<{
-          payload?: ConvPayload[];
-        }>(`/accounts/${ACCOUNT_ID}/contacts/${contact.id}/conversations`);
-        const list = Array.isArray(convData.payload) ? convData.payload : [];
-        const conv = list
-          .filter((c) => c.inbox_id === telegramInboxId)
-          .sort(
-            (a, b) =>
-              ((b.last_activity_at as number) || 0) -
-              ((a.last_activity_at as number) || 0),
-          )[0];
-
-        if (conv?.id) {
-          targetConvId = conv.id;
-          console.log(
-            `[chatwoot] Found Telegram inbox conversation ${targetConvId} via contact ${contact.id}`,
-          );
-          break;
-        }
-      } catch {
-        continue;
-      }
-    }
-
-    if (!targetConvId) {
-      console.log(
-        `[chatwoot] No Telegram inbox conversation for tg ${telegramId}`,
-      );
-      return;
-    }
-
-    await chatwoot.post(
-      `/accounts/${ACCOUNT_ID}/conversations/${targetConvId}/messages`,
-      {
-        content: summaryNote,
-        message_type: "activity",
-        private: true,
-      },
-    );
-    console.log(
-      `[chatwoot] Lead summary posted to Telegram inbox conversation ${targetConvId}`,
-    );
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("[chatwoot] Telegram inbox summary note error:", msg);
   }
 }

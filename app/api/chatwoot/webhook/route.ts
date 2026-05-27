@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users, events } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import {
   addChatwootNote,
   getConversationLabelTitles,
@@ -15,6 +15,9 @@ import {
   conversationHasDepositConfirmedLabel,
   extractDepositAmountUsd,
 } from "@/lib/chatwootDeposit";
+import { capitalFromAnswers } from "@/lib/leadCardContent";
+import { getProductMatch } from "@/lib/productMatch";
+import { buildTelegramInboxSummary } from "@/lib/handoffHighIntent";
 
 // Single shared helper used by:
 //   - summary log
@@ -84,16 +87,44 @@ async function handleDepositConfirmed(
 
   const resolvedTelegramId = telegramId ?? telegramIdFromIdentifier;
 
-  const [byConv] = await db
+  const [byApiConv] = await db
     .select()
     .from(users)
-    .where(eq(users.chatwootConversationId, conversationId))
+    .where(eq(users.chatwootApiConversationId, conversationId))
     .limit(1);
 
-  let user = byConv;
-  let matchedBy: "conversationId" | "telegramId" | null = byConv
-    ? "conversationId"
-    : null;
+  let user = byApiConv;
+  let matchedBy:
+    | "apiConversationId"
+    | "telegramConversationId"
+    | "legacyConversationId"
+    | "telegramId"
+    | null = byApiConv ? "apiConversationId" : null;
+
+  if (!user) {
+    const [byTgConv] = await db
+      .select()
+      .from(users)
+      .where(eq(users.chatwootTelegramConversationId, conversationId))
+      .limit(1);
+    if (byTgConv) {
+      user = byTgConv;
+      matchedBy = "telegramConversationId";
+    }
+  }
+
+  if (!user) {
+    const [byLegacy] = await db
+      .select()
+      .from(users)
+      .where(eq(users.chatwootConversationId, conversationId))
+      .limit(1);
+    if (byLegacy) {
+      user = byLegacy;
+      matchedBy = "legacyConversationId";
+    }
+  }
+
   if (!user && resolvedTelegramId != null) {
     const [byTg] = await db
       .select()
@@ -217,9 +248,26 @@ async function linkConversationToUser(
 
     const updates: Partial<typeof users.$inferInsert> = {
       chatwootConversationId: conversationId,
+      chatwootApiConversationId: conversationId,
     };
-    if (contactId != null) {
+    if (contactId != null && !match.chatwootContactId) {
       updates.chatwootContactId = String(contactId);
+    } else if (
+      contactId != null &&
+      match.chatwootContactId &&
+      String(match.chatwootContactId) !== String(contactId)
+    ) {
+      console.error(
+        "[chatwoot-webhook] chatwoot_split_contact_reconciliation_required",
+        {
+          telegramId,
+          inboxId,
+          conversationId,
+          canonicalContactId: match.chatwootContactId,
+          webhookContactId: String(contactId),
+          source: "miniapp_inbox_link",
+        },
+      );
     }
 
     await db.update(users).set(updates).where(eq(users.id, match.id));
@@ -249,6 +297,191 @@ function conversationHasContextFlag(
     custom?.mini_app_context_attached === true ||
     additional?.mini_app_context_attached === true
   );
+}
+
+/**
+ * Telegram-inbox-only telegram id extraction.
+ *
+ * In a Telegram-channel inbox `contact_inbox.source_id` IS the Telegram user
+ * id. For API inboxes the same field is a UUID session identifier and must
+ * never be treated as a Telegram id — so this helper is intentionally narrower
+ * than the generic `extractTelegramId`.
+ */
+function extractTelegramIdFromTelegramInboxPayload(
+  payload: Record<string, unknown>,
+): number | null {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const p = payload as any;
+  const raw =
+    p?.meta?.sender?.additional_attributes?.social_telegram_user_id ??
+    p?.sender?.additional_attributes?.social_telegram_user_id ??
+    p?.contact?.additional_attributes?.social_telegram_user_id ??
+    p?.conversation?.meta?.sender?.additional_attributes
+      ?.social_telegram_user_id ??
+    p?.conversation?.messages?.[0]?.sender?.additional_attributes
+      ?.social_telegram_user_id ??
+    p?.conversation?.contact_inbox?.source_id ??
+    p?.contact_inbox?.source_id;
+
+  if (raw == null) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+function extractWebhookContactId(
+  payload: Record<string, unknown>,
+): number | null {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const p = payload as any;
+  const raw =
+    p?.meta?.sender?.id ??
+    p?.sender?.id ??
+    p?.contact?.id ??
+    p?.conversation?.meta?.sender?.id;
+  if (raw == null) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+async function postTelegramInboxSummaryForUser(args: {
+  userId: string;
+  telegramConversationId: string;
+}): Promise<void> {
+  const { userId, telegramConversationId } = args;
+
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  if (!user) return;
+
+  const answers = await getLatestQuestionnaireAnswers(user.id);
+  const capital = capitalFromAnswers(answers?.capital);
+  const productKey =
+    user.confirmedProductKey ??
+    getProductMatch(capital, user.bundleEligible ?? true, user.bundleUsed ?? false)
+      .productKey;
+  const productTitle = String(productKey);
+
+  const summary = buildTelegramInboxSummary({
+    productKey: String(productKey),
+    productTitle,
+    segment: user.segment ?? null,
+    capital: answers?.capital ?? null,
+    apiConversationId:
+      user.chatwootApiConversationId ?? user.chatwootConversationId ?? null,
+  });
+
+  // Conditional update — only the first concurrent caller wins. Prevents
+  // duplicate notes from repeated webhook deliveries even if the post itself
+  // races with a parallel webhook arrival.
+  const updated = await db
+    .update(users)
+    .set({ chatwootTelegramSummaryPostedAt: new Date() })
+    .where(
+      and(
+        eq(users.id, user.id),
+        isNull(users.chatwootTelegramSummaryPostedAt),
+      ),
+    )
+    .returning({ id: users.id });
+
+  if (updated.length === 0) {
+    console.log(
+      `[chatwoot-webhook] telegram summary already marked posted for user ${user.id} — skip duplicate post`,
+    );
+    return;
+  }
+
+  try {
+    await addChatwootNote(telegramConversationId, summary);
+    console.log(
+      `[chatwoot-webhook] telegram inbox summary posted to ${telegramConversationId} for user ${user.id}`,
+    );
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(
+      "[chatwoot-webhook] telegram inbox summary post failed — rolling back idempotency flag",
+      msg,
+    );
+    await db
+      .update(users)
+      .set({ chatwootTelegramSummaryPostedAt: null })
+      .where(eq(users.id, user.id));
+  }
+}
+
+async function handleTelegramInboxEvent(
+  payload: Record<string, unknown>,
+  conversationId: string | null,
+  webhookContactIdRaw: number | null,
+): Promise<void> {
+  const telegramId = extractTelegramIdFromTelegramInboxPayload(payload);
+  if (telegramId == null) {
+    console.warn(
+      "[chatwoot-webhook] telegram inbox event missing telegram id; skipping",
+      {
+        event: payload.event,
+        conversationId,
+      },
+    );
+    return;
+  }
+
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.telegramId, telegramId))
+    .limit(1);
+
+  if (!user) {
+    console.log(
+      `[chatwoot-webhook] telegram inbox event for tg ${telegramId} but no app user row yet — skip`,
+    );
+    return;
+  }
+
+  if (conversationId) {
+    const updates: Partial<typeof users.$inferInsert> = {
+      chatwootTelegramConversationId: conversationId,
+    };
+
+    if (!user.chatwootContactId && webhookContactIdRaw != null) {
+      updates.chatwootContactId = String(webhookContactIdRaw);
+    } else if (
+      webhookContactIdRaw != null &&
+      user.chatwootContactId &&
+      String(user.chatwootContactId) !== String(webhookContactIdRaw)
+    ) {
+      console.error(
+        "[chatwoot-webhook] chatwoot_split_contact_reconciliation_required",
+        {
+          telegramId,
+          canonicalContactId: user.chatwootContactId,
+          webhookContactId: String(webhookContactIdRaw),
+          inboxId: process.env.CHATWOOT_TELEGRAM_INBOX_ID,
+          conversationId,
+          source: "telegram_inbox_event",
+        },
+      );
+    }
+
+    await db.update(users).set(updates).where(eq(users.id, user.id));
+  }
+
+  // Post the agent-facing summary once, only when the funnel has been confirmed
+  // and we have a 977 conversation to post into.
+  if (
+    user.intentConfirmedAt &&
+    user.chatwootTelegramSummaryPostedAt == null &&
+    conversationId
+  ) {
+    await postTelegramInboxSummaryForUser({
+      userId: user.id,
+      telegramConversationId: conversationId,
+    });
+  }
 }
 
 async function handleReturningUserNote(
@@ -399,9 +632,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // Mini-app inbox filter — env var is required; events from other inboxes
-    // are skipped. Events with no inbox_id in the payload fall through so we
-    // do not lose mini-app conversations whose shape omits it.
+    // Per-inbox routing. CHATWOOT_MINIAPP_INBOX_ID is the API inbox that hosts
+    // the programmatic lead-card conversation. CHATWOOT_TELEGRAM_INBOX_ID is
+    // the Telegram channel inbox the agent works in. Events from either inbox
+    // are processed; events from any other inbox are skipped.
     const miniappInboxRaw = process.env.CHATWOOT_MINIAPP_INBOX_ID;
     const miniAppInboxId = miniappInboxRaw
       ? parseInt(miniappInboxRaw, 10)
@@ -412,11 +646,51 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    if (inboxId !== null && inboxId !== miniAppInboxId) {
-      console.log(`[chatwoot-webhook] skip non-miniapp inbox ${inboxId}`);
+    const telegramInboxRaw = process.env.CHATWOOT_TELEGRAM_INBOX_ID;
+    const telegramInboxId = telegramInboxRaw
+      ? parseInt(telegramInboxRaw, 10)
+      : null;
+    const telegramInboxConfigured =
+      telegramInboxId != null && Number.isFinite(telegramInboxId);
+
+    const isMiniAppInbox = inboxId !== null && inboxId === miniAppInboxId;
+    const isTelegramInbox =
+      telegramInboxConfigured &&
+      inboxId !== null &&
+      inboxId === telegramInboxId;
+
+    if (inboxId !== null && !isMiniAppInbox && !isTelegramInbox) {
+      console.log(`[chatwoot-webhook] skip non-routed inbox ${inboxId}`);
       return NextResponse.json({ ok: true });
     }
 
+    // Telegram inbox routing — adopt contact id when missing, persist 977
+    // conversation id, post the agent-facing summary note once.
+    if (isTelegramInbox) {
+      if (
+        event === "conversation_created" ||
+        event === "message_created" ||
+        event === "conversation_updated"
+      ) {
+        await handleTelegramInboxEvent(
+          payload,
+          conversationId,
+          extractWebhookContactId(payload),
+        );
+      }
+
+      // Agents may apply the deposit-confirmed label inside the Telegram
+      // inbox conversation. Process the same way as for the API inbox.
+      if (
+        event === "conversation_updated" ||
+        event === "conversation_status_changed"
+      ) {
+        await handleDepositConfirmed(payload);
+      }
+      return NextResponse.json({ ok: true });
+    }
+
+    // API mini-app inbox routing — existing behaviour preserved.
     // Persist the chatwoot conversation/contact ids on the mini-app user row
     // so the handoff can use them directly without doing /contacts/search.
     if (
