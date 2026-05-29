@@ -203,6 +203,16 @@ export const broadcastOffers = pgTable("broadcast_offers", {
   offerType: text("offer_type").notNull(),
   expiresAt: timestamp("expires_at").notNull(),
   claimed: boolean("claimed").default(false),
+  /**
+   * Set once the agent-facing reactivation lead card for THIS specific offer
+   * has been posted into the Chatwoot Telegram inbox (977). Acts as a
+   * per-offer idempotency lock so re-engagement clicks or webhook
+   * re-deliveries cannot create duplicate notes. Acquired via a conditional
+   * `WHERE chatwoot_reactivation_card_posted_at IS NULL` UPDATE.
+   */
+  chatwootReactivationCardPostedAt: timestamp(
+    "chatwoot_reactivation_card_posted_at",
+  ),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

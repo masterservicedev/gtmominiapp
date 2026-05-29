@@ -17,6 +17,7 @@ import {
 } from "@/lib/chatwootDeposit";
 import { buildQualifiedLeadCardText } from "@/lib/leadCardContent";
 import { buildLeadExtrasFromState } from "@/lib/handoffHighIntent";
+import { drainPendingReactivationCardsForUser } from "@/lib/reactivateHandoff";
 
 // Single shared helper used by:
 //   - summary log
@@ -477,6 +478,17 @@ async function handleTelegramInboxEvent(
     conversationId
   ) {
     await postTelegramInboxSummaryForUser({
+      userId: user.id,
+      telegramConversationId: conversationId,
+    });
+  }
+
+  // Drain any reactivation lead cards that were confirmed earlier but could
+  // not post to inbox 977 at confirm-time (because no 977 conversation
+  // existed yet). Each broadcast_offers row is its own per-offer
+  // idempotency unit; the helper acquires the lock atomically.
+  if (conversationId) {
+    await drainPendingReactivationCardsForUser({
       userId: user.id,
       telegramConversationId: conversationId,
     });
