@@ -1,6 +1,6 @@
 import type { ProductMatch, ProductKey } from "@/lib/productMatch";
 import { LEGACY_PRODUCT_KEY_FX } from "@/lib/productMatch";
-import { getProductMatch } from "@/lib/productMatch";
+import { getProductMatch, isStarterHandoffSegment } from "@/lib/productMatch";
 import type { Capital } from "@/lib/scoring";
 import type { InferSelectModel } from "drizzle-orm";
 import type { questionnaireAnswers, users } from "@/lib/db/schema";
@@ -77,8 +77,33 @@ export function buildPreApprovalUserMessage(): string {
 }
 
 /**
+ * Universal confirmation message used for MID and LOW segments. Avoids
+ * HIGH-specific "pre-approved" phrasing so the customer-facing copy matches
+ * the segment's actual workflow while every confirmed lead still creates a
+ * CRM card and reaches an agent.
+ */
+export function buildUniversalConfirmationMessage(): string {
+  return [
+    `✅ Your application has been received.`,
+    ``,
+    `A specialist will review your answers and pick this up in this chat.`,
+    ``,
+    `If you're ready to continue or have questions, reply here and the team can help.`,
+  ].join("\n");
+}
+
+/**
  * Customer-visible Telegram copy only — no `[GTMO QUALIFIED LEAD]`, CID, or agent instructions.
  * When `extras` is set (in-app confirm), reflects confirmed bundle choice.
+ *
+ * Segment branching:
+ *   - HIGH and starter-LOW (LOW + capital=under_100) retain the original
+ *     "pre-approved" copy. starter-LOW shared this copy pre-fix and the
+ *     spec requires the existing LOW starter flow to remain unchanged.
+ *   - Every other confirmed lead (MID and any non-starter LOW that
+ *     reaches confirm-handoff) receives `buildUniversalConfirmationMessage()`
+ *     so the customer wording matches their workflow. The internal CRM
+ *     lead card is unaffected and still goes to Chatwoot.
  */
 export function buildCustomerHandoffMessage(
   user: UserRow,
@@ -86,6 +111,11 @@ export function buildCustomerHandoffMessage(
   extras?: LeadCardExtras,
 ): string {
   const cap = capitalFromAnswers(answers?.capital);
+  const isHigh = user.segment === "HIGH";
+  const isStarterLow = isStarterHandoffSegment(user.segment, cap);
+  if (!isHigh && !isStarterLow) {
+    return buildUniversalConfirmationMessage();
+  }
   const pm =
     extras?.productMatch ??
     getProductMatch(cap, user.bundleEligible ?? false, user.bundleUsed ?? false);

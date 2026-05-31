@@ -152,7 +152,14 @@ function ProductMatchInner() {
         bundleShown && typeof acceptBundle === "boolean"
           ? `&bundle=${acceptBundle ? "1" : "0"}`
           : "";
-      if (data.handled === "mid_record_only") {
+      // All confirmed users now receive a CRM lead card regardless of
+      // segment. `customerView` is purely cosmetic — it picks the result
+      // page UI (HIGH/starter-LOW = emerald handoff view, MID = amber
+      // welcome view). Legacy `handled: "mid_record_only"` is still
+      // honoured for safety during rollout.
+      const useIntentView =
+        data.customerView === "intent" || data.handled === "mid_record_only";
+      if (useIntentView) {
         router.replace(
           `/result?segment=${encodeURIComponent(seg)}&intent=1&productKey=${pk}${bundleQ}`,
         );

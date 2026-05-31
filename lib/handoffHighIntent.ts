@@ -228,6 +228,10 @@ export async function attachInternalLeadToChatwoot(
 
   await logLabel(apiConversationId, "handoff-requested");
 
+  // Business rule: every confirmed lead is a priority sales opportunity,
+  // regardless of HIGH/MID/LOW segment classification.
+  await logLabel(apiConversationId, "priority");
+
   const teamRaw = process.env.CHATWOOT_CLOSERS_TEAM_ID;
   if (teamRaw) {
     const teamId = parseInt(teamRaw, 10);

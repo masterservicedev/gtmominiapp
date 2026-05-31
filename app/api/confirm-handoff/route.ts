@@ -19,8 +19,22 @@ import {
   cancelPendingNurture,
   scheduleHighNurture,
   scheduleLowNurture,
+  scheduleMidNurture,
 } from "@/lib/nurtureSchedule";
 
+/**
+ * Confirm-handoff endpoint.
+ *
+ * Business rule: every user who reaches /product-match and presses confirm
+ * is a priority sales opportunity. HIGH / MID / LOW are agent-context
+ * labels only — they MUST NOT decide whether a CRM lead card is created.
+ *
+ * Idempotency: the `intentConfirmedAt` / `intentDeclinedAt` early-return
+ * guards below mean this route can only run once per user per confirmation.
+ * Repeated confirm clicks short-circuit to 400 before any Chatwoot or
+ * Telegram side effects fire, so the unified CRM card is created exactly
+ * once.
+ */
 export async function POST(req: NextRequest) {
   try {
     console.log("[confirm-handoff] started");
@@ -57,24 +71,21 @@ export async function POST(req: NextRequest) {
     const segment = user.segment;
     console.log("[confirm-handoff] segment:", segment);
     console.log("[confirm-handoff] capital:", capital);
-    const starterHandoff = isStarterHandoffSegment(segment, capital);
-    if (segment !== "HIGH" && segment !== "MID" && !starterHandoff) {
-      return NextResponse.json({ error: "Invalid segment" }, { status: 400 });
-    }
 
+    // Idempotency guard — repeated confirms cannot create duplicate cards.
     if (user.intentDeclinedAt) {
       return NextResponse.json(
         { error: "Intent already declined" },
         { status: 400 },
       );
     }
-
     if (user.intentConfirmedAt) {
       return NextResponse.json(
         { error: "Intent already confirmed" },
         { status: 400 },
       );
     }
+
     const bundleUsed = user.bundleUsed ?? false;
     const productMatch = getProductMatch(capital, true, bundleUsed);
     console.log("[confirm-handoff] productKey:", productMatch.productKey);
@@ -93,37 +104,11 @@ export async function POST(req: NextRequest) {
 
     const now = new Date();
 
+    // Cancel any pending nurture (questionnaire-stage MID nurture from
+    // /api/score, declined-intent nurture, etc.) so it doesn't fire while
+    // an agent is already engaged. Per-segment post-confirm nurture is
+    // re-scheduled below.
     await cancelPendingNurture(user.id);
-
-    if (segment === "MID") {
-      await db
-        .update(users)
-        .set({
-          intentConfirmedAt: now,
-          confirmedProductKey: productMatch.productKey,
-          bundleOfferShown: bundleShown,
-          bundleAccepted,
-        })
-        .where(eq(users.id, user.id));
-
-      await db.insert(events).values({
-        userId: user.id,
-        telegramId: user.telegramId,
-        eventType: "intent_confirm",
-        metadata: {
-          segment: "MID",
-          productKey: productMatch.productKey,
-          bundleAccepted,
-        },
-        country: user.country,
-      });
-
-      return NextResponse.json({
-        ok: true,
-        handled: "mid_record_only",
-        segment: "MID",
-      });
-    }
 
     const extras = buildLeadExtrasFromState({
       capital: answers?.capital,
@@ -133,6 +118,16 @@ export async function POST(req: NextRequest) {
       bundleOfferShown: bundleShown,
     });
 
+    // ── UNIFIED CRM LEAD CARD ─────────────────────────────────────────────
+    // attachInternalLeadToChatwoot resolves the canonical Chatwoot contact,
+    // creates/locates the API inbox conversation, posts the full lead-card
+    // private note, sends the customer Telegram message via
+    // sendHighIntentTelegramLead (HIGH gets the existing pre-approval copy;
+    // MID/LOW get the universal confirmation message via segment branching
+    // inside buildCustomerHandoffMessage), applies the segment / capital /
+    // product / qualified-lead / handoff-requested / priority labels, and
+    // posts the agent-facing Telegram inbox 977 summary when that
+    // conversation already exists. Runs for EVERY confirmed user.
     const conversationId = await attachInternalLeadToChatwoot(
       user.telegramId,
       productMatch.productKey,
@@ -146,11 +141,14 @@ export async function POST(req: NextRequest) {
       : "telegram_fallback";
 
     if (!conversationId) {
-      console.log("[handoff] no Chatwoot conversation — direct Telegram only");
+      console.log(
+        "[confirm-handoff] no Chatwoot conversation — direct Telegram fallback",
+      );
       await sendHighIntentTelegramLead(user, answers, extras);
     }
     console.log(`[confirm-handoff] result mode: ${handoffMode}`);
 
+    // Persist confirmation state (single write for all segments).
     await db
       .update(users)
       .set({
@@ -166,6 +164,25 @@ export async function POST(req: NextRequest) {
       })
       .where(eq(users.id, user.id));
 
+    // intent_confirm event — recorded for every confirmed user.
+    await db.insert(events).values({
+      userId: user.id,
+      telegramId: user.telegramId,
+      eventType: "intent_confirm",
+      metadata: {
+        segment,
+        capital,
+        productKey: productMatch.productKey,
+        bundleAccepted,
+        bundleOfferShown: bundleShown,
+        conversationId,
+        mode: handoffMode,
+      },
+      country: user.country,
+    });
+
+    // handoff_confirmed event — also recorded for every confirmed user so
+    // CRM/event timelines stay consistent across HIGH/MID/LOW.
     await db.insert(events).values({
       userId: user.id,
       telegramId: user.telegramId,
@@ -175,6 +192,7 @@ export async function POST(req: NextRequest) {
         bundleAccepted,
         conversationId,
         mode: handoffMode,
+        segment,
         afterTelegramReady: crmAlreadyFired,
       },
       country: user.country,
@@ -187,7 +205,7 @@ export async function POST(req: NextRequest) {
         eventType: "crm_triggered",
         metadata: {
           score: user.score,
-          segment: user.segment,
+          segment,
           source: "mini_app_intent",
           productKey: productMatch.productKey,
           variant: user.entryVariant,
@@ -197,22 +215,34 @@ export async function POST(req: NextRequest) {
 
       await fireCrmVoluumPostback(user.voluumCid);
 
+      // Per-segment post-confirm nurture. We re-schedule after
+      // cancelPendingNurture above so every segment continues to receive
+      // appropriate follow-ups (HIGH day2/day5, MID day3/day10, LOW day7).
+      // Nurture is additive to CRM visibility — never a replacement.
+      const starterHandoff = isStarterHandoffSegment(segment, capital);
       if (segment === "HIGH") {
         await scheduleHighNurture(user.id, user.telegramId, now);
+      } else if (segment === "MID") {
+        await scheduleMidNurture(user.id, user.telegramId, now);
       } else if (starterHandoff) {
         await scheduleLowNurture(user.id, user.telegramId, now);
       }
     }
 
+    // customerView drives the /result UI; CRM behaviour is identical
+    // across all values. HIGH and starter-LOW keep the "pre-approved"
+    // emerald HighResult UI; everyone else sees the amber MID/Welcome UI.
+    const starterHandoff = isStarterHandoffSegment(segment, capital);
+    const customerView: "handoff" | "intent" =
+      segment === "HIGH" || starterHandoff ? "handoff" : "intent";
+
     return NextResponse.json({
       ok: true,
-      handled:
-        handoffMode === "chatwoot_handoff"
-          ? "high_handoff"
-          : "high_handoff_telegram_fallback",
+      handled: "crm_recorded",
       mode: handoffMode,
       handoffFallback: handoffMode === "telegram_fallback",
-      segment: user.segment,
+      segment,
+      customerView,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
