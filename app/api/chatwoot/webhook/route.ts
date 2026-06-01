@@ -22,6 +22,7 @@ import {
 import { buildQualifiedLeadCardText } from "@/lib/leadCardContent";
 import { buildLeadExtrasFromState } from "@/lib/handoffHighIntent";
 import { drainPendingReactivationCardsForUser } from "@/lib/reactivateHandoff";
+import { applyTelegramInbox977Triage } from "@/lib/chatwootInboxTriage";
 
 // Single shared helper used by:
 //   - summary log
@@ -405,12 +406,24 @@ async function handleTelegramInboxEvent(
 
   if (!user) {
     console.log(
-      `[chatwoot-webhook] telegram inbox event for tg ${telegramId} but no app user row yet — skip`,
+      `[chatwoot-webhook] telegram inbox event for tg ${telegramId} but no app user row yet`,
     );
+    if (conversationId) {
+      await applyTelegramInbox977Triage({
+        conversationId,
+        telegramId,
+        user: null,
+      });
+    }
     return;
   }
 
   if (conversationId) {
+    await applyTelegramInbox977Triage({
+      conversationId,
+      telegramId,
+      user,
+    });
     const updates: Partial<typeof users.$inferInsert> = {
       chatwootTelegramConversationId: conversationId,
     };
