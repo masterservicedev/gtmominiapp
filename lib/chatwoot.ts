@@ -11,6 +11,49 @@ const chatwoot = axios.create({
 
 const ACCOUNT_ID = process.env.CHATWOOT_ACCOUNT_ID;
 
+export type ChatwootCanonicalFailureAction =
+  | "config_missing"
+  | "contact_search"
+  | "contact_create"
+  | "contact_missing_id"
+  | "conversation_list"
+  | "conversation_create";
+
+/** Structured log for canonical contact / API conversation resolution failures. */
+export function logChatwootCanonicalFailure(
+  action: ChatwootCanonicalFailureAction,
+  context: {
+    telegramId: number;
+    accountId?: string | null;
+    miniAppInboxId?: number | null;
+    contactId?: number | null;
+    reason?: string;
+    responseBody?: unknown;
+  },
+  err?: unknown,
+): void {
+  const httpStatus = isAxiosError(err) ? err.response?.status : undefined;
+  const axiosBody = isAxiosError(err) ? err.response?.data : undefined;
+  const errorMessage =
+    err instanceof Error ? err.message : err != null ? String(err) : undefined;
+
+  console.error("[chatwoot] canonical contact failure", {
+    action,
+    telegramId: context.telegramId,
+    accountId: context.accountId ?? ACCOUNT_ID ?? null,
+    miniAppInboxId: context.miniAppInboxId ?? null,
+    ...(context.contactId != null ? { contactId: context.contactId } : {}),
+    ...(context.reason ? { reason: context.reason } : {}),
+    ...(httpStatus != null ? { httpStatus } : {}),
+    ...(axiosBody != null
+      ? { responseBody: axiosBody }
+      : context.responseBody != null
+        ? { responseBody: context.responseBody }
+        : {}),
+    ...(errorMessage ? { errorMessage } : {}),
+  });
+}
+
 export async function addChatwootNote(
   conversationId: string,
   content: string,
@@ -109,12 +152,27 @@ export async function findContactByTelegramId(telegramId: number) {
 async function findContactsByTelegramId(
   telegramId: number,
 ): Promise<ContactPayload[]> {
+  if (!ACCOUNT_ID) {
+    logChatwootCanonicalFailure("config_missing", {
+      telegramId,
+      reason: "CHATWOOT_ACCOUNT_ID not set",
+    });
+    return [];
+  }
   try {
     const { data } = await chatwoot.get<{ payload?: ContactPayload[] }>(
       `/accounts/${ACCOUNT_ID}/contacts/search?q=${telegramId}`,
     );
     return Array.isArray(data?.payload) ? data.payload : [];
-  } catch {
+  } catch (err: unknown) {
+    logChatwootCanonicalFailure(
+      "contact_search",
+      {
+        telegramId,
+        accountId: ACCOUNT_ID,
+      },
+      err,
+    );
     return [];
   }
 }
@@ -592,13 +650,21 @@ export async function findOrCreateMiniAppConversation(
   firstName: string | null,
   knownContactId?: number | null,
 ): Promise<MiniAppConversationResult | null> {
-  if (!ACCOUNT_ID) return null;
+  if (!ACCOUNT_ID) {
+    logChatwootCanonicalFailure("config_missing", {
+      telegramId,
+      reason: "CHATWOOT_ACCOUNT_ID not set",
+    });
+    return null;
+  }
 
   const miniAppInboxId = readMiniAppInboxId();
   if (miniAppInboxId == null) {
-    console.warn(
-      "[chatwoot] CHATWOOT_MINIAPP_INBOX_ID not set — cannot create conversation",
-    );
+    logChatwootCanonicalFailure("config_missing", {
+      telegramId,
+      accountId: ACCOUNT_ID,
+      reason: "CHATWOOT_MINIAPP_INBOX_ID not set",
+    });
     return null;
   }
 
@@ -644,15 +710,36 @@ export async function findOrCreateMiniAppConversation(
         console.log(
           `[chatwoot] created canonical contact ${contactId} for tg ${telegramId}`,
         );
+      } else {
+        logChatwootCanonicalFailure("contact_missing_id", {
+          telegramId,
+          accountId: ACCOUNT_ID,
+          miniAppInboxId,
+          responseBody: data,
+          reason: "contact_create returned no id",
+        });
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error("[chatwoot] Contact create error", msg);
+      logChatwootCanonicalFailure(
+        "contact_create",
+        {
+          telegramId,
+          accountId: ACCOUNT_ID,
+          miniAppInboxId,
+        },
+        err,
+      );
       return null;
     }
   }
 
   if (!contactId) {
+    logChatwootCanonicalFailure("contact_missing_id", {
+      telegramId,
+      accountId: ACCOUNT_ID,
+      miniAppInboxId,
+      reason: "no contact after search and create",
+    });
     console.error(
       `[chatwoot] Could not find or create canonical contact for tg ${telegramId}`,
     );
@@ -665,7 +752,16 @@ export async function findOrCreateMiniAppConversation(
     miniAppInboxId,
   );
 
-  if (!apiConversationId) return null;
+  if (!apiConversationId) {
+    logChatwootCanonicalFailure("conversation_create", {
+      telegramId,
+      accountId: ACCOUNT_ID,
+      miniAppInboxId,
+      contactId,
+      reason: "no API inbox conversation after list/create",
+    });
+    return null;
+  }
 
   return { contactId, apiConversationId, contactCreated };
 }
@@ -703,10 +799,15 @@ async function findOrCreateApiInboxConversationForContact(
       return id;
     }
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(
-      `[chatwoot] list conversations error for contact ${contactId}:`,
-      msg,
+    logChatwootCanonicalFailure(
+      "conversation_list",
+      {
+        telegramId,
+        accountId: ACCOUNT_ID,
+        miniAppInboxId,
+        contactId,
+      },
+      err,
     );
   }
 
@@ -724,13 +825,27 @@ async function findOrCreateApiInboxConversationForContact(
       console.log(
         `[chatwoot] created API inbox conversation ${convId} for contact ${contactId}`,
       );
+    } else {
+      logChatwootCanonicalFailure("conversation_create", {
+        telegramId,
+        accountId: ACCOUNT_ID,
+        miniAppInboxId,
+        contactId,
+        responseBody: data,
+        reason: "conversation_create returned no id",
+      });
     }
     return convId;
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(
-      `[chatwoot] API inbox conversation create error for contact ${contactId}:`,
-      msg,
+    logChatwootCanonicalFailure(
+      "conversation_create",
+      {
+        telegramId,
+        accountId: ACCOUNT_ID,
+        miniAppInboxId,
+        contactId,
+      },
+      err,
     );
     return null;
   }

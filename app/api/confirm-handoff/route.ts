@@ -136,19 +136,18 @@ export async function POST(req: NextRequest) {
       extras,
     );
 
-    const handoffMode: "chatwoot_handoff" | "telegram_fallback" = conversationId
-      ? "chatwoot_handoff"
-      : "telegram_fallback";
+    const chatwootHandoffOk = conversationId != null;
+    const handoffMode: "chatwoot_handoff" | "telegram_fallback" =
+      chatwootHandoffOk ? "chatwoot_handoff" : "telegram_fallback";
 
-    if (!conversationId) {
-      console.log(
-        "[confirm-handoff] no Chatwoot conversation — direct Telegram fallback",
-      );
+    if (!chatwootHandoffOk) {
+      console.log("[confirm-handoff] chatwoot attach failed; fallback only");
       await sendHighIntentTelegramLead(user, answers, extras);
     }
     console.log(`[confirm-handoff] result mode: ${handoffMode}`);
 
-    // Persist confirmation state (single write for all segments).
+    // Intent confirmation is recorded even when Chatwoot attach fails.
+    // crmTriggered / crm_triggered / Voluum CRM postback require a real 976 conversation.
     await db
       .update(users)
       .set({
@@ -156,11 +155,15 @@ export async function POST(req: NextRequest) {
         confirmedProductKey: productMatch.productKey,
         bundleOfferShown: bundleShown,
         bundleAccepted,
-        crmTriggered: true,
-        crmTriggeredAt: crmAlreadyFired
-          ? (user.crmTriggeredAt ?? now)
-          : now,
-        chatwootConversationId: conversationId ?? user.chatwootConversationId,
+        ...(chatwootHandoffOk
+          ? {
+              crmTriggered: true,
+              crmTriggeredAt: crmAlreadyFired
+                ? (user.crmTriggeredAt ?? now)
+                : now,
+              chatwootConversationId: conversationId,
+            }
+          : {}),
       })
       .where(eq(users.id, user.id));
 
@@ -190,15 +193,18 @@ export async function POST(req: NextRequest) {
       metadata: {
         productKey: productMatch.productKey,
         bundleAccepted,
-        conversationId,
+        conversationId: conversationId ?? null,
         mode: handoffMode,
+        ...(chatwootHandoffOk
+          ? {}
+          : { reason: "chatwoot_attach_failed" as const }),
         segment,
         afterTelegramReady: crmAlreadyFired,
       },
       country: user.country,
     });
 
-    if (!crmAlreadyFired) {
+    if (chatwootHandoffOk && !crmAlreadyFired) {
       await db.insert(events).values({
         userId: user.id,
         telegramId: user.telegramId,
@@ -238,9 +244,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      handled: "crm_recorded",
+      handled: chatwootHandoffOk ? "crm_recorded" : "telegram_fallback",
       mode: handoffMode,
-      handoffFallback: handoffMode === "telegram_fallback",
+      handoffFallback: !chatwootHandoffOk,
+      ...(chatwootHandoffOk
+        ? {}
+        : { reason: "chatwoot_attach_failed" as const }),
       segment,
       customerView,
     });
