@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AutoRefresh } from "../_components/AutoRefresh";
 import { adminApi } from "../_components/adminApi";
@@ -12,6 +13,15 @@ type TrafficCountryRow = {
   depositCvr: number;
 };
 
+type DepositorRow = {
+  userId: string;
+  telegramId: number;
+  username: string | null;
+  firstName: string | null;
+  country: string | null;
+  depositedAt: string;
+};
+
 type TrafficPayload = {
   days: number;
   countryLimit?: number;
@@ -19,6 +29,7 @@ type TrafficPayload = {
   byCampaign: TrafficRow[];
   byVariant: TrafficRow[];
   byCountry: TrafficCountryRow[];
+  depositors: DepositorRow[];
   generatedAt?: string;
 };
 
@@ -45,6 +56,27 @@ const SOURCE_NAMES: Record<string, string> = {
   sms: "SMS",
   email: "Email",
 };
+
+function displayCountry(raw: string | null): string {
+  if (!raw || raw === "(unknown)") return "Unknown";
+  return raw;
+}
+
+function displayDepositorUser(row: DepositorRow): string {
+  if (row.username) return `@${row.username}`;
+  if (row.firstName) return row.firstName;
+  if (row.telegramId) return `TG_${row.telegramId}`;
+  return "—";
+}
+
+function formatDepositedAt(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
 
 function displayLabel(
   raw: string | null,
@@ -130,7 +162,9 @@ function StatTable({
 
 export default function AdminTrafficPage() {
   const [days, setDays] = useState(7);
-  const [tab, setTab] = useState<"overview" | "countries">("overview");
+  const [tab, setTab] = useState<"overview" | "countries" | "depositors">(
+    "overview",
+  );
   const [data, setData] = useState<TrafficPayload | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -173,7 +207,9 @@ export default function AdminTrafficPage() {
           <p className="mt-1 max-w-xl text-sm text-zinc-500">
             {tab === "overview"
               ? "Ad sources, campaigns, entry experience, and a quick country snapshot — refreshed every minute"
-              : "Every country in this window (up to the row limit), ordered by sign-ups — use for full lists"}
+              : tab === "countries"
+                ? "Every country in this window (up to the row limit), ordered by sign-ups — use for full lists"
+                : "Users with a confirmed deposit in this period — from Chatwoot deposit-confirmed events"}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -216,6 +252,17 @@ export default function AdminTrafficPage() {
             }`}
           >
             Countries List
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("depositors")}
+            className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+              tab === "depositors"
+                ? "bg-zinc-800 text-white"
+                : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
+            }`}
+          >
+            Depositors
           </button>
         </div>
       ) : null}
@@ -300,7 +347,7 @@ export default function AdminTrafficPage() {
             )}
           </div>
         </div>
-      ) : (
+      ) : tab === "countries" ? (
         <div className="space-y-4">
           <div className="rounded-xl border border-zinc-800 bg-zinc-950/50 px-5 py-5">
             <h2 className="text-[15px] font-semibold text-white">Countries List</h2>
@@ -350,6 +397,63 @@ export default function AdminTrafficPage() {
                   </li>
                 ))}
               </ul>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="rounded-xl border border-zinc-800 bg-zinc-950/50 px-5 py-5">
+            <h2 className="text-[15px] font-semibold text-white">Depositors</h2>
+            <p className="mt-1 max-w-3xl text-xs leading-relaxed text-zinc-500">
+              Users with a confirmed deposit in the selected window (from{" "}
+              <code className="text-zinc-400">deposit_confirmed</code> events).
+              Should match the Overview deposit KPI when row count is under 500.
+            </p>
+            <p className="mt-3 text-sm text-zinc-400">
+              <span className="text-zinc-500">Rows shown:</span>{" "}
+              <span className="tabular-nums text-zinc-200">
+                {data.depositors.length}
+              </span>
+            </p>
+            {data.depositors.length === 0 ? (
+              <p className="mt-4 text-sm text-zinc-500">
+                No confirmed deposits in this period.
+              </p>
+            ) : (
+              <div className="mt-4 max-h-[min(70vh,720px)] overflow-x-auto overflow-y-auto pr-1">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="sticky top-0 bg-zinc-950/95 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">User</th>
+                      <th className="px-3 py-2 font-medium">Country</th>
+                      <th className="px-3 py-2 font-medium">Deposited</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800">
+                    {data.depositors.map((row) => (
+                      <tr
+                        key={row.userId}
+                        className="bg-zinc-950/50 hover:bg-zinc-900/40"
+                      >
+                        <td className="px-3 py-2.5">
+                          <Link
+                            href={`/admin/user/${encodeURIComponent(row.userId)}`}
+                            className="text-emerald-400/90 hover:text-emerald-400 hover:underline"
+                          >
+                            {displayDepositorUser(row)}
+                          </Link>
+                        </td>
+                        <td className="px-3 py-2.5 text-zinc-200">
+                          {displayCountry(row.country)}
+                        </td>
+                        <td className="px-3 py-2.5 tabular-nums text-zinc-400">
+                          {formatDepositedAt(row.depositedAt)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>

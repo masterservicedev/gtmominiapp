@@ -34,6 +34,16 @@ export type TrafficCountryRow = {
   depositCvr: number;
 };
 
+/** User with a deposit_confirmed event in the admin traffic time window. */
+export type DepositorRow = {
+  userId: string;
+  telegramId: number;
+  username: string | null;
+  firstName: string | null;
+  country: string | null;
+  depositedAt: Date;
+};
+
 export type FeedRow = {
   id: string;
   event_type: string;
@@ -224,6 +234,60 @@ export async function getTrafficByCountry(
       depositCvr: r.deposit_cvr ?? 0,
     }),
   );
+}
+
+/**
+ * Distinct users with at least one `deposit_confirmed` event in the window.
+ * One row per user — the latest deposit event in that window.
+ */
+export async function getDepositorsInWindow(
+  days: number,
+  rowLimit = 500,
+): Promise<DepositorRow[]> {
+  const d = days;
+  const lim = Math.min(Math.max(Math.floor(rowLimit), 1), 500);
+  const { rows } = await db.execute(sql`
+    SELECT
+      user_id,
+      telegram_id,
+      username,
+      first_name,
+      country,
+      deposited_at
+    FROM (
+      SELECT DISTINCT ON (e.user_id)
+        u.id::text AS user_id,
+        u.telegram_id::bigint AS telegram_id,
+        u.username,
+        u.first_name,
+        COALESCE(u.country, '(unknown)')::text AS country,
+        e.created_at AS deposited_at
+      FROM events e
+      INNER JOIN users u ON u.id = e.user_id
+      WHERE e.event_type = 'deposit_confirmed'
+        AND e.created_at > NOW() - (${d}::int * interval '1 day')
+      ORDER BY e.user_id, e.created_at DESC
+    ) latest
+    ORDER BY deposited_at DESC
+    LIMIT ${lim}
+  `);
+  return (
+    rows as {
+      user_id: string;
+      telegram_id: string | number;
+      username: string | null;
+      first_name: string | null;
+      country: string | null;
+      deposited_at: Date;
+    }[]
+  ).map((r) => ({
+    userId: r.user_id,
+    telegramId: Number(r.telegram_id),
+    username: r.username,
+    firstName: r.first_name,
+    country: r.country,
+    depositedAt: r.deposited_at,
+  }));
 }
 
 /** New users in window by IP captured at first `/api/init` (signup). */

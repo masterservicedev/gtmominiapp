@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import {
   clampAdminDays,
+  getDepositorsInWindow,
   getTrafficByCountry,
   getTrafficByEntryVariant,
   getTrafficByUtmCampaign,
@@ -18,12 +19,14 @@ export async function GET(req: NextRequest) {
     ? Math.min(Math.max(parseInt(countryLimitRaw, 10) || 40, 1), 500)
     : 40;
 
-  const [bySource, byCampaign, byVariant, byCountry] = await Promise.all([
-    getTrafficByUtmSource(days),
-    getTrafficByUtmCampaign(days),
-    getTrafficByEntryVariant(days),
-    getTrafficByCountry(days, countryLimit),
-  ]);
+  const [bySource, byCampaign, byVariant, byCountry, depositors] =
+    await Promise.all([
+      getTrafficByUtmSource(days),
+      getTrafficByUtmCampaign(days),
+      getTrafficByEntryVariant(days),
+      getTrafficByCountry(days, countryLimit),
+      getDepositorsInWindow(days, 500),
+    ]);
 
   return NextResponse.json({
     days,
@@ -32,6 +35,10 @@ export async function GET(req: NextRequest) {
     byCampaign,
     byVariant,
     byCountry,
+    depositors: depositors.map((row) => ({
+      ...row,
+      depositedAt: row.depositedAt.toISOString(),
+    })),
     generatedAt: new Date().toISOString(),
   });
 }
