@@ -1,6 +1,6 @@
 import type { InferSelectModel } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { and, eq, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { users, questionnaireAnswers } from "@/lib/db/schema";
 import {
   getProductMatch,
@@ -19,11 +19,10 @@ import {
   getConversationLabelTitles,
   addChatwootNote,
   addLabel,
-  applyTelegramInboxPriorityLabel,
   assignToTeam,
   ensureTelegramContactInbox,
-  findTelegramInboxConversationForContact,
 } from "@/lib/chatwoot";
+import { maybePostTelegramInboxSummaryAtHandoff } from "@/lib/chatwootTelegramMirror";
 import { conversationHasDepositConfirmedLabel } from "@/lib/chatwootDeposit";
 import { voluumPostbackUrl } from "@/lib/voluum";
 import axios from "axios";
@@ -247,9 +246,9 @@ export async function attachInternalLeadToChatwoot(
   // The content matches the inbox 976 private note so the agent sees the same
   // full lead card in their working inbox.
   await maybePostTelegramInboxSummaryAtHandoff({
-    userId: user.id,
+    user,
     contactId,
-    alreadyPosted: user.chatwootTelegramSummaryPostedAt != null,
+    apiConversationId,
     content: buildQualifiedLeadCardText(user, answers, extras),
   });
 
@@ -262,71 +261,6 @@ function parseStoredContactId(raw: string | null | undefined): number | null {
   if (!trimmed) return null;
   const n = Number(trimmed);
   return Number.isFinite(n) ? n : null;
-}
-
-async function maybePostTelegramInboxSummaryAtHandoff(args: {
-  userId: string;
-  contactId: number;
-  alreadyPosted: boolean;
-  content: string;
-}): Promise<void> {
-  if (args.alreadyPosted) {
-    console.log("[handoff] telegram inbox summary already posted previously");
-    return;
-  }
-
-  const telegramConvId = await findTelegramInboxConversationForContact(
-    args.contactId,
-  );
-  if (!telegramConvId) {
-    console.log(
-      "[handoff] no telegram inbox conversation yet — webhook will post summary on first inbound",
-    );
-    return;
-  }
-
-  // Conditional update guards against duplicate posts from races with the
-  // webhook handler. Only the first caller flips the timestamp from NULL.
-  const claimed = await db
-    .update(users)
-    .set({
-      chatwootTelegramConversationId: telegramConvId,
-      chatwootTelegramSummaryPostedAt: new Date(),
-    })
-    .where(
-      and(
-        eq(users.id, args.userId),
-        isNull(users.chatwootTelegramSummaryPostedAt),
-      ),
-    )
-    .returning({ id: users.id });
-
-  if (claimed.length === 0) {
-    console.log(
-      "[handoff] telegram inbox summary already claimed by another path — skip",
-    );
-    return;
-  }
-
-  try {
-    // addChatwootNote swallows errors internally (void) — priority is applied
-    // after the attempt; a silent note failure may still add the label.
-    await addChatwootNote(telegramConvId, args.content);
-    console.log(
-      `[handoff] telegram inbox lead card posted to conversation ${telegramConvId}`,
-    );
-    await applyTelegramInboxPriorityLabel(telegramConvId);
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(
-      "[handoff] telegram inbox lead card post failed — rolling back idempotency flag",
-      msg,
-    );
-    await db
-      .update(users)
-      .set({ chatwootTelegramSummaryPostedAt: null })
-      .where(eq(users.id, args.userId));
-  }
 }
 
 export async function fireCrmVoluumPostback(voluumCid: string | null) {

@@ -68,6 +68,7 @@ export const eventTypeValues = [
   "reactivation_confirm",
   "broadcast_sent",
   "broadcast_reply",
+  "chatwoot_telegram_summary_posted",
 ] as const;
 
 export type EventType = (typeof eventTypeValues)[number];

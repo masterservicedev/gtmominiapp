@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users, events } from "@/lib/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import {
   addChatwootNote,
-  applyTelegramInboxPriorityLabel,
   getConversationLabelTitles,
   setConversationCustomAttribute,
 } from "@/lib/chatwoot";
+import {
+  findLatestUnmirroredApiConversationId,
+  mirrorLeadCardToTelegramInbox,
+} from "@/lib/chatwootTelegramMirror";
 import { getLatestQuestionnaireAnswers } from "@/lib/db/questionnaire";
 import { voluumPostbackUrl } from "@/lib/voluum";
 import { cancelPendingNurture } from "@/lib/nurtureSchedule";
@@ -344,26 +347,19 @@ function extractWebhookContactId(
   return Number.isFinite(n) ? n : null;
 }
 
-async function postTelegramInboxSummaryForUser(args: {
-  userId: string;
-  telegramConversationId: string;
-}): Promise<void> {
-  const { userId, telegramConversationId } = args;
-
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-  if (!user) return;
+async function tryDeferredTelegramInboxMirror(
+  user: typeof users.$inferSelect,
+  telegramConversationId: string,
+): Promise<void> {
+  const apiConversationId = await findLatestUnmirroredApiConversationId(user);
+  if (!apiConversationId) {
+    console.log(
+      `[chatwoot-webhook] no unmirrored api conversation for user ${user.id} — skip telegram mirror`,
+    );
+    return;
+  }
 
   const answers = await getLatestQuestionnaireAnswers(user.id);
-
-  // Reconstruct the LeadCardExtras the immediate handoff path uses, sourced
-  // entirely from persisted user state. `reactivation` does NOT apply here —
-  // reactivation has its own 976 conversation and posts its lead card there
-  // directly; the deferred Telegram inbox path only fires for first-time
-  // handoffs that completed before the 977 conversation existed.
   const extras = buildLeadExtrasFromState({
     capital: answers?.capital,
     bundleEligible: user.bundleEligible ?? false,
@@ -371,49 +367,17 @@ async function postTelegramInboxSummaryForUser(args: {
     bundleAccepted: user.bundleAccepted ?? null,
     bundleOfferShown: user.bundleOfferShown ?? false,
   });
-
   const content = buildQualifiedLeadCardText(user, answers, extras);
 
-  // Conditional update — only the first concurrent caller wins. Prevents
-  // duplicate notes from repeated webhook deliveries even if the post itself
-  // races with a parallel webhook arrival.
-  const updated = await db
-    .update(users)
-    .set({ chatwootTelegramSummaryPostedAt: new Date() })
-    .where(
-      and(
-        eq(users.id, user.id),
-        isNull(users.chatwootTelegramSummaryPostedAt),
-      ),
-    )
-    .returning({ id: users.id });
-
-  if (updated.length === 0) {
-    console.log(
-      `[chatwoot-webhook] telegram summary already marked posted for user ${user.id} — skip duplicate post`,
-    );
-    return;
-  }
-
-  try {
-    // addChatwootNote swallows errors internally (void) — priority is applied
-    // after the attempt; a silent note failure may still add the label.
-    await addChatwootNote(telegramConversationId, content);
-    console.log(
-      `[chatwoot-webhook] telegram inbox lead card posted to ${telegramConversationId} for user ${user.id}`,
-    );
-    await applyTelegramInboxPriorityLabel(telegramConversationId);
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(
-      "[chatwoot-webhook] telegram inbox lead card post failed — rolling back idempotency flag",
-      msg,
-    );
-    await db
-      .update(users)
-      .set({ chatwootTelegramSummaryPostedAt: null })
-      .where(eq(users.id, user.id));
-  }
+  await mirrorLeadCardToTelegramInbox({
+    userId: user.id,
+    telegramId: user.telegramId,
+    apiConversationId,
+    telegramConversationId,
+    content,
+    source: "webhook",
+    country: user.country,
+  });
 }
 
 async function handleTelegramInboxEvent(
@@ -474,17 +438,16 @@ async function handleTelegramInboxEvent(
     await db.update(users).set(updates).where(eq(users.id, user.id));
   }
 
-  // Post the agent-facing summary once, only when the funnel has been confirmed
-  // and we have a 977 conversation to post into.
-  if (
-    user.intentConfirmedAt &&
-    user.chatwootTelegramSummaryPostedAt == null &&
-    conversationId
-  ) {
-    await postTelegramInboxSummaryForUser({
-      userId: user.id,
-      telegramConversationId: conversationId,
-    });
+  // Mirror the latest unmirrored 976 lead card when confirm completed before 977 existed.
+  if (user.intentConfirmedAt && conversationId) {
+    const [freshUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
+    if (freshUser) {
+      await tryDeferredTelegramInboxMirror(freshUser, conversationId);
+    }
   }
 
   // Drain any reactivation lead cards that were confirmed earlier but could
