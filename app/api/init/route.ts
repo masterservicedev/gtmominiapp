@@ -10,30 +10,74 @@ import { getClientIpRaw, normalizeStoredClientIp } from "@/lib/client-ip";
 function scheduleGeoUpdate(userId: string, ipForGeo: string): void {
   void (async () => {
     try {
+      if (!ipForGeo || ipForGeo === "0.0.0.0") {
+        console.warn("[geo] invalid ip for lookup", { ip: ipForGeo });
+      }
+      console.log("[geo] lookup start", { ip: ipForGeo });
+
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 2000);
       const geo = await fetch(`https://ipapi.co/${ipForGeo}/json/`, {
         signal: controller.signal,
       });
       clearTimeout(timeout);
-      if (!geo.ok) return;
-      const geoData = (await geo.json()) as {
+
+      const rawBody = await geo.text();
+
+      if (!geo.ok) {
+        console.error("[geo] ipapi error", {
+          ip: ipForGeo,
+          status: geo.status,
+          body: rawBody,
+        });
+        return;
+      }
+
+      let payload: unknown;
+      try {
+        payload = JSON.parse(rawBody);
+      } catch (err: unknown) {
+        console.error("[geo] json parse failed", {
+          ip: ipForGeo,
+          body: rawBody,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        return;
+      }
+
+      const geoData = payload as {
         country_name?: string;
         country_code?: string;
       };
       const country = geoData.country_name ?? null;
       const countryCode = geoData.country_code ?? null;
-      if (country || countryCode) {
-        await db
-          .update(users)
-          .set({
-            ...(country ? { country } : {}),
-            ...(countryCode ? { countryCode } : {}),
-          })
-          .where(eq(users.id, userId));
+
+      if (!country && !countryCode) {
+        console.warn("[geo] empty response", {
+          ip: ipForGeo,
+          body: rawBody,
+        });
+        return;
       }
-    } catch {
-      // Geo lookup failed silently — country stays null
+
+      console.log("[geo] ok", {
+        ip: ipForGeo,
+        country,
+        countryCode,
+      });
+
+      await db
+        .update(users)
+        .set({
+          ...(country ? { country } : {}),
+          ...(countryCode ? { countryCode } : {}),
+        })
+        .where(eq(users.id, userId));
+    } catch (err: unknown) {
+      console.error("[geo] fetch failed", {
+        ip: ipForGeo,
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
   })();
 }

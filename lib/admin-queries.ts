@@ -217,7 +217,7 @@ export async function getTrafficByCountry(
       COALESCE(country, '(unknown)')::text AS key,
       COUNT(*)::int AS users,
       ROUND(
-        100.0 * COUNT(*) FILTER (WHERE COALESCE(deposit_total, 0) > 0)
+        100.0 * COUNT(*) FILTER (WHERE bundle_used = true)
           / NULLIF(COUNT(*), 0),
         0
       )::int AS deposit_cvr
@@ -286,7 +286,10 @@ export async function getDepositorsInWindow(
     username: r.username,
     firstName: r.first_name,
     country: r.country,
-    depositedAt: r.deposited_at,
+    depositedAt:
+      r.deposited_at instanceof Date
+        ? r.deposited_at
+        : new Date(String(r.deposited_at)),
   }));
 }
 
