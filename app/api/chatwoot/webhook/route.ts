@@ -4,6 +4,7 @@ import { users, events } from "@/lib/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import {
   addChatwootNote,
+  applyTelegramInboxPriorityLabel,
   getConversationLabelTitles,
   setConversationCustomAttribute,
 } from "@/lib/chatwoot";
@@ -395,10 +396,13 @@ async function postTelegramInboxSummaryForUser(args: {
   }
 
   try {
+    // addChatwootNote swallows errors internally (void) — priority is applied
+    // after the attempt; a silent note failure may still add the label.
     await addChatwootNote(telegramConversationId, content);
     console.log(
       `[chatwoot-webhook] telegram inbox lead card posted to ${telegramConversationId} for user ${user.id}`,
     );
+    await applyTelegramInboxPriorityLabel(telegramConversationId);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(

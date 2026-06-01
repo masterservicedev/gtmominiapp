@@ -13,10 +13,11 @@ import {
   capitalFromAnswers,
 } from "@/lib/leadCardContent";
 import {
+  addChatwootNote,
+  applyTelegramInboxPriorityLabel,
   findLatestConversationIdForTelegramUser,
   findTelegramInboxConversationForContact,
 } from "@/lib/chatwoot";
-import { addChatwootNote } from "@/lib/chatwoot";
 import { telegramSendMessage } from "@/lib/telegramBotApi";
 import {
   attachInternalLeadToChatwoot,
@@ -183,6 +184,7 @@ export async function tryPostReactivationCardToTelegramInbox(args: {
     console.log(
       `[reactivate] telegram inbox reactivation card posted to ${conversationId} for offer ${offerId}`,
     );
+    await applyTelegramInboxPriorityLabel(conversationId);
     return { status: "posted", conversationId };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -260,6 +262,7 @@ export async function drainPendingReactivationCardsForUser(args: {
       console.log(
         `[reactivate] drain: telegram inbox reactivation card posted to ${telegramConversationId} for offer ${offer.id}`,
       );
+      await applyTelegramInboxPriorityLabel(telegramConversationId);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(

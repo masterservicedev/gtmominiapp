@@ -19,6 +19,7 @@ import {
   getConversationLabelTitles,
   addChatwootNote,
   addLabel,
+  applyTelegramInboxPriorityLabel,
   assignToTeam,
   ensureTelegramContactInbox,
   findTelegramInboxConversationForContact,
@@ -308,10 +309,13 @@ async function maybePostTelegramInboxSummaryAtHandoff(args: {
   }
 
   try {
+    // addChatwootNote swallows errors internally (void) — priority is applied
+    // after the attempt; a silent note failure may still add the label.
     await addChatwootNote(telegramConvId, args.content);
     console.log(
       `[handoff] telegram inbox lead card posted to conversation ${telegramConvId}`,
     );
+    await applyTelegramInboxPriorityLabel(telegramConvId);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(

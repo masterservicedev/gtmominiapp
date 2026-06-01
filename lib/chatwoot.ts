@@ -71,6 +71,22 @@ export async function addLabel(
   }
 }
 
+/** Apply the universal priority label to a Telegram inbox (977) conversation. */
+export async function applyTelegramInboxPriorityLabel(
+  conversationId: string,
+): Promise<void> {
+  const ok = await addLabel(conversationId, "priority");
+  if (ok) {
+    console.log("[handoff] priority label applied to telegram inbox", {
+      conversationId,
+    });
+  } else {
+    console.error("[handoff] priority label skipped/failed for telegram inbox", {
+      conversationId,
+    });
+  }
+}
+
 export async function assignToTeam(conversationId: string, teamId: number) {
   try {
     await chatwoot.patch(
