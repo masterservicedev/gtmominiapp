@@ -179,18 +179,10 @@ export async function tryPostReactivationCardToTelegramInbox(args: {
     return { status: "pending_no_conv" };
   }
 
-  try {
-    await addChatwootNote(conversationId, content);
-    console.log(
-      `[reactivate] telegram inbox reactivation card posted to ${conversationId} for offer ${offerId}`,
-    );
-    await applyTelegramInboxPriorityLabel(conversationId);
-    return { status: "posted", conversationId };
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
+  const noteOk = await addChatwootNote(conversationId, content);
+  if (!noteOk) {
     console.error(
-      `[reactivate] telegram inbox reactivation card post failed for offer ${offerId} — rolling back lock:`,
-      msg,
+      `[reactivate] telegram inbox reactivation card post failed for offer ${offerId} — rolling back lock`,
     );
     await db
       .update(broadcastOffers)
@@ -198,6 +190,11 @@ export async function tryPostReactivationCardToTelegramInbox(args: {
       .where(eq(broadcastOffers.id, offerId));
     return { status: "post_failed" };
   }
+  console.log(
+    `[reactivate] telegram inbox reactivation card posted to ${conversationId} for offer ${offerId}`,
+  );
+  await applyTelegramInboxPriorityLabel(conversationId);
+  return { status: "posted", conversationId };
 }
 
 /**
@@ -257,23 +254,21 @@ export async function drainPendingReactivationCardsForUser(args: {
       continue;
     }
 
-    try {
-      await addChatwootNote(telegramConversationId, content);
-      console.log(
-        `[reactivate] drain: telegram inbox reactivation card posted to ${telegramConversationId} for offer ${offer.id}`,
-      );
-      await applyTelegramInboxPriorityLabel(telegramConversationId);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
+    const noteOk = await addChatwootNote(telegramConversationId, content);
+    if (!noteOk) {
       console.error(
-        `[reactivate] drain: post failed for offer ${offer.id} — rolling back lock:`,
-        msg,
+        `[reactivate] drain: post failed for offer ${offer.id} — rolling back lock`,
       );
       await db
         .update(broadcastOffers)
         .set({ chatwootReactivationCardPostedAt: null })
         .where(eq(broadcastOffers.id, offer.id));
+      continue;
     }
+    console.log(
+      `[reactivate] drain: telegram inbox reactivation card posted to ${telegramConversationId} for offer ${offer.id}`,
+    );
+    await applyTelegramInboxPriorityLabel(telegramConversationId);
   }
 }
 

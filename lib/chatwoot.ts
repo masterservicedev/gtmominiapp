@@ -54,10 +54,20 @@ export function logChatwootCanonicalFailure(
   });
 }
 
+/**
+ * Post a private (agent-only) note to a Chatwoot conversation.
+ * Returns true on a successful POST, false on any failure. Never throws.
+ */
 export async function addChatwootNote(
   conversationId: string,
   content: string,
-) {
+): Promise<boolean> {
+  if (!ACCOUNT_ID) {
+    console.error("[chatwoot] note skipped — CHATWOOT_ACCOUNT_ID not set", {
+      conversationId,
+    });
+    return false;
+  }
   try {
     await chatwoot.post(
       `/accounts/${ACCOUNT_ID}/conversations/${conversationId}/messages`,
@@ -67,9 +77,18 @@ export async function addChatwootNote(
         private: true,
       },
     );
+    return true;
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("Chatwoot note error:", msg);
+    const httpStatus = isAxiosError(err) ? err.response?.status : undefined;
+    const responseBody = isAxiosError(err) ? err.response?.data : undefined;
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error("[chatwoot] note post failed", {
+      conversationId,
+      ...(httpStatus != null ? { httpStatus } : {}),
+      ...(responseBody != null ? { responseBody } : {}),
+      errorMessage,
+    });
+    return false;
   }
 }
 

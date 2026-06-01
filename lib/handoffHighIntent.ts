@@ -180,26 +180,44 @@ export async function attachInternalLeadToChatwoot(
       console.log(
         "[reactivate] skip pending labels because deposit-confirmed exists",
       );
-      await addChatwootNote(
+      const reactivationNoteOk = await addChatwootNote(
         apiConversationId,
         buildQualifiedLeadCardText(user, answers, extras),
       );
+      if (!reactivationNoteOk) {
+        console.error(
+          "[handoff] reactivation lead-card note (deposit-confirmed) failed — treating as attach failure",
+          { apiConversationId },
+        );
+        return null;
+      }
       console.log("[handoff] private reactivation note sent (deposit confirmed)");
       return apiConversationId;
     }
   }
 
-  // Always send the customer-facing message via the Telegram Bot API.
-  // Chatwoot API-type inboxes do not push outgoing messages to Telegram,
-  // so we never rely on sendChatwootOutboundMessage for delivery.
-  await sendHighIntentTelegramLead(user, answers, extras);
-  console.log("[handoff] direct Telegram customer message sent");
-
-  await addChatwootNote(
+  // The 976 private lead-card note is the CRM record of truth. Post it FIRST and
+  // require success before sending the customer DM, applying labels, or mirroring
+  // to 977. On failure we return null so the caller falls back to direct Telegram
+  // exactly once (no duplicate customer DM, no false CRM success).
+  const leadNoteOk = await addChatwootNote(
     apiConversationId,
     buildQualifiedLeadCardText(user, answers, extras),
   );
+  if (!leadNoteOk) {
+    console.error(
+      "[handoff] 976 lead-card note failed — aborting CRM attach (no labels, no 977 mirror)",
+      { apiConversationId },
+    );
+    return null;
+  }
   console.log("[handoff] private lead note sent");
+
+  // Send the customer-facing message via the Telegram Bot API only after the
+  // CRM note succeeded. Chatwoot API-type inboxes do not push outgoing messages
+  // to Telegram, so we never rely on sendChatwootOutboundMessage for delivery.
+  await sendHighIntentTelegramLead(user, answers, extras);
+  console.log("[handoff] direct Telegram customer message sent");
 
   console.log("[handoff] applying labels...");
 

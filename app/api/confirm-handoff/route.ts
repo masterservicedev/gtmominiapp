@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateInitData } from "@/lib/validation";
 import { db } from "@/lib/db";
 import { users, events } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { getLatestQuestionnaireAnswers } from "@/lib/db/questionnaire";
 import {
   getProductMatch,
@@ -104,6 +104,32 @@ export async function POST(req: NextRequest) {
 
     const now = new Date();
 
+    // Atomic confirm claim — only the first request flips intentConfirmedAt
+    // from NULL. This guards against two near-simultaneous confirm POSTs both
+    // passing the read-time guard above and running side effects twice.
+    // Intent/product/bundle state is written here; CRM-only fields are written
+    // later and only on Chatwoot success.
+    const claim = await db
+      .update(users)
+      .set({
+        intentConfirmedAt: now,
+        confirmedProductKey: productMatch.productKey,
+        bundleOfferShown: bundleShown,
+        bundleAccepted,
+      })
+      .where(and(eq(users.id, user.id), isNull(users.intentConfirmedAt)))
+      .returning({ id: users.id });
+
+    if (claim.length === 0) {
+      console.log(
+        "[confirm-handoff] intent already claimed by another request — skip side effects",
+      );
+      return NextResponse.json(
+        { error: "Intent already confirmed" },
+        { status: 400 },
+      );
+    }
+
     // Cancel any pending nurture (questionnaire-stage MID nurture from
     // /api/score, declined-intent nurture, etc.) so it doesn't fire while
     // an agent is already engaged. Per-segment post-confirm nurture is
@@ -146,26 +172,21 @@ export async function POST(req: NextRequest) {
     }
     console.log(`[confirm-handoff] result mode: ${handoffMode}`);
 
-    // Intent confirmation is recorded even when Chatwoot attach fails.
-    // crmTriggered / crm_triggered / Voluum CRM postback require a real 976 conversation.
-    await db
-      .update(users)
-      .set({
-        intentConfirmedAt: now,
-        confirmedProductKey: productMatch.productKey,
-        bundleOfferShown: bundleShown,
-        bundleAccepted,
-        ...(chatwootHandoffOk
-          ? {
-              crmTriggered: true,
-              crmTriggeredAt: crmAlreadyFired
-                ? (user.crmTriggeredAt ?? now)
-                : now,
-              chatwootConversationId: conversationId,
-            }
-          : {}),
-      })
-      .where(eq(users.id, user.id));
+    // Intent/product/bundle state was already persisted by the atomic claim.
+    // crmTriggered / crm_triggered / Voluum CRM postback require a real 976
+    // conversation, so CRM-only fields are written here only on Chatwoot success.
+    if (chatwootHandoffOk) {
+      await db
+        .update(users)
+        .set({
+          crmTriggered: true,
+          crmTriggeredAt: crmAlreadyFired
+            ? (user.crmTriggeredAt ?? now)
+            : now,
+          chatwootConversationId: conversationId,
+        })
+        .where(eq(users.id, user.id));
+    }
 
     // intent_confirm event — recorded for every confirmed user.
     await db.insert(events).values({

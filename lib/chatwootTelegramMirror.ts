@@ -87,7 +87,10 @@ export async function findLatestUnmirroredApiConversationId(
   return null;
 }
 
-export type MirrorLeadCardResult = "posted" | "already_mirrored";
+export type MirrorLeadCardResult =
+  | "posted"
+  | "already_mirrored"
+  | "post_failed";
 
 /**
  * Mirror a 976 lead card to Telegram inbox 977 once per API conversation.
@@ -114,8 +117,17 @@ export async function mirrorLeadCardToTelegramInbox(args: {
     return "already_mirrored";
   }
 
-  // addChatwootNote swallows errors internally (void).
-  await addChatwootNote(telegramId, args.content);
+  // Post the 977 note first. Only on success do we apply priority, record the
+  // mirror event, and stamp the last-mirrored timestamp. If the note fails we
+  // record nothing so a later webhook can retry this apiConversationId.
+  const noteOk = await addChatwootNote(telegramId, args.content);
+  if (!noteOk) {
+    console.error(
+      "[handoff] telegram inbox mirror note failed — not recording mirror (will retry on next inbound)",
+      { apiConversationId: apiId, telegramConversationId: telegramId },
+    );
+    return "post_failed";
+  }
   await applyTelegramInboxPriorityLabel(telegramId);
 
   await db.insert(events).values({
