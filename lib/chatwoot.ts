@@ -29,6 +29,10 @@ export function logChatwootCanonicalFailure(
     contactId?: number | null;
     reason?: string;
     responseBody?: unknown;
+    payloadContactKeys?: string[];
+    payloadContactId?: number | null;
+    normalizedContactKeys?: string[];
+    normalizedContactId?: number | null;
   },
   err?: unknown,
 ): void {
@@ -44,6 +48,18 @@ export function logChatwootCanonicalFailure(
     miniAppInboxId: context.miniAppInboxId ?? null,
     ...(context.contactId != null ? { contactId: context.contactId } : {}),
     ...(context.reason ? { reason: context.reason } : {}),
+    ...(context.payloadContactKeys
+      ? {
+          payloadContactKeys: context.payloadContactKeys,
+          payloadContactId: context.payloadContactId ?? null,
+        }
+      : {}),
+    ...(context.normalizedContactKeys
+      ? {
+          normalizedContactKeys: context.normalizedContactKeys,
+          normalizedContactId: context.normalizedContactId ?? null,
+        }
+      : {}),
     ...(httpStatus != null ? { httpStatus } : {}),
     ...(axiosBody != null
       ? { responseBody: axiosBody }
@@ -162,6 +178,64 @@ export async function assignToTeam(conversationId: string, teamId: number) {
 }
 
 type ContactPayload = { id?: number };
+
+/** Body shapes returned by POST /accounts/:id/contacts (varies by Chatwoot version). */
+type ChatwootContactCreateBody = {
+  id?: number;
+  contact?: ContactPayload;
+  payload?: ContactPayload & {
+    contact?: ContactPayload;
+    contact_inbox?: unknown;
+  };
+};
+
+function extractContactIdFromCreateResponse(
+  data: ChatwootContactCreateBody | undefined,
+): number | null {
+  const id =
+    data?.id ??
+    data?.payload?.id ??
+    data?.payload?.contact?.id ??
+    data?.contact?.id ??
+    null;
+  return id ?? null;
+}
+
+function normalizeContactFromCreateResponse(
+  data: ChatwootContactCreateBody | undefined,
+): ContactPayload | null {
+  if (!data) return null;
+  const contact =
+    data.payload?.contact ?? data.payload ?? data.contact ?? data;
+  return contact && typeof contact === "object" ? contact : null;
+}
+
+type ContactCreateMissingIdDiagnostics = {
+  payloadContactKeys?: string[];
+  payloadContactId?: number | null;
+  normalizedContactKeys?: string[];
+  normalizedContactId?: number | null;
+};
+
+function contactCreateMissingIdDiagnostics(
+  data: ChatwootContactCreateBody | undefined,
+): ContactCreateMissingIdDiagnostics {
+  const payloadContact = data?.payload?.contact;
+  if (payloadContact && typeof payloadContact === "object") {
+    return {
+      payloadContactKeys: Object.keys(payloadContact),
+      payloadContactId: payloadContact.id ?? null,
+    };
+  }
+  const normalized = normalizeContactFromCreateResponse(data);
+  if (normalized) {
+    return {
+      normalizedContactKeys: Object.keys(normalized),
+      normalizedContactId: normalized.id ?? null,
+    };
+  }
+  return {};
+}
 
 export async function findContactByTelegramId(telegramId: number) {
   const list = await findContactsByTelegramId(telegramId);
@@ -707,22 +781,20 @@ export async function findOrCreateMiniAppConversation(
   if (!contactId) {
     try {
       const displayName = firstName || userName || `TG_${telegramId}`;
-      const { data } = await chatwoot.post<{
-        id?: number;
-        payload?: { id?: number };
-        contact?: { id?: number };
-      }>(`/accounts/${ACCOUNT_ID}/contacts`, {
-        inbox_id: miniAppInboxId,
-        name: displayName,
-        identifier: `telegram:${telegramId}`,
-        additional_attributes: {
-          telegram_id: String(telegramId),
-          username: userName ?? "",
-          acquisition_source: "mini_app",
+      const { data } = await chatwoot.post<ChatwootContactCreateBody>(
+        `/accounts/${ACCOUNT_ID}/contacts`,
+        {
+          inbox_id: miniAppInboxId,
+          name: displayName,
+          identifier: `telegram:${telegramId}`,
+          additional_attributes: {
+            telegram_id: String(telegramId),
+            username: userName ?? "",
+            acquisition_source: "mini_app",
+          },
         },
-      });
-      const created =
-        data?.id ?? data?.payload?.id ?? data?.contact?.id ?? null;
+      );
+      const created = extractContactIdFromCreateResponse(data);
       if (created != null) {
         contactId = created;
         contactCreated = true;
@@ -736,6 +808,7 @@ export async function findOrCreateMiniAppConversation(
           miniAppInboxId,
           responseBody: data,
           reason: "contact_create returned no id",
+          ...contactCreateMissingIdDiagnostics(data),
         });
       }
     } catch (err: unknown) {
