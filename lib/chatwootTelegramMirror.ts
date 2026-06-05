@@ -6,7 +6,9 @@ import {
   addChatwootNote,
   applyTelegramInboxPriorityLabel,
   findTelegramInboxConversationForContact,
+  findTelegramInboxConversationForTelegramUser,
 } from "@/lib/chatwoot";
+import { removeStaleTelegramInboxTriageLabels } from "@/lib/chatwootInboxTriage";
 
 type UserRow = InferSelectModel<typeof users>;
 
@@ -110,6 +112,7 @@ export async function mirrorLeadCardToTelegramInbox(args: {
 
   if (await hasTelegramSummaryMirrorForApiConversation(args.userId, apiId)) {
     await applyTelegramInboxPriorityLabel(telegramId);
+    await removeStaleTelegramInboxTriageLabels(telegramId);
     console.log(
       "[handoff] telegram mirror already recorded for api conversation — priority ensured",
       { apiConversationId: apiId, telegramConversationId: telegramId },
@@ -129,6 +132,7 @@ export async function mirrorLeadCardToTelegramInbox(args: {
     return "post_failed";
   }
   await applyTelegramInboxPriorityLabel(telegramId);
+  await removeStaleTelegramInboxTriageLabels(telegramId);
 
   await db.insert(events).values({
     userId: args.userId,
@@ -159,6 +163,21 @@ export async function mirrorLeadCardToTelegramInbox(args: {
   return "posted";
 }
 
+async function resolveTelegramInboxConversationForMirror(args: {
+  user: UserRow;
+  contactId: number;
+}): Promise<string | null> {
+  const stored = args.user.chatwootTelegramConversationId?.trim();
+  if (stored) return stored;
+
+  const fromCanonical = await findTelegramInboxConversationForContact(
+    args.contactId,
+  );
+  if (fromCanonical) return fromCanonical;
+
+  return findTelegramInboxConversationForTelegramUser(args.user.telegramId);
+}
+
 /** Immediate mirror at handoff when a 977 conversation already exists. */
 export async function maybePostTelegramInboxSummaryAtHandoff(args: {
   user: UserRow;
@@ -166,9 +185,10 @@ export async function maybePostTelegramInboxSummaryAtHandoff(args: {
   apiConversationId: string;
   content: string;
 }): Promise<void> {
-  const telegramConvId = await findTelegramInboxConversationForContact(
-    args.contactId,
-  );
+  const telegramConvId = await resolveTelegramInboxConversationForMirror({
+    user: args.user,
+    contactId: args.contactId,
+  });
   if (!telegramConvId) {
     console.log(
       "[handoff] no telegram inbox conversation yet — webhook will mirror on first inbound",

@@ -8,6 +8,7 @@ import { voluumPostbackUrl } from "@/lib/voluum";
 import { capitalFromAnswers } from "@/lib/leadCardContent";
 import { getProductMatch } from "@/lib/productMatch";
 import { scheduleMidNurture } from "@/lib/nurtureSchedule";
+import { syncTelegramInbox977TriageForUser } from "@/lib/chatwootInboxTriage";
 
 export async function POST(req: NextRequest) {
   try {
@@ -81,6 +82,24 @@ export async function POST(req: NextRequest) {
         bundleAccepted: null,
       })
       .where(eq(users.id, user.id));
+
+    void (async () => {
+      try {
+        const [freshUser] = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, user.id))
+          .limit(1);
+        if (freshUser) {
+          await syncTelegramInbox977TriageForUser(freshUser);
+        }
+      } catch (err: unknown) {
+        console.error("[score] telegram inbox triage sync failed", {
+          userId: user.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    })();
 
     await db.insert(events).values({
       userId: user.id,

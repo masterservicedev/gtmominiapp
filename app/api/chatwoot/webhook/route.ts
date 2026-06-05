@@ -419,55 +419,62 @@ async function handleTelegramInboxEvent(
   }
 
   if (conversationId) {
-    await applyTelegramInbox977Triage({
-      conversationId,
-      telegramId,
-      user,
-    });
-    const updates: Partial<typeof users.$inferInsert> = {
-      chatwootTelegramConversationId: conversationId,
-    };
-
     if (!user.chatwootContactId && webhookContactIdRaw != null) {
-      updates.chatwootContactId = String(webhookContactIdRaw);
-    } else if (
-      webhookContactIdRaw != null &&
-      user.chatwootContactId &&
-      String(user.chatwootContactId) !== String(webhookContactIdRaw)
-    ) {
-      console.error(
-        "[chatwoot-webhook] chatwoot_split_contact_reconciliation_required",
-        {
-          telegramId,
-          canonicalContactId: user.chatwootContactId,
-          webhookContactId: String(webhookContactIdRaw),
-          inboxId: process.env.CHATWOOT_TELEGRAM_INBOX_ID,
-          conversationId,
-          source: "telegram_inbox_event",
-        },
-      );
+      await db
+        .update(users)
+        .set({
+          chatwootContactId: String(webhookContactIdRaw),
+          chatwootTelegramConversationId: conversationId,
+        })
+        .where(eq(users.id, user.id));
+    } else {
+      if (
+        webhookContactIdRaw != null &&
+        user.chatwootContactId &&
+        String(user.chatwootContactId) !== String(webhookContactIdRaw)
+      ) {
+        console.error(
+          "[chatwoot-webhook] chatwoot_split_contact_reconciliation_required",
+          {
+            telegramId,
+            canonicalContactId: user.chatwootContactId,
+            webhookContactId: String(webhookContactIdRaw),
+            inboxId: process.env.CHATWOOT_TELEGRAM_INBOX_ID,
+            conversationId,
+            source: "telegram_inbox_event",
+          },
+        );
+      }
+
+      await db
+        .update(users)
+        .set({ chatwootTelegramConversationId: conversationId })
+        .where(eq(users.id, user.id));
     }
 
-    await db.update(users).set(updates).where(eq(users.id, user.id));
-  }
-
-  // Mirror the latest unmirrored 976 lead card when confirm completed before 977 existed.
-  if (user.intentConfirmedAt && conversationId) {
     const [freshUser] = await db
       .select()
       .from(users)
       .where(eq(users.id, user.id))
       .limit(1);
-    if (freshUser) {
-      await tryDeferredTelegramInboxMirror(freshUser, conversationId);
-    }
-  }
 
-  // Drain any reactivation lead cards that were confirmed earlier but could
-  // not post to inbox 977 at confirm-time (because no 977 conversation
-  // existed yet). Each broadcast_offers row is its own per-offer
-  // idempotency unit; the helper acquires the lock atomically.
-  if (conversationId) {
+    await applyTelegramInbox977Triage({
+      conversationId,
+      telegramId,
+      user: freshUser ?? user,
+    });
+
+    // Mirror the latest unmirrored 976 lead card when confirm completed before
+    // 977 existed, or when split contacts prevented handoff-time discovery.
+    // Uses the incoming webhook conversation id — not the canonical contact lookup.
+    const triageUser = freshUser ?? user;
+    if (
+      triageUser.intentConfirmedAt != null ||
+      triageUser.crmTriggered === true
+    ) {
+      await tryDeferredTelegramInboxMirror(triageUser, conversationId);
+    }
+
     await drainPendingReactivationCardsForUser({
       userId: user.id,
       telegramConversationId: conversationId,

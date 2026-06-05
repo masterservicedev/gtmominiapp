@@ -149,6 +149,44 @@ export async function addLabel(
   }
 }
 
+/**
+ * Remove specific labels from a conversation while preserving all others.
+ * Compares case-insensitively; no-op when none of the labels are present.
+ */
+export async function removeLabelsFromConversation(
+  conversationId: string,
+  labelsToRemove: string[],
+): Promise<boolean> {
+  if (!ACCOUNT_ID || labelsToRemove.length === 0) return true;
+  const removeSet = new Set(
+    labelsToRemove.map((label) => label.toLowerCase()),
+  );
+  try {
+    const { data } = await chatwoot.get(
+      `/accounts/${ACCOUNT_ID}/conversations/${conversationId}`,
+    );
+    const currentLabels: string[] = data.labels || [];
+    const nextLabels = currentLabels.filter(
+      (label) => !removeSet.has(String(label).toLowerCase()),
+    );
+    if (nextLabels.length === currentLabels.length) {
+      return true;
+    }
+    await chatwoot.post(
+      `/accounts/${ACCOUNT_ID}/conversations/${conversationId}/labels`,
+      { labels: nextLabels },
+    );
+    return true;
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[chatwoot] remove labels error:", msg, {
+      conversationId,
+      labelsToRemove,
+    });
+    return false;
+  }
+}
+
 /** Apply the universal priority label to a Telegram inbox (977) conversation. */
 export async function applyTelegramInboxPriorityLabel(
   conversationId: string,
@@ -712,6 +750,75 @@ export async function findTelegramInboxConversationForContact(
     );
     return null;
   }
+}
+
+/**
+ * Find the latest Telegram inbox (977) conversation for a Telegram user id,
+ * searching across every contact row Chatwoot has indexed for that user.
+ * Used when the 977 conversation hangs off a different contact than the
+ * canonical API inbox contact (split-contact scenario).
+ */
+export async function findTelegramInboxConversationForTelegramUser(
+  telegramId: number,
+): Promise<string | null> {
+  if (!ACCOUNT_ID) return null;
+  const telegramInboxId = readTelegramInboxId();
+  if (telegramInboxId == null) return null;
+
+  const contacts = await findContactsByTelegramId(telegramId);
+  if (contacts.length === 0) return null;
+
+  const tgStr = String(telegramId);
+  const tgNum = Number(telegramId);
+  const matches: ConvPayload[] = [];
+
+  for (const contact of contacts) {
+    const contactId = contact?.id;
+    if (contactId == null) continue;
+
+    let list: ConvPayload[] = [];
+    try {
+      const { data } = await chatwoot.get<{ payload?: ConvPayload[] }>(
+        `/accounts/${ACCOUNT_ID}/contacts/${contactId}/conversations`,
+      );
+      list = Array.isArray(data?.payload) ? data.payload : [];
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(
+        `[chatwoot] findTelegramInboxConversationForTelegramUser list error for contact ${contactId}:`,
+        msg,
+      );
+      continue;
+    }
+
+    for (const c of list) {
+      if (c.inbox_id !== telegramInboxId) continue;
+      const srcId = c.contact_inbox?.source_id;
+      const social =
+        c.meta?.sender?.additional_attributes?.social_telegram_user_id;
+      const sourceOk =
+        (srcId != null && String(srcId) === tgStr) ||
+        (social != null && Number(social) === tgNum);
+      if (!sourceOk) continue;
+      matches.push(c);
+    }
+  }
+
+  if (matches.length === 0) return null;
+
+  matches.sort((a, b) => {
+    const la = a.last_activity_at ?? 0;
+    const lb = b.last_activity_at ?? 0;
+    if (lb !== la) return lb - la;
+    const ca = a.created_at ?? 0;
+    const cb = b.created_at ?? 0;
+    return cb - ca;
+  });
+
+  const pick =
+    matches.find((c) => c.status === "open" || c.status === "pending") ??
+    matches[0];
+  return pick?.id != null ? String(pick.id) : null;
 }
 
 export type MiniAppConversationResult = {
