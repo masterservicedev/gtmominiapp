@@ -2,7 +2,7 @@ import type { InferSelectModel } from "drizzle-orm";
 import { eq } from "drizzle-orm";
 import {
   addLabel,
-  findTelegramInboxConversationForTelegramUser,
+  resolveTelegramInbox977ConversationId,
   removeLabelsFromConversation,
 } from "@/lib/chatwoot";
 import { db } from "@/lib/db";
@@ -67,9 +67,17 @@ export async function removeStaleTelegramInboxTriageLabels(
 export async function resolveTelegramInboxConversationId(
   user: UserRow,
 ): Promise<string | null> {
-  const stored = user.chatwootTelegramConversationId?.trim();
-  if (stored) return stored;
-  return findTelegramInboxConversationForTelegramUser(user.telegramId);
+  const canonicalRaw = user.chatwootContactId?.trim();
+  const canonicalContactId =
+    canonicalRaw && Number.isFinite(Number(canonicalRaw))
+      ? Number(canonicalRaw)
+      : null;
+  const resolved = await resolveTelegramInbox977ConversationId({
+    telegramId: user.telegramId,
+    storedConversationId: user.chatwootTelegramConversationId,
+    canonicalContactId,
+  });
+  return resolved.conversationId;
 }
 
 /**

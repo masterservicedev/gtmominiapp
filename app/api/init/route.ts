@@ -6,31 +6,12 @@ import { eq } from "drizzle-orm";
 import { normalizeEntryVariant } from "@/lib/funnel/normalize";
 import { parseStartParam } from "@/lib/startParam";
 import { getClientIpRaw, normalizeStoredClientIp } from "@/lib/client-ip";
-import { syncTelegramInbox977TriageForUser } from "@/lib/chatwootInboxTriage";
+import { associateTelegram977ConversationForUser } from "@/lib/chatwootTelegramMirror";
 import {
   getUnconsumedTelegramStartAttribution,
   hasStructuredAttribution,
   markTelegramStartAttributionConsumed,
 } from "@/lib/telegramStartAttribution";
-
-function scheduleTelegramInboxTriageSync(userId: string): void {
-  void (async () => {
-    try {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
-      if (!user) return;
-      await syncTelegramInbox977TriageForUser(user);
-    } catch (err: unknown) {
-      console.error("[init] telegram inbox triage sync failed", {
-        userId,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
-  })();
-}
 
 function scheduleGeoUpdate(userId: string, ipForGeo: string): void {
   void (async () => {
@@ -317,7 +298,15 @@ export async function POST(req: NextRequest) {
     });
 
     scheduleGeoUpdate(userId, ipForGeo);
-    scheduleTelegramInboxTriageSync(userId);
+
+    try {
+      await associateTelegram977ConversationForUser({ userId });
+    } catch (err: unknown) {
+      console.error("[init] telegram 977 association failed", {
+        userId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
 
     return NextResponse.json({
       success: true,

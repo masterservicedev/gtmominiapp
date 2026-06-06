@@ -752,6 +752,275 @@ export async function findTelegramInboxConversationForContact(
   }
 }
 
+function conversationMatchesTelegramIdentity(
+  conversation: ConvPayload,
+  telegramId: number,
+): boolean {
+  const tgStr = String(telegramId);
+  const tgNum = Number(telegramId);
+  const srcId = conversation.contact_inbox?.source_id;
+  const social =
+    conversation.meta?.sender?.additional_attributes?.social_telegram_user_id;
+  return (
+    (srcId != null && String(srcId) === tgStr) ||
+    (social != null && Number(social) === tgNum)
+  );
+}
+
+function pickLatestTelegramInboxConversation(
+  conversations: ConvPayload[],
+  telegramInboxId: number,
+): ConvPayload | null {
+  const filtered = conversations.filter((c) => c.inbox_id === telegramInboxId);
+  if (filtered.length === 0) return null;
+
+  filtered.sort((a, b) => {
+    const la = a.last_activity_at ?? 0;
+    const lb = b.last_activity_at ?? 0;
+    if (lb !== la) return lb - la;
+    const ca = a.created_at ?? 0;
+    const cb = b.created_at ?? 0;
+    return cb - ca;
+  });
+
+  return (
+    filtered.find((c) => c.status === "open" || c.status === "pending") ??
+    filtered[0] ??
+    null
+  );
+}
+
+async function listContactConversations(
+  contactId: number,
+): Promise<ConvPayload[]> {
+  if (!ACCOUNT_ID) return [];
+  try {
+    const { data } = await chatwoot.get<{ payload?: ConvPayload[] }>(
+      `/accounts/${ACCOUNT_ID}/contacts/${contactId}/conversations`,
+    );
+    return Array.isArray(data?.payload) ? data.payload : [];
+  } catch {
+    return [];
+  }
+}
+
+export type Telegram977DiscoverySource =
+  | "contact_inbox_binding"
+  | "cross_contact_strict"
+  | "cross_contact_verified_contact";
+
+export type Telegram977DiscoveryResult = {
+  conversationId: string | null;
+  source: Telegram977DiscoverySource | null;
+};
+
+type ContactDiscoveryDiagnostic = {
+  contactId: number;
+  hasTelegramInboxBinding: boolean;
+  inbox977ConversationCount: number;
+  strictIdentityMatchCount: number;
+  sampleConversationFields: {
+    inboxId: number | null;
+    hasContactInboxSourceId: boolean;
+    hasSocialTelegramUserId: boolean;
+  } | null;
+};
+
+/**
+ * Discover an existing Telegram inbox (977) conversation for a Telegram user.
+ * Contacts may be enumerated via /contacts/search, but every accepted conversation
+ * must belong to inbox 977 and either match Telegram identity on the conversation
+ * or hang off a contact whose contact_inbox row is verified for this telegramId.
+ */
+export async function discoverTelegramInbox977Conversation(args: {
+  telegramId: number;
+  /** Prefer checking canonical/API contact binding before broad search. */
+  canonicalContactId?: number | null;
+}): Promise<Telegram977DiscoveryResult> {
+  const { telegramId } = args;
+  if (!ACCOUNT_ID) {
+    return { conversationId: null, source: null };
+  }
+  const telegramInboxId = readTelegramInboxId();
+  if (telegramInboxId == null) {
+    return { conversationId: null, source: null };
+  }
+
+  const strictMatches: ConvPayload[] = [];
+  const verifiedContactConversations: Array<{
+    contactId: number;
+    conversations: ConvPayload[];
+  }> = [];
+  const diagnostics: ContactDiscoveryDiagnostic[] = [];
+  const seenContactIds = new Set<number>();
+
+  const canonicalId =
+    args.canonicalContactId != null && Number.isFinite(args.canonicalContactId)
+      ? args.canonicalContactId
+      : null;
+  const contactOrder: number[] = [];
+  if (canonicalId != null) contactOrder.push(canonicalId);
+
+  const searched = await findContactsByTelegramId(telegramId);
+  for (const contact of searched) {
+    if (contact?.id != null && !contactOrder.includes(contact.id)) {
+      contactOrder.push(contact.id);
+    }
+  }
+
+  for (const contactId of contactOrder) {
+    if (seenContactIds.has(contactId)) continue;
+    seenContactIds.add(contactId);
+
+    const fullContact = await fetchContactWithInboxes(contactId);
+    const hasTelegramInboxBinding = contactInboxesContainBinding(
+      fullContact?.contact_inboxes,
+      telegramInboxId,
+      telegramId,
+    );
+
+    const list = await listContactConversations(contactId);
+    const inbox977 = list.filter((c) => c.inbox_id === telegramInboxId);
+    let strictCount = 0;
+    for (const c of inbox977) {
+      if (conversationMatchesTelegramIdentity(c, telegramId)) {
+        strictMatches.push(c);
+        strictCount++;
+      }
+    }
+
+    const sample = inbox977[0];
+    diagnostics.push({
+      contactId,
+      hasTelegramInboxBinding,
+      inbox977ConversationCount: inbox977.length,
+      strictIdentityMatchCount: strictCount,
+      sampleConversationFields: sample
+        ? {
+            inboxId: sample.inbox_id ?? null,
+            hasContactInboxSourceId: sample.contact_inbox?.source_id != null,
+            hasSocialTelegramUserId:
+              sample.meta?.sender?.additional_attributes
+                ?.social_telegram_user_id != null,
+          }
+        : null,
+    });
+
+    if (hasTelegramInboxBinding && inbox977.length > 0) {
+      verifiedContactConversations.push({ contactId, conversations: inbox977 });
+    }
+  }
+
+  const strictPick = pickLatestTelegramInboxConversation(
+    strictMatches,
+    telegramInboxId,
+  );
+  if (strictPick?.id != null) {
+    console.log("[chatwoot-977] discovered via strict conversation identity", {
+      telegramId,
+      conversationId: strictPick.id,
+      contactCandidates: contactOrder.length,
+    });
+    return {
+      conversationId: String(strictPick.id),
+      source: "cross_contact_strict",
+    };
+  }
+
+  let bestVerified: ConvPayload | null = null;
+  let bestVerifiedContactId: number | null = null;
+  for (const entry of verifiedContactConversations) {
+    const pick = pickLatestTelegramInboxConversation(
+      entry.conversations,
+      telegramInboxId,
+    );
+    if (!pick) continue;
+    if (
+      !bestVerified ||
+      (pick.last_activity_at ?? 0) > (bestVerified.last_activity_at ?? 0)
+    ) {
+      bestVerified = pick;
+      bestVerifiedContactId = entry.contactId;
+    }
+  }
+
+  if (bestVerified?.id != null) {
+    console.log("[chatwoot-977] discovered via verified contact_inbox binding", {
+      telegramId,
+      conversationId: bestVerified.id,
+      contactId: bestVerifiedContactId,
+      contactCandidates: contactOrder.length,
+    });
+    return {
+      conversationId: String(bestVerified.id),
+      source:
+        bestVerifiedContactId === canonicalId
+          ? "contact_inbox_binding"
+          : "cross_contact_verified_contact",
+    };
+  }
+
+  if (contactOrder.length > 0) {
+    console.warn("[chatwoot-977] discovery failed — no identity-verified match", {
+      telegramId,
+      contactCandidates: contactOrder.length,
+      diagnostics,
+    });
+  }
+
+  return { conversationId: null, source: null };
+}
+
+export type ResolveTelegram977Source =
+  | "stored"
+  | "webhook"
+  | Telegram977DiscoverySource
+  | "none";
+
+export type ResolveTelegram977Result = {
+  conversationId: string | null;
+  source: ResolveTelegram977Source;
+};
+
+/**
+ * Resolve the Telegram inbox (977) conversation id for a Telegram user.
+ *
+ * Precedence:
+ *   1. Stored users.chatwoot_telegram_conversation_id
+ *   2. Verified incoming webhook conversation id (caller must match telegramId)
+ *   3. discoverTelegramInbox977Conversation (contact_inbox binding, then strict
+ *      conversation identity, then verified contact fallback)
+ */
+export async function resolveTelegramInbox977ConversationId(args: {
+  telegramId: number;
+  storedConversationId?: string | null;
+  webhookConversationId?: string | null;
+  canonicalContactId?: number | null;
+}): Promise<ResolveTelegram977Result> {
+  const stored = args.storedConversationId?.trim();
+  if (stored) {
+    return { conversationId: stored, source: "stored" };
+  }
+
+  const webhook = args.webhookConversationId?.trim();
+  if (webhook) {
+    return { conversationId: webhook, source: "webhook" };
+  }
+
+  const discovered = await discoverTelegramInbox977Conversation({
+    telegramId: args.telegramId,
+    canonicalContactId: args.canonicalContactId,
+  });
+  if (discovered.conversationId) {
+    return {
+      conversationId: discovered.conversationId,
+      source: discovered.source ?? "none",
+    };
+  }
+
+  return { conversationId: null, source: "none" };
+}
+
 /**
  * Find the latest Telegram inbox (977) conversation for a Telegram user id,
  * searching across every contact row Chatwoot has indexed for that user.
@@ -761,64 +1030,8 @@ export async function findTelegramInboxConversationForContact(
 export async function findTelegramInboxConversationForTelegramUser(
   telegramId: number,
 ): Promise<string | null> {
-  if (!ACCOUNT_ID) return null;
-  const telegramInboxId = readTelegramInboxId();
-  if (telegramInboxId == null) return null;
-
-  const contacts = await findContactsByTelegramId(telegramId);
-  if (contacts.length === 0) return null;
-
-  const tgStr = String(telegramId);
-  const tgNum = Number(telegramId);
-  const matches: ConvPayload[] = [];
-
-  for (const contact of contacts) {
-    const contactId = contact?.id;
-    if (contactId == null) continue;
-
-    let list: ConvPayload[] = [];
-    try {
-      const { data } = await chatwoot.get<{ payload?: ConvPayload[] }>(
-        `/accounts/${ACCOUNT_ID}/contacts/${contactId}/conversations`,
-      );
-      list = Array.isArray(data?.payload) ? data.payload : [];
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error(
-        `[chatwoot] findTelegramInboxConversationForTelegramUser list error for contact ${contactId}:`,
-        msg,
-      );
-      continue;
-    }
-
-    for (const c of list) {
-      if (c.inbox_id !== telegramInboxId) continue;
-      const srcId = c.contact_inbox?.source_id;
-      const social =
-        c.meta?.sender?.additional_attributes?.social_telegram_user_id;
-      const sourceOk =
-        (srcId != null && String(srcId) === tgStr) ||
-        (social != null && Number(social) === tgNum);
-      if (!sourceOk) continue;
-      matches.push(c);
-    }
-  }
-
-  if (matches.length === 0) return null;
-
-  matches.sort((a, b) => {
-    const la = a.last_activity_at ?? 0;
-    const lb = b.last_activity_at ?? 0;
-    if (lb !== la) return lb - la;
-    const ca = a.created_at ?? 0;
-    const cb = b.created_at ?? 0;
-    return cb - ca;
-  });
-
-  const pick =
-    matches.find((c) => c.status === "open" || c.status === "pending") ??
-    matches[0];
-  return pick?.id != null ? String(pick.id) : null;
+  const resolved = await resolveTelegramInbox977ConversationId({ telegramId });
+  return resolved.conversationId;
 }
 
 export type MiniAppConversationResult = {

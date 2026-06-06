@@ -8,8 +8,7 @@ import {
   setConversationCustomAttribute,
 } from "@/lib/chatwoot";
 import {
-  findLatestUnmirroredApiConversationId,
-  mirrorLeadCardToTelegramInbox,
+  tryDeliverPendingTelegram977Mirror,
 } from "@/lib/chatwootTelegramMirror";
 import { getLatestQuestionnaireAnswers } from "@/lib/db/questionnaire";
 import { voluumPostbackUrl } from "@/lib/voluum";
@@ -19,8 +18,6 @@ import {
   conversationHasDepositConfirmedLabel,
   extractDepositAmountUsd,
 } from "@/lib/chatwootDeposit";
-import { buildQualifiedLeadCardText } from "@/lib/leadCardContent";
-import { buildLeadExtrasFromState } from "@/lib/handoffHighIntent";
 import { drainPendingReactivationCardsForUser } from "@/lib/reactivateHandoff";
 import { applyTelegramInbox977Triage } from "@/lib/chatwootInboxTriage";
 import {
@@ -353,39 +350,6 @@ function extractWebhookContactId(
   return Number.isFinite(n) ? n : null;
 }
 
-async function tryDeferredTelegramInboxMirror(
-  user: typeof users.$inferSelect,
-  telegramConversationId: string,
-): Promise<void> {
-  const apiConversationId = await findLatestUnmirroredApiConversationId(user);
-  if (!apiConversationId) {
-    console.log(
-      `[chatwoot-webhook] no unmirrored api conversation for user ${user.id} — skip telegram mirror`,
-    );
-    return;
-  }
-
-  const answers = await getLatestQuestionnaireAnswers(user.id);
-  const extras = buildLeadExtrasFromState({
-    capital: answers?.capital,
-    bundleEligible: user.bundleEligible ?? false,
-    bundleUsed: user.bundleUsed ?? false,
-    bundleAccepted: user.bundleAccepted ?? null,
-    bundleOfferShown: user.bundleOfferShown ?? false,
-  });
-  const content = buildQualifiedLeadCardText(user, answers, extras);
-
-  await mirrorLeadCardToTelegramInbox({
-    userId: user.id,
-    telegramId: user.telegramId,
-    apiConversationId,
-    telegramConversationId,
-    content,
-    source: "webhook",
-    country: user.country,
-  });
-}
-
 async function handleTelegramInboxEvent(
   payload: Record<string, unknown>,
   conversationId: string | null,
@@ -483,7 +447,11 @@ async function handleTelegramInboxEvent(
       triageUser.intentConfirmedAt != null ||
       triageUser.crmTriggered === true
     ) {
-      await tryDeferredTelegramInboxMirror(triageUser, conversationId);
+      await tryDeliverPendingTelegram977Mirror(
+        triageUser,
+        conversationId,
+        "webhook",
+      );
     }
 
     await drainPendingReactivationCardsForUser({
