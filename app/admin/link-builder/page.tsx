@@ -111,7 +111,7 @@ function buildStartParam(
 
 function buildTelegramLink(startParam: string): string {
   const user = BOT_USERNAME.replace(/^@/, "");
-  return `https://t.me/${user}/app?startapp=${encodeURIComponent(startParam)}`;
+  return `https://t.me/${user}?start=${encodeURIComponent(startParam)}`;
 }
 
 function StepLabel({
@@ -296,8 +296,9 @@ export default function LinkBuilderPage() {
           Build your tracking link
         </h1>
         <p className="mx-auto mt-1 max-w-xl text-sm text-zinc-500">
-          Pick a source and campaign — the mini app assigns the experience when
-          they open (from your offers rotation). No variant in the link.
+          Pick a source and campaign — the link opens the bot first so Chatwoot
+          creates the Telegram conversation, then the user continues into the
+          mini app. Experience is assigned on open from your offers rotation.
         </p>
       </header>
 
@@ -456,8 +457,8 @@ export default function LinkBuilderPage() {
                     }
                     description={
                       source.cidMacro
-                        ? "Paste this as the destination in your Voluum campaign."
-                        : "Share or paste this link in your post or message."
+                        ? "Paste this as the destination in your Voluum campaign. It opens the bot first (/start), then the Mini App."
+                        : "Share or paste this link. It opens the bot first (/start), then the Mini App button."
                     }
                     link={telegramLink}
                     hint={source.hint}
@@ -521,9 +522,12 @@ export default function LinkBuilderPage() {
                     <dd className="text-zinc-200">{clickIdSummary}</dd>
                   </dl>
                   <p className="mt-3 border-t border-zinc-800/90 pt-3 text-[11px] leading-relaxed text-zinc-500">
-                    First-screen experience is chosen on open from your active
-                    offers rotation (database). Change rotation there — links stay
-                    the same.
+                    Bot-first link format:{" "}
+                    <span className="font-mono text-zinc-400">
+                      t.me/…?start=src_…_cmp_…
+                    </span>
+                    . First-screen experience is chosen on Mini App open from
+                    your active offers rotation.
                   </p>
                 </div>
 

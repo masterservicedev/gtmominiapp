@@ -7,6 +7,11 @@ import { normalizeEntryVariant } from "@/lib/funnel/normalize";
 import { parseStartParam } from "@/lib/startParam";
 import { getClientIpRaw, normalizeStoredClientIp } from "@/lib/client-ip";
 import { syncTelegramInbox977TriageForUser } from "@/lib/chatwootInboxTriage";
+import {
+  getUnconsumedTelegramStartAttribution,
+  hasStructuredAttribution,
+  markTelegramStartAttributionConsumed,
+} from "@/lib/telegramStartAttribution";
 
 function scheduleTelegramInboxTriageSync(userId: string): void {
   void (async () => {
@@ -144,7 +149,6 @@ export async function POST(req: NextRequest) {
     const validatedStartParam = validated.startParam ?? "";
     const bodyStart =
       typeof bodyStartParam === "string" ? bodyStartParam : "";
-    const rawStart = bodyStart || validatedStartParam || "";
     if (
       bodyStart &&
       validatedStartParam &&
@@ -155,9 +159,24 @@ export async function POST(req: NextRequest) {
         signed: validatedStartParam,
       });
     }
-    const startParam = validatedStartParam || rawStart;
 
-    /** Authoritative parse of Telegram `start_param` (also sent raw from client for logging consistency). */
+    let usedPendingStartAttribution = false;
+    let startParam = validatedStartParam.trim();
+    if (!hasStructuredAttribution(parseStartParam(startParam))) {
+      const pending = await getUnconsumedTelegramStartAttribution(tgUser.id);
+      if (pending) {
+        startParam = pending.rawStartParam;
+        usedPendingStartAttribution = true;
+        console.log("[init] using pending /start attribution", {
+          telegramId: tgUser.id,
+          rawStartParam: pending.rawStartParam,
+        });
+      } else if (!startParam && bodyStart.trim()) {
+        startParam = bodyStart.trim();
+      }
+    }
+
+    /** Authoritative parse of Telegram `start_param` (signed Mini App or pending /start). */
     const parsed = parseStartParam(startParam);
 
     const fromBodyCid =
@@ -165,7 +184,7 @@ export async function POST(req: NextRequest) {
         ? voluumCid.trim()
         : null;
     const fromParsedCid = parsed.cid?.trim() || null;
-    /** Prefer `start_param` cid over body when present (campaign links). */
+    /** Prefer parsed `start_param` cid over body when present (campaign links). */
     const effectiveCid = fromParsedCid ?? fromBodyCid;
 
     const ipRaw = getClientIpRaw(req);
@@ -278,6 +297,10 @@ export async function POST(req: NextRequest) {
         .where(eq(users.telegramId, tgUser.id));
     }
 
+    if (usedPendingStartAttribution) {
+      await markTelegramStartAttributionConsumed(tgUser.id);
+    }
+
     await db.insert(events).values({
       userId,
       telegramId: tgUser.id,
@@ -286,6 +309,9 @@ export async function POST(req: NextRequest) {
         variant: normalizedVariant,
         cid: effectiveCid,
         returning: existing.length > 0,
+        ...(usedPendingStartAttribution
+          ? { attributionSource: "pending_start" }
+          : {}),
         ...(storedClientIp ? { ip: storedClientIp } : {}),
       },
     });

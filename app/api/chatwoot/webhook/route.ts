@@ -23,6 +23,11 @@ import { buildQualifiedLeadCardText } from "@/lib/leadCardContent";
 import { buildLeadExtrasFromState } from "@/lib/handoffHighIntent";
 import { drainPendingReactivationCardsForUser } from "@/lib/reactivateHandoff";
 import { applyTelegramInbox977Triage } from "@/lib/chatwootInboxTriage";
+import {
+  extractInboundMessageContent,
+  extractStartCommandPayload,
+  upsertTelegramStartAttribution,
+} from "@/lib/telegramStartAttribution";
 
 // Single shared helper used by:
 //   - summary log
@@ -403,6 +408,12 @@ async function handleTelegramInboxEvent(
     .from(users)
     .where(eq(users.telegramId, telegramId))
     .limit(1);
+
+  const inboundContent = extractInboundMessageContent(payload);
+  const startCommandPayload = extractStartCommandPayload(inboundContent);
+  if (startCommandPayload) {
+    await upsertTelegramStartAttribution(telegramId, startCommandPayload);
+  }
 
   if (!user) {
     console.log(

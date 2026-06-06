@@ -225,3 +225,15 @@ export const campaignLinks = pgTable("campaign_links", {
   telegramLink: text("telegram_link").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+/** Pending structured attribution from bot-first `?start=` before Mini App open. */
+export const telegramStartAttribution = pgTable("telegram_start_attribution", {
+  telegramId: bigint("telegram_id", { mode: "number" }).primaryKey(),
+  rawStartParam: text("raw_start_param").notNull(),
+  cid: text("cid"),
+  source: text("source"),
+  campaign: text("campaign"),
+  variant: text("variant"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  consumedAt: timestamp("consumed_at"),
+});
