@@ -210,7 +210,31 @@ export async function tryDeliverPendingTelegram977Mirror(
   user: UserRow,
   telegramConversationId: string,
   source: TelegramMirrorSource,
+  options?: { webhookContextVerified?: boolean },
 ): Promise<void> {
+  let mirrorConversationId = telegramConversationId;
+  if (options?.webhookContextVerified === true) {
+    const resolved = await resolveTelegramInbox977ConversationId({
+      telegramId: user.telegramId,
+      storedConversationId: user.chatwootTelegramConversationId,
+      webhookConversationId: telegramConversationId,
+      webhookContextVerified: true,
+      canonicalContactId: parseStoredContactId(user.chatwootContactId),
+    });
+    if (!resolved.conversationId) {
+      console.log(
+        "[chatwoot-977] webhook mirror skipped — no verified 977 conversation",
+        {
+          userId: user.id,
+          telegramId: user.telegramId,
+          incomingConversationId: telegramConversationId,
+        },
+      );
+      return;
+    }
+    mirrorConversationId = resolved.conversationId;
+  }
+
   const apiConversationId = await findLatestUnmirroredApiConversationId(user);
   if (!apiConversationId) {
     console.log(
@@ -233,7 +257,7 @@ export async function tryDeliverPendingTelegram977Mirror(
     userId: user.id,
     telegramId: user.telegramId,
     apiConversationId,
-    telegramConversationId,
+    telegramConversationId: mirrorConversationId,
     content,
     source,
     country: user.country,

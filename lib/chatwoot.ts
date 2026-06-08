@@ -315,14 +315,35 @@ type ConvPayload = {
   last_activity_at?: number;
   created_at?: number;
   contact_inbox?: { source_id?: string | number };
+  contact?: {
+    id?: number;
+    additional_attributes?: {
+      social_telegram_user_id?: string | number;
+    };
+  };
   meta?: {
     sender?: {
+      id?: number;
       additional_attributes?: {
         social_telegram_user_id?: string | number;
       };
     };
   };
 };
+
+const DIRECT_INBOX_DISCOVERY_MAX_PAGES = 5;
+const DIRECT_INBOX_SCAN_DEADLINE_MS = 3000;
+const DIRECT_INBOX_PER_REQUEST_TIMEOUT_MS = 1000;
+const CONVERSATION_VALIDATION_REQUEST_TIMEOUT_MS = 1000;
+const DEFAULT_CONVERSATIONS_PAGE_SIZE = 25;
+
+type Telegram977ResolverCache = {
+  contactInboxBindingByContactId: Map<number, Promise<boolean>>;
+};
+
+function createTelegram977ResolverCache(): Telegram977ResolverCache {
+  return { contactInboxBindingByContactId: new Map() };
+}
 
 export type ConversationStatus = {
   status: string | null;
@@ -752,6 +773,17 @@ export async function findTelegramInboxConversationForContact(
   }
 }
 
+function conversationHasTelegramIdentityFields(
+  conversation: ConvPayload,
+): boolean {
+  return (
+    conversation.contact_inbox?.source_id != null ||
+    conversation.meta?.sender?.additional_attributes?.social_telegram_user_id !=
+      null ||
+    conversation.contact?.additional_attributes?.social_telegram_user_id != null
+  );
+}
+
 function conversationMatchesTelegramIdentity(
   conversation: ConvPayload,
   telegramId: number,
@@ -759,12 +791,463 @@ function conversationMatchesTelegramIdentity(
   const tgStr = String(telegramId);
   const tgNum = Number(telegramId);
   const srcId = conversation.contact_inbox?.source_id;
-  const social =
+  const socialSender =
     conversation.meta?.sender?.additional_attributes?.social_telegram_user_id;
+  const socialContact =
+    conversation.contact?.additional_attributes?.social_telegram_user_id;
   return (
     (srcId != null && String(srcId) === tgStr) ||
-    (social != null && Number(social) === tgNum)
+    (socialSender != null && Number(socialSender) === tgNum) ||
+    (socialContact != null && Number(socialContact) === tgNum)
   );
+}
+
+function extractConversationContactId(
+  conversation: ConvPayload,
+): number | null {
+  const raw = conversation.meta?.sender?.id ?? conversation.contact?.id;
+  if (raw == null) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+export type Telegram977IdentitySource =
+  | "contact_inbox_source_id"
+  | "meta_sender_social_telegram_user_id"
+  | "contact_social_telegram_user_id"
+  | "contact_inbox_binding";
+
+export type Telegram977InvalidReason =
+  | "wrong_inbox"
+  | "identity_mismatch"
+  | "missing_identity"
+  | "not_found"
+  | "invalid_payload";
+
+export type Telegram977ConversationValidation =
+  | {
+      status: "valid";
+      conversationId: string;
+      contactId: number | null;
+      identitySource: Telegram977IdentitySource;
+    }
+  | {
+      status: "request_failed";
+      reason: string;
+      httpStatus?: number;
+    }
+  | {
+      status: "invalid";
+      reason: Telegram977InvalidReason;
+    };
+
+function identitySourceForConversation(
+  conversation: ConvPayload,
+  telegramId: number,
+): Telegram977IdentitySource | null {
+  const tgStr = String(telegramId);
+  const tgNum = Number(telegramId);
+  const srcId = conversation.contact_inbox?.source_id;
+  if (srcId != null && String(srcId) === tgStr) {
+    return "contact_inbox_source_id";
+  }
+  const socialSender =
+    conversation.meta?.sender?.additional_attributes?.social_telegram_user_id;
+  if (socialSender != null && Number(socialSender) === tgNum) {
+    return "meta_sender_social_telegram_user_id";
+  }
+  const socialContact =
+    conversation.contact?.additional_attributes?.social_telegram_user_id;
+  if (socialContact != null && Number(socialContact) === tgNum) {
+    return "contact_social_telegram_user_id";
+  }
+  return null;
+}
+
+async function contactHasVerifiedTelegramInboxBinding(
+  contactId: number,
+  telegramId: number,
+  telegramInboxId: number,
+  cache: Telegram977ResolverCache,
+): Promise<boolean> {
+  const existing = cache.contactInboxBindingByContactId.get(contactId);
+  if (existing) return existing;
+
+  const pending = (async () => {
+    const fullContact = await fetchContactWithInboxes(contactId);
+    return contactInboxesContainBinding(
+      fullContact?.contact_inboxes,
+      telegramInboxId,
+      telegramId,
+    );
+  })();
+  cache.contactInboxBindingByContactId.set(contactId, pending);
+  return pending;
+}
+
+async function conversationVerifiedByContactInboxBinding(
+  conversation: ConvPayload,
+  telegramId: number,
+  telegramInboxId: number,
+  cache: Telegram977ResolverCache,
+): Promise<boolean> {
+  const contactId = extractConversationContactId(conversation);
+  if (contactId == null) return false;
+  return contactHasVerifiedTelegramInboxBinding(
+    contactId,
+    telegramId,
+    telegramInboxId,
+    cache,
+  );
+}
+
+/**
+ * Evaluate a single inbox-977 conversation candidate for exact Telegram identity.
+ * When identity fields are absent on the conversation payload, require a verified
+ * contact_inbox binding on the owning contact.
+ */
+async function evaluateTelegram977ConversationCandidate(
+  conversation: ConvPayload,
+  conversationId: string,
+  telegramId: number,
+  telegramInboxId: number,
+  cache: Telegram977ResolverCache,
+): Promise<Telegram977ConversationValidation> {
+  if (
+    conversation.inbox_id != null &&
+    conversation.inbox_id !== telegramInboxId
+  ) {
+    return { status: "invalid", reason: "wrong_inbox" };
+  }
+
+  const contactId = extractConversationContactId(conversation);
+
+  if (conversationHasTelegramIdentityFields(conversation)) {
+    if (!conversationMatchesTelegramIdentity(conversation, telegramId)) {
+      return { status: "invalid", reason: "identity_mismatch" };
+    }
+    return {
+      status: "valid",
+      conversationId,
+      contactId,
+      identitySource:
+        identitySourceForConversation(conversation, telegramId) ??
+        "contact_inbox_source_id",
+    };
+  }
+
+  const bindingOk = await conversationVerifiedByContactInboxBinding(
+    conversation,
+    telegramId,
+    telegramInboxId,
+    cache,
+  );
+  if (!bindingOk) {
+    return { status: "invalid", reason: "missing_identity" };
+  }
+  return {
+    status: "valid",
+    conversationId,
+    contactId,
+    identitySource: "contact_inbox_binding",
+  };
+}
+
+type InboxConversationListParseResult = {
+  conversations: ConvPayload[];
+  container: "data" | "payload" | "data.payload" | null;
+};
+
+function parseInboxConversationRows(
+  data: unknown,
+  inboxId: number,
+): InboxConversationListParseResult {
+  if (data == null || typeof data !== "object") {
+    return { conversations: [], container: null };
+  }
+  const record = data as Record<string, unknown>;
+
+  let raw: unknown[] | null = null;
+  let container: InboxConversationListParseResult["container"] = null;
+
+  if (Array.isArray(record.data)) {
+    raw = record.data;
+    container = "data";
+  } else if (Array.isArray(record.payload)) {
+    raw = record.payload;
+    container = "payload";
+  } else if (record.data != null && typeof record.data === "object") {
+    const inner = record.data as Record<string, unknown>;
+    if (Array.isArray(inner.payload)) {
+      raw = inner.payload;
+      container = "data.payload";
+    }
+  }
+
+  if (raw == null) {
+    if (record.data != null || record.payload != null) {
+      console.warn(
+        "[chatwoot-977] direct inbox list unsupported response container",
+        {
+          inboxId,
+          hasData: record.data != null,
+          hasPayload: record.payload != null,
+          dataType:
+            record.data != null ? typeof record.data : undefined,
+          payloadType:
+            record.payload != null ? typeof record.payload : undefined,
+        },
+      );
+    }
+    return { conversations: [], container: null };
+  }
+
+  const conversations = raw.filter((item): item is ConvPayload => {
+    if (item == null || typeof item !== "object") return false;
+    const conv = item as ConvPayload;
+    return conv.inbox_id === inboxId;
+  });
+  return { conversations, container };
+}
+
+/**
+ * Fetch and validate a conversation belongs to inbox 977 with exact Telegram identity.
+ */
+export async function fetchConversationForTelegramValidation(
+  conversationId: string,
+  telegramId: number,
+  cache: Telegram977ResolverCache = createTelegram977ResolverCache(),
+): Promise<Telegram977ConversationValidation> {
+  const telegramInboxId = readTelegramInboxId();
+  if (!ACCOUNT_ID || telegramInboxId == null) {
+    return { status: "invalid", reason: "invalid_payload" };
+  }
+
+  let conversation: ConvPayload | null = null;
+  try {
+    const { data } = await chatwoot.get<ConvPayload>(
+      `/accounts/${ACCOUNT_ID}/conversations/${conversationId}`,
+      { timeout: CONVERSATION_VALIDATION_REQUEST_TIMEOUT_MS },
+    );
+    conversation = data ?? null;
+  } catch (err: unknown) {
+    const httpStatus = isAxiosError(err) ? err.response?.status : undefined;
+    if (httpStatus === 404) {
+      return { status: "invalid", reason: "not_found" };
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      status: "request_failed",
+      reason: msg,
+      ...(httpStatus != null ? { httpStatus } : {}),
+    };
+  }
+
+  if (!conversation) {
+    return { status: "invalid", reason: "not_found" };
+  }
+
+  if (conversation.inbox_id !== telegramInboxId) {
+    return { status: "invalid", reason: "wrong_inbox" };
+  }
+
+  return evaluateTelegram977ConversationCandidate(
+    conversation,
+    conversationId,
+    telegramId,
+    telegramInboxId,
+    cache,
+  );
+}
+
+type InboxConversationsPageResult = {
+  conversations: ConvPayload[];
+  reportedPageSize: number | null;
+  responseContainer: InboxConversationListParseResult["container"];
+};
+
+async function listInboxConversationsPage(
+  inboxId: number,
+  page: number,
+  requestTimeoutMs: number,
+): Promise<InboxConversationsPageResult> {
+  if (!ACCOUNT_ID) {
+    return { conversations: [], reportedPageSize: null, responseContainer: null };
+  }
+  try {
+    const { data } = await chatwoot.get<{
+      meta?: { per_page?: number };
+    }>(`/accounts/${ACCOUNT_ID}/conversations`, {
+      params: { inbox_id: inboxId, page },
+      timeout: requestTimeoutMs,
+    });
+    const parsed = parseInboxConversationRows(data, inboxId);
+    const reportedPageSize =
+      typeof data?.meta?.per_page === "number" ? data.meta.per_page : null;
+    return {
+      conversations: parsed.conversations,
+      reportedPageSize,
+      responseContainer: parsed.container,
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[chatwoot-977] direct inbox list page failed", {
+      inboxId,
+      page,
+      errorMessage: msg,
+    });
+    return { conversations: [], reportedPageSize: null, responseContainer: null };
+  }
+}
+
+/**
+ * Account-level paginated scan of inbox 977 when contact-search discovery misses
+ * split-contact Telegram rows.
+ */
+async function discoverTelegramInbox977ByDirectInboxScan(args: {
+  telegramId: number;
+  telegramInboxId: number;
+  cache: Telegram977ResolverCache;
+}): Promise<Telegram977DiscoveryResult> {
+  const { telegramId, telegramInboxId, cache } = args;
+  const scanDeadline = Date.now() + DIRECT_INBOX_SCAN_DEADLINE_MS;
+
+  console.log("[chatwoot-977] direct inbox discovery started", {
+    telegramId,
+    inboxId: telegramInboxId,
+    maximumPages: DIRECT_INBOX_DISCOVERY_MAX_PAGES,
+    scanDeadlineMs: DIRECT_INBOX_SCAN_DEADLINE_MS,
+  });
+
+  let candidatesChecked = 0;
+  let pagesChecked = 0;
+  let stoppedByDeadline = false;
+
+  try {
+    for (let page = 1; page <= DIRECT_INBOX_DISCOVERY_MAX_PAGES; page++) {
+      const remainingMs = scanDeadline - Date.now();
+      if (remainingMs <= 0) {
+        stoppedByDeadline = true;
+        console.warn("[chatwoot-977] direct inbox discovery deadline exhausted", {
+          telegramId,
+          pagesChecked,
+          candidatesChecked,
+        });
+        break;
+      }
+
+      const requestTimeoutMs = Math.min(
+        DIRECT_INBOX_PER_REQUEST_TIMEOUT_MS,
+        remainingMs,
+      );
+      const pageResult = await listInboxConversationsPage(
+        telegramInboxId,
+        page,
+        requestTimeoutMs,
+      );
+      const list = pageResult.conversations;
+      pagesChecked = page;
+
+      if (list.length === 0) {
+        console.log("[chatwoot-977] direct inbox page scanned", {
+          telegramId,
+          page,
+          conversationCount: 0,
+          exactIdentityMatches: 0,
+          bindingVerifiedMatches: 0,
+          responseContainer: pageResult.responseContainer,
+        });
+        break;
+      }
+
+      let exactIdentityMatches = 0;
+      let bindingVerifiedMatches = 0;
+
+      for (const conversation of list) {
+        if (scanDeadline - Date.now() <= 0) {
+          stoppedByDeadline = true;
+          break;
+        }
+
+        candidatesChecked++;
+        if (conversation.id == null) continue;
+
+        const evaluated = await evaluateTelegram977ConversationCandidate(
+          conversation,
+          String(conversation.id),
+          telegramId,
+          telegramInboxId,
+          cache,
+        );
+        if (evaluated.status !== "valid") continue;
+
+        if (evaluated.identitySource === "contact_inbox_binding") {
+          bindingVerifiedMatches++;
+        } else {
+          exactIdentityMatches++;
+        }
+
+        console.log("[chatwoot-977] direct inbox conversation found", {
+          telegramId,
+          conversationId: evaluated.conversationId,
+          contactId: evaluated.contactId,
+          identitySource: evaluated.identitySource,
+          page,
+        });
+
+        return {
+          conversationId: evaluated.conversationId,
+          source:
+            evaluated.identitySource === "contact_inbox_binding"
+              ? "direct_inbox_binding"
+              : "direct_inbox_exact",
+        };
+      }
+
+      console.log("[chatwoot-977] direct inbox page scanned", {
+        telegramId,
+        page,
+        conversationCount: list.length,
+        exactIdentityMatches,
+        bindingVerifiedMatches,
+        responseContainer: pageResult.responseContainer,
+      });
+
+      const effectivePageSize =
+        pageResult.reportedPageSize ?? DEFAULT_CONVERSATIONS_PAGE_SIZE;
+      if (list.length < effectivePageSize) {
+        break;
+      }
+
+      if (stoppedByDeadline) {
+        console.warn("[chatwoot-977] direct inbox discovery deadline exhausted", {
+          telegramId,
+          pagesChecked,
+          candidatesChecked,
+        });
+        break;
+      }
+    }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[chatwoot-977] direct inbox discovery failed", {
+      telegramId,
+      pagesChecked,
+      candidatesChecked,
+      errorMessage: msg,
+    });
+    return { conversationId: null, source: null };
+  }
+
+  if (!stoppedByDeadline) {
+    console.warn("[chatwoot-977] direct inbox discovery exhausted", {
+      telegramId,
+      pagesChecked,
+      candidatesChecked,
+    });
+  }
+
+  return { conversationId: null, source: null };
 }
 
 function pickLatestTelegramInboxConversation(
@@ -807,7 +1290,9 @@ async function listContactConversations(
 export type Telegram977DiscoverySource =
   | "contact_inbox_binding"
   | "cross_contact_strict"
-  | "cross_contact_verified_contact";
+  | "cross_contact_verified_contact"
+  | "direct_inbox_exact"
+  | "direct_inbox_binding";
 
 export type Telegram977DiscoveryResult = {
   conversationId: string | null;
@@ -986,25 +1471,72 @@ export type ResolveTelegram977Result = {
  * Resolve the Telegram inbox (977) conversation id for a Telegram user.
  *
  * Precedence:
- *   1. Stored users.chatwoot_telegram_conversation_id
- *   2. Verified incoming webhook conversation id (caller must match telegramId)
- *   3. discoverTelegramInbox977Conversation (contact_inbox binding, then strict
- *      conversation identity, then verified contact fallback)
+ *   1. Stored users.chatwoot_telegram_conversation_id (validated)
+ *   2. Verified incoming webhook conversation id (validated)
+ *   3. discoverTelegramInbox977Conversation (contact search)
+ *   4. discoverTelegramInbox977ByDirectInboxScan (account-level inbox list)
  */
 export async function resolveTelegramInbox977ConversationId(args: {
   telegramId: number;
   storedConversationId?: string | null;
   webhookConversationId?: string | null;
+  /**
+   * When true, the webhook conversation id was extracted from a verified inbox-977
+   * payload with a trusted Telegram id. REST validation is still attempted, but a
+   * validation request failure does not block accepting the webhook id.
+   */
+  webhookContextVerified?: boolean;
   canonicalContactId?: number | null;
 }): Promise<ResolveTelegram977Result> {
+  const cache = createTelegram977ResolverCache();
+
   const stored = args.storedConversationId?.trim();
   if (stored) {
-    return { conversationId: stored, source: "stored" };
+    const validated = await fetchConversationForTelegramValidation(
+      stored,
+      args.telegramId,
+      cache,
+    );
+    if (validated.status === "valid") {
+      return { conversationId: validated.conversationId, source: "stored" };
+    }
   }
 
   const webhook = args.webhookConversationId?.trim();
   if (webhook) {
-    return { conversationId: webhook, source: "webhook" };
+    const validated = await fetchConversationForTelegramValidation(
+      webhook,
+      args.telegramId,
+      cache,
+    );
+    if (validated.status === "valid") {
+      return { conversationId: validated.conversationId, source: "webhook" };
+    }
+    if (
+      validated.status === "request_failed" &&
+      args.webhookContextVerified === true
+    ) {
+      console.log(
+        "[chatwoot-977] webhook conversation accepted from verified ingress after REST failure",
+        {
+          telegramId: args.telegramId,
+          conversationId: webhook,
+          errorCategory: "request_failed",
+          ...(validated.httpStatus != null
+            ? { httpStatus: validated.httpStatus }
+            : {}),
+          reason: validated.reason,
+        },
+      );
+      return { conversationId: webhook, source: "webhook" };
+    }
+    if (validated.status === "invalid" && args.webhookContextVerified === true) {
+      console.warn("[chatwoot-977] webhook conversation rejected", {
+        telegramId: args.telegramId,
+        conversationId: webhook,
+        reason: validated.reason,
+      });
+    }
   }
 
   const discovered = await discoverTelegramInbox977Conversation({
@@ -1016,6 +1548,29 @@ export async function resolveTelegramInbox977ConversationId(args: {
       conversationId: discovered.conversationId,
       source: discovered.source ?? "none",
     };
+  }
+
+  const telegramInboxId = readTelegramInboxId();
+  if (telegramInboxId != null) {
+    try {
+      const direct = await discoverTelegramInbox977ByDirectInboxScan({
+        telegramId: args.telegramId,
+        telegramInboxId,
+        cache,
+      });
+      if (direct.conversationId) {
+        return {
+          conversationId: direct.conversationId,
+          source: direct.source ?? "none",
+        };
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[chatwoot-977] direct inbox discovery aborted", {
+        telegramId: args.telegramId,
+        errorMessage: msg,
+      });
+    }
   }
 
   return { conversationId: null, source: "none" };

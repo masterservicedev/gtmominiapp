@@ -451,6 +451,7 @@ async function handleTelegramInboxEvent(
         triageUser,
         conversationId,
         "webhook",
+        { webhookContextVerified: true },
       );
     }
 
